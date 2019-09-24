@@ -8,6 +8,7 @@ This document outlines the steps I took to recreate Chenhao's dataset in [A Corp
 2. Macro align of paper sections
    1. In each version, find sections with the same section titles, and assume that they are the same section.
 3. Micro align sentences.
+   (https://stackoverflow.com/questions/49904659/finding-the-maximum-sum-of-values-in-a-2d-array-with-certain-restrictions)
    1. Extract sentences from a given section by taking any lines that do not begin with \{section} (or similar)
    2. Tokenize sentences with the Stanford tokenizer
    3. Create sentence pairs for each sentence in a section (N2 number of pairs, where N is the number of sentences in a section)

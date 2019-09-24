@@ -41,6 +41,9 @@ def get_text(arxiv_id: str, clean=False) -> List[str]:
     # 2. find all the version tags on the page.
     versions = VERSION_PATTERN.findall(abs_page)
 
+    if len(versions) < 2:  # not multiple versions
+        return tex_sources
+
     # for each version:
     for v in versions:
         url = f'https://arxiv.org/e-print/{arxiv_id}v{v}'
@@ -51,11 +54,11 @@ def get_text(arxiv_id: str, clean=False) -> List[str]:
 
         # 2. get the longest .tex file in each tar
         with tarfile.open(filename) as tar:
-            tex_source = ''
+            tex_source: str = ''
             for tarinfo in tar:
                 if os.path.splitext(tarinfo.name)[1] == ".tex":
                     f = tar.extractfile(tarinfo)
-                    contents = f.read()
+                    contents: str = f.read().decode()
                     if len(contents) > len(tex_source):
                         tex_source = contents
 
