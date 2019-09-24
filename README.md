@@ -53,3 +53,7 @@ Rough calculations: we make 2M requests, we download (estimating based on "For i
 Based on these estimates, we will download 800K \* 256KB = 204,800,000KB = 204,800MB = **204GB**.
 
 - TODO: revises these estimates as we begin downloading data.
+
+# To Do
+
+- might want to use https://docs.python.org/3.7/library/tempfile.html#module-tempfile
