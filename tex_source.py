@@ -12,13 +12,17 @@ def download_file(url: str, local_filename: str) -> str:
     # https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests
 
     # NOTE the stream=True parameter below
+    print(f'Downloading {url}...')
     with requests.get(url, stream=True) as r:
+
         r.raise_for_status()
         with open(local_filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)
                     # f.flush()
+
+    print(f'Saved to {local_filename}')
     return local_filename
 
 
@@ -34,12 +38,15 @@ def get_text(arxiv_id: str, clean=False, directory='data') -> List[str]:
     abs_url = f'https://arxiv.org/abs/{arxiv_id}'
 
     # 1. get the https://arxiv.org/abs/ page
+    print(f'Getting {abs_url}...')
     with requests.get(abs_url) as r:
         r.raise_for_status()
         abs_page = r.text
 
     # 2. find all the version tags on the page.
     versions = VERSION_PATTERN.findall(abs_page)
+
+    print(f'Found {len(versions)} versions.')
 
     if len(versions) < 2:  # not multiple versions
         return tex_sources
