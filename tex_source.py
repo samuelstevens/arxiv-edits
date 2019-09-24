@@ -47,7 +47,7 @@ def get_text(arxiv_id: str, clean=False) -> List[str]:
     # for each version:
     for v in versions:
         url = f'https://arxiv.org/e-print/{arxiv_id}v{v}'
-        filename = f'{arxiv_id}v{v}'
+        filename = os.path.join('data', f'{arxiv_id}v{v}')
         # 1. download vX to the local filesystem
         if not os.path.isfile(filename):
             download_file(url, filename)
