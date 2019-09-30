@@ -1,10 +1,15 @@
+# built in
 import sqlite3
 import re
+import time
 from typing import Set
 
+# external
+import requests
+
+# internal
 from arxiv_util import arxiv_ids
 
-import requests
 
 DB_FILE_NAME = 'arxiv-edits.db'
 VERSION_PATTERN = re.compile(r'\[v(.)\]')
@@ -74,9 +79,18 @@ def get_papers_with_versions():
             # print(f'{i} has already been queried.')
             continue
 
+        while True:
+            try:
+                multiple_versions = has_multiple_versions(i)
+            except requests.exceptions.ConnectionError as e:
+                print(e)
+                time.sleep(2)
+            else:
+                break
+
         # write to database
         add_id(i, queried=True,
-               multiple_versions=has_multiple_versions(i))
+               multiple_versions=multiple_versions)
 
 
 def main():
