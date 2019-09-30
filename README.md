@@ -58,3 +58,15 @@ Based on these estimates, we will download 800K \* 256KB = 204,800,000KB = 204,8
 # To Do
 
 - might want to use https://docs.python.org/3.7/library/tempfile.html#module-tempfile
+- could use https://code.google.com/archive/p/opendetex to scrape text from latex ->
+
+```bash
+brew install opendetex
+python main.py | detex -r > parsed_test.txt # can pipe stuff straight into detex and then into a file
+```
+
+- Could use NLTK to parse the sentences. https://www.nltk.org/data.html
+
+# Questions
+
+- Research credit hours - CSE 4998H - Undergraduate Research in Computer Science and Engineering
