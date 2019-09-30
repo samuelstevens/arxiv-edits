@@ -1,5 +1,6 @@
-# external
+# builtin
 from datetime import date
+from typing import Iterator
 
 
 def get_max_number(year):
@@ -9,7 +10,7 @@ def get_max_number(year):
     return(99999, 5)
 
 
-def arxiv_ids():
+def arxiv_ids() -> Iterator[str]:
     today = date.today()
     today_year = today.year % 100  # will produce 19, 20, etc.
 
