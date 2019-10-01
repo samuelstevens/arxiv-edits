@@ -59,10 +59,12 @@ def add_id(arxiv_id, multiple_versions):
     con.execute(query, row)
     con.commit()
 
-    pass
-
 
 def init_db():
+    '''
+    Initializes the database using ./schema.sql
+    '''
+
     con = connection()
 
     with open('schema.sql') as f:
@@ -70,6 +72,10 @@ def init_db():
 
 
 def get_papers_with_versions():
+    '''
+    Scrapes arxiv.org for all papers with multiple versions.
+    '''
+
     ids = ArxivIDs()  # iterator
 
     queried_ids: Set[str] = get_ids_already_queried()
@@ -88,6 +94,7 @@ def get_papers_with_versions():
         except requests.exceptions.ConnectionError as e:
             # typically a dropped connection
             print(e)
+            time.sleep(30)
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 # not a valid identifier
@@ -95,6 +102,10 @@ def get_papers_with_versions():
 
 
 def main():
+    '''
+    Main function
+    '''
+
     # initialize db
     init_db()
 
