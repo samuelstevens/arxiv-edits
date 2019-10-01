@@ -8,7 +8,7 @@ from typing import Set
 import requests
 
 # internal
-from arxiv_util import arxiv_ids
+from arxiv_util import ArxivIDs
 
 
 DB_FILE_NAME = 'arxiv-edits.db'
@@ -21,7 +21,7 @@ def connection():
 
 def get_ids_already_queried() -> Set[str]:
     # makes db request
-    query = 'SELECT arxiv_id FROM papers WHERE queried = 1'
+    query = 'SELECT arxiv_id FROM papers'
 
     con = connection()
 
@@ -48,12 +48,12 @@ def has_multiple_versions(arxiv_id) -> bool:
     return len(versions) > 1
 
 
-def add_id(arxiv_id, queried=True, multiple_versions=False):
+def add_id(arxiv_id, multiple_versions):
     # makes db request
 
-    row = (arxiv_id, 1 if queried else 0, 1 if multiple_versions else 0)
+    row = (arxiv_id, 1 if multiple_versions else 0)
 
-    query = 'INSERT INTO papers(arxiv_id, queried, multiple_versions) VALUES (?, ?, ?)'
+    query = 'INSERT INTO papers(arxiv_id, multiple_versions) VALUES (?, ?)'
 
     con = connection()
     con.execute(query, row)
@@ -70,27 +70,28 @@ def init_db():
 
 
 def get_papers_with_versions():
-    ids = arxiv_ids()  # generator
+    ids = ArxivIDs()  # iterator
 
     queried_ids: Set[str] = get_ids_already_queried()
 
     for i in ids:
+
         if i in queried_ids:
-            # print(f'{i} has already been queried.')
+            print(f'{i} has already been queried.')
             continue
 
-        while True:
-            try:
-                multiple_versions = has_multiple_versions(i)
-            except requests.exceptions.ConnectionError as e:
-                print(e)
-                time.sleep(2)
-            else:
-                break
+        try:
+            multiple_versions = has_multiple_versions(i)
 
-        # write to database
-        add_id(i, queried=True,
-               multiple_versions=multiple_versions)
+            # write to database
+            add_id(i, multiple_versions)
+        except requests.exceptions.ConnectionError as e:
+            # typically a dropped connection
+            print(e)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404:
+                # not a valid identifier
+                ids.increment_month()
 
 
 def main():
