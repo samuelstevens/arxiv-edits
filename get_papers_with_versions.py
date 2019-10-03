@@ -14,6 +14,11 @@ URL = 'http://export.arxiv.org/oai2'
 METADATA_PREFIX = 'arXivRaw'
 
 
+def write_error(record):
+    with open('errors.txt', 'a') as f:
+        f.write(str(record))
+
+
 def get_ids_already_queried() -> Set[str]:
     # makes db request
     query = 'SELECT arxiv_id FROM papers'
@@ -87,25 +92,34 @@ def get_papers_with_versions():
     for record in records:
         metadata: Metadata = record[1]
 
+        if not metadata:
+            write_error(record)
+
         ids: List[str] = metadata['id']
         versions: List[str] = metadata['versions']
 
-        if ids:
-            i = ids[0]
+        if not ids:
+            write_error(record)
+            continue
 
-        else:
-            with open('errors.txt', 'a') as f:
-                f.write(str(record))
+        try:
+            i = ids[0]
+        except TypeError:
+            write_error(record)
+            continue
+
+        if i in queried_ids:
+            print(f'{i} has already been queried.')
             continue
 
         multiple_versions = False
 
         if versions:
-            multiple_versions = len(versions) > 1
-
-        if i in queried_ids:
-            # print(f'{i} has already been queried.')
-            continue
+            try:
+                multiple_versions = len(versions) > 1
+            except TypeError:
+                write_error(record)
+                continue
 
         add_id(i, multiple_versions)
 
