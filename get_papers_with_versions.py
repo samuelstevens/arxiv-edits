@@ -91,6 +91,11 @@ def get_papers_with_versions():
     count = 0
 
     for record in records:
+        print(count)
+        count += 1
+        if count % 100 == 0:
+            print(f'Found {count} papers.')
+
         metadata: Metadata = record[1]
 
         if not metadata:
@@ -124,9 +129,6 @@ def get_papers_with_versions():
                 continue
 
         add_id(i, multiple_versions)
-        count += 1
-        if count % 100 == 0:
-            print(f'Found {count} papers.')
 
 
 def main():
