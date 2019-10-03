@@ -111,7 +111,7 @@ def get_papers_with_versions():
             continue
 
         if i in queried_ids:
-            print(f'{i} has already been queried.')
+            # print(f'{i} has already been queried.')
             continue
 
         multiple_versions = False
