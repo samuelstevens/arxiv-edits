@@ -88,12 +88,14 @@ def get_papers_with_versions():
     queried_ids: Set[str] = get_ids_already_queried()
 
     records = get_records()
+    count = 0
 
     for record in records:
         metadata: Metadata = record[1]
 
         if not metadata:
             write_error(record)
+            continue
 
         ids: List[str] = metadata['id']
         versions: List[str] = metadata['versions']
@@ -122,6 +124,9 @@ def get_papers_with_versions():
                 continue
 
         add_id(i, multiple_versions)
+        count += 1
+        if count % 100 == 0:
+            print(f'Found {count} papers.')
 
 
 def main():
