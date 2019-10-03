@@ -91,7 +91,6 @@ def get_papers_with_versions():
     count = 0
 
     for record in records:
-        print(count)
         count += 1
         if count % 100 == 0:
             print(f'Found {count} papers.')
