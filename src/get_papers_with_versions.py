@@ -7,7 +7,7 @@ from oaipmh.metadata import MetadataRegistry, MetadataReader
 from oaipmh.common import Metadata, Header
 
 # internal
-from .db import connection
+from db import connection
 
 URL = 'http://export.arxiv.org/oai2'
 METADATA_PREFIX = 'arXivRaw'
