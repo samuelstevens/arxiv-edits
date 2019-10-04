@@ -3,6 +3,7 @@ from typing import List
 import re
 import tarfile
 import os
+import subprocess
 
 # External
 import requests
@@ -29,7 +30,7 @@ def download_file(url: str, local_filename: str) -> str:
 VERSION_PATTERN = re.compile(r'\[v(.)\]')
 
 
-def get_text(arxiv_id: str, clean=False, directory='data') -> List[str]:
+def download_tex_src(arxiv_id: str, clean=False, directory='data') -> List[str]:
 
     # 3. download those versions.
 
@@ -80,3 +81,9 @@ def get_text(arxiv_id: str, clean=False, directory='data') -> List[str]:
             os.remove(filename)
 
     return tex_sources
+
+
+def detex(text: str) -> str:
+    result = subprocess.run(['detex', '-r'], text=True,
+                            input=text, capture_output=True)
+    return result.stdout
