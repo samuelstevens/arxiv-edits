@@ -1,19 +1,16 @@
 # built in
-from typing import Set, List, Tuple, NewType
+from typing import Set, List, Tuple, Iterable
 
 # external
 from oaipmh.client import Client
 from oaipmh.metadata import MetadataRegistry, MetadataReader
-from oaipmh.common import Metadata, Header
 
 # internal
-from db import connection
+from .db import connection
+from .structures import Record, ArxivID
 
 URL = 'http://export.arxiv.org/oai2'
 METADATA_PREFIX = 'arXivRaw'
-
-Record = Tuple[Header, Metadata, None]
-ArxivID = NewType('ArxivID', str)
 
 
 def write_error(record: Record):
@@ -41,7 +38,7 @@ def get_ids_already_queried() -> Set[ArxivID]:
     return set(ids)
 
 
-def add_id(arxiv_id: ArxivID, multiple_versions: bool):
+def add_record(arxiv_id: ArxivID, multiple_versions: bool):
     '''
     Stores whether a paper has multiple versions.
     '''
@@ -68,7 +65,7 @@ def init_db():
         con.executescript(file.read())
 
 
-def get_records():
+def get_all_records() -> Iterable[Record]:
     '''
     Creates a generator of all records on arxiv.org.
     '''
@@ -117,6 +114,9 @@ def parse(record: Record) -> Tuple[str, bool]:
     if not meta:
         return invalid
 
+    if 'id' not in meta.getMap():
+        return invalid
+
     # assuming that it won't come out as just a string.
     id_list: List[str] = meta['id']
 
@@ -125,7 +125,7 @@ def parse(record: Record) -> Tuple[str, bool]:
 
     try:
         i = id_list[0]
-        if len(i) < 9:  # not a valid arxiv ID.
+        if len(i) < 9 or len(i) > 10:  # not a valid arxiv ID.
             print(f'{i} is not a valid arxiv ID.')
             return invalid
     except TypeError:
@@ -151,11 +151,9 @@ def get_papers_with_versions():
     Scrapes arxiv.org for all papers with multiple versions.
     '''
 
-    queried_ids: Set[str] = get_ids_already_queried()
+    queried_ids = get_ids_already_queried()
 
-    records = get_records()
-
-    for record in records:
+    for record in get_all_records():
         i, multiple_versions = parse(record)
 
         if not i:
@@ -166,7 +164,7 @@ def get_papers_with_versions():
             # print(f'{i} has already been queried.')
             continue
 
-        add_id(i, multiple_versions)
+        add_record(i, multiple_versions)
 
 
 def main():

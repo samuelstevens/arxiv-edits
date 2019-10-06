@@ -1,5 +1,6 @@
 # builtin
 from typing import List, Tuple
+import difflib
 
 # external
 import requests
@@ -7,14 +8,13 @@ import nltk.data
 
 # Internal
 from tex import download_tex_src, detex
-from macro_align import parse_sections
-from database import connection
-from sentence_splitter import splitter
+from align import parse_sections
+from db import connection
+from sentences import Splitter
+from structures import ArxivID
 
-detex('hello')
 
-
-def valid_ids():
+def valid_ids() -> List[ArxivID]:
     query = 'SELECT arxiv_id FROM papers WHERE multiple_versions = 1'
     con = connection()
     con.row_factory = lambda cursor, row: row[0]
@@ -24,19 +24,15 @@ def valid_ids():
 
 
 # TODO
-def looked_at(arxiv_s):
+def looked_at(i: ArxivID) -> bool:
     return False
-
-
-def magic_tuple(tuple):
-    tuple
 
 
 def main():
 
     ids = valid_ids()
 
-    # t = splitter()
+    t = Splitter()
 
     for i in ids:
         # 1. check if s has been checked already
@@ -48,17 +44,22 @@ def main():
         try:
             version_sources = download_tex_src(i)
 
-            if len(version_sources) < 2:  # not more than one version
-                continue
-
             # macro align the sections
-            version_sections = parse_sections(version_sources)
+            versioned_sections = parse_sections(version_sources)
 
             # remove all tex source leftovers
-            version_sections = [tuple([detex(v) for v in section_tuple])
-                                for section_tuple in version_sections]
+            versioned_sections = [tuple([detex(v) for v in section_tuple])
+                                  for section_tuple in versioned_sections]
 
-            print(version_sections[0][0])
+            # print(len(versioned_sections), len(versioned_sections[0]))
+
+            for section_tuple in versioned_sections:
+                # section_tuple is a tuple of the versions of each section
+                sentences_v1 = t.split(section_tuple[0])
+                sentences_v2 = t.split(section_tuple[1])
+
+                # sentences_v3 = t.split(section_tuple[2])
+                break
 
         except requests.exceptions.HTTPError as e:
             # page does not exist

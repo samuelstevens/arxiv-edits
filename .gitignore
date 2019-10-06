@@ -1,9 +1,12 @@
 venv
 __pycache__
 .mypy_cache
+.pytest_cache
 *.pyc
 .vscode
 
 data
 *.tex
 *.db
+
+.coverage

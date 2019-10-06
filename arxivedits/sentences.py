@@ -11,6 +11,8 @@ class Splitter:
         self.false_split_suffixes: Set[str] = set(
             ['Fig.', 'Sec.', 'Ref.', 'Figs.', 'Secs.'])
 
+        # might want to use /\d+\w+\./ as a regex match for references that cause splitting as well, but only if the next letter is lowercase.
+
     def split(self, text: str) -> List[str]:
         split = self.detector.tokenize(text.replace('\n', ' '))
 

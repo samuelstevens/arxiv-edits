@@ -70,3 +70,11 @@ python main.py | detex -r > parsed_test.txt # can pipe stuff straight into detex
 # Questions
 
 - Research credit hours - CSE 4998H - Undergraduate Research in Computer Science and Engineering
+
+## Development
+
+```bash
+find . -name '*.py' | entr pytest
+
+pytest  --cov=arxivedits/
+```

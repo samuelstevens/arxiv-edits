@@ -34,7 +34,7 @@ def download_tex_src(arxiv_id: str, clean=False, directory='data') -> List[str]:
 
     # 3. download those versions.
 
-    tex_sources = []
+    tex_sources: List[str] = []
 
     abs_url = f'https://arxiv.org/abs/{arxiv_id}'
 
@@ -46,11 +46,6 @@ def download_tex_src(arxiv_id: str, clean=False, directory='data') -> List[str]:
 
     # 2. find all the version tags on the page.
     versions = VERSION_PATTERN.findall(abs_page)
-
-    print(f'Found {len(versions)} versions.')
-
-    if len(versions) < 2:  # not multiple versions
-        return tex_sources
 
     # for each version:
     for v in versions:
