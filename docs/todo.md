@@ -6,14 +6,18 @@
 
 3. [DONE] `CODE`: turn section text into sentences via NLTK, Stanford, some combination.
 
-4. `READ`: Alternative paper with matrix to align sentences
+4. [DONE] `READ`: Alternative paper with matrix to align sentences
 
-5. `QUESTION`: How to store a `Dict[str, int]` for idf word counts?
+5. [DONE] `QUESTION`: How to store a `Dict[str, int]` for idf word counts?
 
-6. `CODE`: Tokenize text for a word count for idf.
+6. [DONE] `CODE`: Tokenize text for a word count for idf.
 
 7. `CODE`: Micro align sentences.
 
 8. `QUESTION`: How to store all these sentence pairs? Consider network speed, storage space.
 
 9. `CODE`: Write sentences to persistent storage.
+
+## Problems
+
+`tex.py`: need to check if a file is PDF only before downloading and opening.

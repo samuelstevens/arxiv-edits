@@ -2,18 +2,18 @@ from typing import List, Set
 from functools import reduce
 
 import nltk.data
-from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
+from nltk.tokenize.treebank import TreebankWordTokenizer
 
 
-class Splitter:
+class ArxivTokenizer:
     def __init__(self):
         self.detector = nltk.data.load('tokenizers/punkt/english.pickle')
         self.false_split_suffixes: Set[str] = set(
             ['Fig.', 'Sec.', 'Ref.', 'Figs.', 'Secs.'])
-
+        self.tokenizer = TreebankWordTokenizer()
         # might want to use /\d+\w+\./ as a regex match for references that cause splitting as well, but only if the next letter is lowercase.
 
-    def split(self, text: str) -> List[str]:
+    def split_sent(self, text: str) -> List[str]:
         split = self.detector.tokenize(text.replace('\n', ' '))
 
         def join_sentences(sentences: List[str], new_sentence: str) -> List[str]:
@@ -31,18 +31,13 @@ class Splitter:
 
         return reduce(join_sentences, split, [])
 
+    def split_word(self, sentence: str) -> List[str]:
+        return self.tokenizer.tokenize(sentence)
 
-def main():
-    t = Splitter()
-
-    with open('section_example.txt', 'r') as file:
-        text = file.read()
-
-    sentences = t.split(text)
-
-    for s in sentences:
-        print(s)
-
-
-if __name__ == '__main__':
-    main()
+    def split(self, text: str, group='') -> List[str]:
+        if group == 'sentence':
+            return self.split_sent(text)
+        elif group == 'word':
+            return self.split_word(text)
+        else:
+            raise ValueError("group must be either 'sentence' or 'word'.")

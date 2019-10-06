@@ -2,18 +2,23 @@
 from typing import List
 import re
 import tarfile
+import gzip
 import os
 import subprocess
 
+# internal
+from structures import ArxivID  # type: ignore
+
 # External
 import requests
+import magic  # type: ignore
 
 
 def download_file(url: str, local_filename: str) -> str:
     # https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests
 
     # NOTE the stream=True parameter below
-    print(f'Downloading {url}...')
+    # print(f'Downloading {url}...')
     with requests.get(url, stream=True) as r:
 
         r.raise_for_status()
@@ -23,26 +28,34 @@ def download_file(url: str, local_filename: str) -> str:
                     f.write(chunk)
                     # f.flush()
 
-    print(f'Saved to {local_filename}')
+    # print(f'Saved to {local_filename}')
     return local_filename
 
 
 VERSION_PATTERN = re.compile(r'\[v(.)\]')
 
+SOURCE_PATTERN = re.compile(r'<a href="/e-print/\d+\.\d+">Source</a>')
 
-def download_tex_src(arxiv_id: str, clean=False, directory='data') -> List[str]:
+COOKIES = {'xxx-ps-defaults': 'src'}
 
-    # 3. download those versions.
 
+def download_tex_src(arxiv_id: ArxivID, clean=False, directory='data') -> List[str]:
     tex_sources: List[str] = []
 
     abs_url = f'https://arxiv.org/abs/{arxiv_id}'
 
     # 1. get the https://arxiv.org/abs/ page
-    print(f'Getting {abs_url}...')
-    with requests.get(abs_url) as r:
+    print(f'Getting {abs_url}')
+    with requests.get(abs_url, cookies=COOKIES) as r:
         r.raise_for_status()
         abs_page = r.text
+
+    # 1.5 check if source is available.
+    source_available = SOURCE_PATTERN.search(abs_page)
+
+    if not source_available:
+        print(f'Source for {arxiv_id} not available.')
+        return tex_sources
 
     # 2. find all the version tags on the page.
     versions = VERSION_PATTERN.findall(abs_page)
@@ -56,19 +69,28 @@ def download_tex_src(arxiv_id: str, clean=False, directory='data') -> List[str]:
             os.makedirs(directory)
 
         # 1. download vX to the local filesystem
-
         if not os.path.isfile(filename):
             download_file(url, filename)
 
-        # 2. get the longest .tex file in each tar
-        with tarfile.open(filename) as tar:
-            tex_source: str = ''
-            for tarinfo in tar:
-                if os.path.splitext(tarinfo.name)[1] == ".tex":
-                    f = tar.extractfile(tarinfo)
-                    contents: str = f.read().decode()
-                    if len(contents) > len(tex_source):
-                        tex_source = contents
+        # 2. gunzip the .gz
+        with gzip.open(filename) as gz:
+            tex_source: str
+
+            filetype: str = magic.from_buffer(gz.read(1024))
+
+            if 'ASCII' in filetype:
+                tex_source = gz.read().decode()
+
+            else:
+                # 3. get the longest .tex file in each tar
+                with tarfile.open(fileobj=gz) as tar:
+                    for tarinfo in tar:
+                        if os.path.splitext(tarinfo.name)[1] == ".tex":
+                            f = tar.extractfile(tarinfo)
+                            if f:
+                                contents: str = f.read().decode()
+                                if len(contents) > len(tex_source):
+                                    tex_source = contents
 
         tex_sources.append(tex_source)
 
@@ -79,6 +101,12 @@ def download_tex_src(arxiv_id: str, clean=False, directory='data') -> List[str]:
 
 
 def detex(text: str) -> str:
-    result = subprocess.run(['detex', '-r'], text=True,
-                            input=text, capture_output=True)
-    return result.stdout
+
+    try:
+        result = subprocess.run(['detex', '-r'], text=True,
+                                input=text, capture_output=True)
+        return result.stdout
+    except AttributeError:
+        print(
+            f"text {text[:16]} did not have attribute 'encode', which means it most likely wasn't a string (could be bytes).")
+        return ''
