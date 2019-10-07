@@ -74,23 +74,19 @@ def download_tex_src(arxiv_id: ArxivID, clean=False, directory='data') -> List[s
 
         # 2. gunzip the .gz
         with gzip.open(filename) as gz:
-            tex_source: str
+            tex_source: str = ''
 
             filetype: str = magic.from_buffer(gz.read(1024))
 
             if 'ASCII' in filetype:
                 tex_source = gz.read().decode()
-
-            else:
+            elif 'UTF-8' in filetype:
+                tex_source = gz.read().decode('utf_8', errors='replace')
+            elif 'tar' in filetype:
                 # 3. get the longest .tex file in each tar
-                with tarfile.open(fileobj=gz) as tar:
-                    for tarinfo in tar:
-                        if os.path.splitext(tarinfo.name)[1] == ".tex":
-                            f = tar.extractfile(tarinfo)
-                            if f:
-                                contents: str = f.read().decode()
-                                if len(contents) > len(tex_source):
-                                    tex_source = contents
+                tex_source = get_longest_tex(filename)
+            else:
+                print(f'Not sure what type {filetype} is.')
 
         tex_sources.append(tex_source)
 
@@ -98,6 +94,20 @@ def download_tex_src(arxiv_id: ArxivID, clean=False, directory='data') -> List[s
             os.remove(filename)
 
     return tex_sources
+
+
+def get_longest_tex(filename) -> str:
+    tex = ''
+    with tarfile.open(filename) as tar:
+        for tarinfo in tar:
+            if os.path.splitext(tarinfo.name)[1] == ".tex":
+                f = tar.extractfile(tarinfo)
+                if f:
+                    contents: str = f.read().decode()
+                    if len(contents) > len(tex):
+                        tex = contents
+
+    return tex
 
 
 def detex(text: str) -> str:

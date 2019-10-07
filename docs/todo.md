@@ -20,4 +20,4 @@
 
 ## Problems
 
-`tex.py`: need to check if a file is PDF only before downloading and opening.
+- Need to mimic human, slow down scraping methods.

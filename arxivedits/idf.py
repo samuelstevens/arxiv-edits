@@ -30,7 +30,7 @@ def get_src(arxiv_id: ArxivID) -> List[str]:
     srcs = []
 
     try:
-        srcs = download_tex_src(arxiv_id, clean=True)
+        srcs = download_tex_src(arxiv_id, clean=False)
     except requests.exceptions.HTTPError as e:
         print(f'{e}')
 
@@ -77,11 +77,11 @@ def get_downloaded_ids() -> Set[ArxivID]:
 
 
 def main():
-    arxiv_ids = ids()
+    arxiv_ids = list(ids())[0:15]
 
     stored_ids = get_downloaded_ids()
 
-    print(f'{len(stored_ids)} already downloaded.')
+    print(f'{len(stored_ids)} out of {len(arxiv_ids)} already downloaded.')
 
     for i in arxiv_ids:
         if i in stored_ids:

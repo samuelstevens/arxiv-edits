@@ -21,8 +21,8 @@
 
 ## Processes
 
-### P1 - Getting Versioned Papers
+### P1 - Getting Versioned Papers [DONE]
 
-### Pn1 - For each `paperID` that has 2+ versions
+### Pn1 - For each `paperID` that has 2+ versions [Done for 15 papers]
 
 ### Pn2 - For each `paperID` that has 2+ versions (once all documents are tokenized)
