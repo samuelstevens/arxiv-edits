@@ -6,8 +6,8 @@ from oaipmh.client import Client
 from oaipmh.metadata import MetadataRegistry, MetadataReader
 
 # internal
-from .db import connection
-from .structures import Record, ArxivID
+from db import connection
+from structures import Record, ArxivID
 
 URL = 'http://export.arxiv.org/oai2'
 METADATA_PREFIX = 'arXivRaw'
@@ -154,6 +154,7 @@ def get_papers_with_versions():
     queried_ids = get_ids_already_queried()
 
     for record in get_all_records():
+        print(record)
         i, version_count = parse(record)
 
         if not i:
