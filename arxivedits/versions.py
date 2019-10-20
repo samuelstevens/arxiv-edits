@@ -38,16 +38,16 @@ def get_ids_already_queried() -> Set[ArxivID]:
     return set(ids)
 
 
-def add_record(arxiv_id: ArxivID, multiple_versions: bool):
+def add_record(arxiv_id: ArxivID, version_count: int):
     '''
-    Stores whether a paper has multiple versions.
+    Stores how many versions a paper has
     '''
 
     # makes db request
 
-    row = (arxiv_id, 1 if multiple_versions else 0)
+    row = (arxiv_id, version_count)
 
-    query = 'INSERT INTO papers(arxiv_id, multiple_versions) VALUES (?, ?)'
+    query = 'INSERT INTO papers(arxiv_id, version_count) VALUES (?, ?)'
 
     con = connection()
     con.execute(query, row)
@@ -101,7 +101,7 @@ def get_all_records() -> Iterable[Record]:
 
 def parse(record: Record) -> Tuple[str, bool]:
     '''
-    Takes a Record and returns the identifier and whether it has multiple versions
+    Takes a Record and returns the identifier and its version count.
     '''
 
     invalid = ('', False)
@@ -136,14 +136,14 @@ def parse(record: Record) -> Tuple[str, bool]:
 
     versions: List[str] = meta['versions']
 
-    multiple_versions = False
+    version_count = False
 
     try:
-        multiple_versions = len(versions) > 1
+        version_count = len(versions)
     except TypeError:
         print(f'{versions} is not a List[str].')
 
-    return (i, multiple_versions)
+    return (i, version_count)
 
 
 def get_papers_with_versions():
@@ -154,7 +154,7 @@ def get_papers_with_versions():
     queried_ids = get_ids_already_queried()
 
     for record in get_all_records():
-        i, multiple_versions = parse(record)
+        i, version_count = parse(record)
 
         if not i:
             # print('Missing id.')
@@ -164,7 +164,7 @@ def get_papers_with_versions():
             # print(f'{i} has already been queried.')
             continue
 
-        add_record(i, multiple_versions)
+        add_record(i, version_count)
 
 
 def main():
