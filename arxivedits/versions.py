@@ -125,9 +125,6 @@ def parse(record: Record) -> Tuple[str, bool]:
 
     try:
         i = id_list[0]
-        if len(i) < 9 or len(i) > 10:  # not a valid arxiv ID.
-            print(f'{i} is not a valid arxiv ID.')
-            return invalid
     except TypeError:
         print(f'{i} is not a List[str].')
         return invalid
