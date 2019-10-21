@@ -30,13 +30,6 @@ def download_file(url: str, local_filename: str) -> str:
     return local_filename
 
 
-VERSION_PATTERN = re.compile(r'\[v(.)\]')
-
-SOURCE_PATTERN = re.compile(r'<a href="/e-print/\d+\.\d+">Source</a>')
-
-COOKIES = {'xxx-ps-defaults': 'src'}
-
-
 def download_tex_src(arxiv_id: ArxivID, clean=False, directory='data') -> List[str]:
     tex_sources: List[str] = []
 
@@ -119,6 +112,23 @@ def detex(text: str) -> str:
         return ''
 
 
+def analyze_sources(directory, output_file, append=False):
+    filenames = sorted(os.listdir(directory))
+
+    with open(output_file, 'a' if append else 'w') as fout:
+        for filename in filenames:
+            filepath = os.path.join(directory, filename)
+
+            if os.path.isdir(filepath):
+                analyze_sources(filepath, output_file, append=True)
+            else:
+                cmd = f'file -I {filepath}'
+                with os.popen(cmd) as fin:
+                    result = fin.readlines()
+                    for line in result:
+                        fout.write(f'{line.strip()}\n')
+
+
 def download_source_files(arxiv_id: ArxivID, version_count: int, output_directory: str = 'data') -> None:
     '''
     Makes {version_count} network requests, one for each source file, and writest them to {output_directory}
@@ -156,5 +166,9 @@ def get_ids() -> List[Tuple[ArxivID, int]]:
 if __name__ == '__main__':
     ARXIV_ID_PAIRS = get_ids()
 
-    for arxiv_id, version_count in ARXIV_ID_PAIRS:
-        download_source_files(arxiv_id, version_count)
+    # for arxiv_id, version_count in ARXIV_ID_PAIRS:
+    #     download_source_files(arxiv_id, version_count)
+
+    source_type_file = os.path.join('data', 'initial_types.txt')
+    directory = os.path.join('data', 'source_files')
+    analyze_sources(directory, source_type_file)
