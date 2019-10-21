@@ -124,7 +124,7 @@ def download_source_files(arxiv_id: ArxivID, version_count: int, output_director
     Makes {version_count} network requests, one for each source file, and writest them to {output_directory}
     '''
 
-    for v in range(version_count):
+    for v in range(1, version_count+1):
         url = f'https://arxiv.org/e-print/{arxiv_id}v{v}'
         directory = os.path.join(output_directory, f'{arxiv_id}')
         filename = os.path.join(directory, f'v{v}')
