@@ -15,6 +15,8 @@ def pandoc_file(inputfile, outputfile):
         print(result.stderr)
         print(f'Error with file {inputfile}')
 
+    return result.returncode
+
 
 def detex_file(inputfile, outputfile):
     with open(inputfile, 'r') as fin:
@@ -314,7 +316,14 @@ if __name__ == '__main__':
     textfiles = os.path.join('data', 'text')
     os.makedirs(textfiles, exist_ok=True)
 
+    error_count = 0
+
     for sourcefile in os.listdir(sourcefiles):
         sourcefilepath = os.path.join(sourcefiles, sourcefile)
         outputfilepath = os.path.join(textfiles, sourcefile)
-        pandoc_file(sourcefilepath, outputfilepath)
+        result = pandoc_file(sourcefilepath, outputfilepath)
+
+        if result != 0:
+            error_count += 1
+
+    print(f'Saw {error_count} errors.')
