@@ -12,7 +12,7 @@ def pandoc_file(inputfile, outputfile):
     result = subprocess.run(
         ['pandoc', '--from', 'latex', '--to', 'plain', inputfile, '-o', outputfile], capture_output=True)
     if result and result.returncode != 0:
-        print(result.stdout)
+        print(result.stderr)
         print(f'Error with file {inputfile}')
 
 
@@ -312,6 +312,7 @@ def simpleLatexToText(inputfile, outputfile, sectioned=False):
 if __name__ == '__main__':
     sourcefiles = os.path.join('data', 'unzipped')
     textfiles = os.path.join('data', 'text')
+    os.makedirs(textfiles, exist_ok=True)
 
     for sourcefile in os.listdir(sourcefiles):
         sourcefilepath = os.path.join(sourcefiles, sourcefile)
