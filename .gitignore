@@ -11,3 +11,5 @@ data
 
 .coverage
 *.swp
+
+tmp
