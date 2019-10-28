@@ -175,10 +175,14 @@ def extract_all():
     for filename in os.listdir(SOURCE_DIR):
         try:
             content = extract(SOURCE_DIR, filename)
+
         except TypeError as err:
             print(err)
 
         if content:
+            # removes not utf characters
+            content = content.decode(
+                'utf-8', errors='ignore').encode(encoding='utf-8', errors='ignore')
             with open(os.path.join(EXTRACTED_DIR, filename), 'wb') as file:
                 file.write(content)
 
