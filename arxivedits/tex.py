@@ -12,7 +12,7 @@ def pandoc_file(inputfile, outputfile):
     result = subprocess.run(
         ['pandoc', '--from', 'latex', '--to', 'plain', inputfile, '-o', outputfile], capture_output=True)
     if result and result.returncode != 0:
-        print(result.stderr)
+        print(result.stderr.decode('utf-8', errors='ignore'))
         print(f'Error with file {inputfile}')
 
     return result.returncode
