@@ -19,16 +19,12 @@ def tokenize(sentence: str) -> List[str]:
 
 
 def adddoc(inputfile):
-    pass
-    # open and read the file
-    # tokenize the input into words
-    # create a set of added words
     added_words = set()
     with open(inputfile, 'r') as f:
         content = f.read()
 
     words = tokenize(content)
-    print(f'{inputfile} had {len(words)} words.')
+    print(f'{inputfile} has {len(words)} words.')
 
     with shelve.open(IDF_DB) as idf:
         for word in words:
