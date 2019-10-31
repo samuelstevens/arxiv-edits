@@ -13,7 +13,7 @@ class ArxivTokenizer:
         self.tokenizer = TreebankWordTokenizer()
         # might want to use /\d+\w+\./ as a regex match for references that cause splitting as well, but only if the next letter is lowercase.
 
-    def split_sent(self, text: str) -> List[str]:
+    def __split_sent(self, text: str) -> List[str]:
         split = self.detector.tokenize(text.replace('\n', ' '))
 
         def join_sentences(sentences: List[str], new_sentence: str) -> List[str]:
@@ -31,13 +31,13 @@ class ArxivTokenizer:
 
         return reduce(join_sentences, split, [])
 
-    def split_word(self, sentence: str) -> List[str]:
+    def __split_word(self, sentence: str) -> List[str]:
         return self.tokenizer.tokenize(sentence)
 
     def split(self, text: str, group='') -> List[str]:
         if group == 'sentence':
-            return self.split_sent(text)
+            return self.__split_sent(text)
         elif group == 'word':
-            return self.split_word(text)
+            return self.__split_word(text)
         else:
             raise ValueError("group must be either 'sentence' or 'word'.")
