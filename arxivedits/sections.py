@@ -4,9 +4,11 @@ Takes LaTeX source files and parses the sections. Writes the sections to data/se
 
 
 import os
+import json
+import re
 from typing import List, Tuple
 
-
+# custom types
 Section = Tuple[str, str]
 
 
@@ -19,15 +21,26 @@ def parsesections(sourcefilepath) -> List[Section]:
     TODO: implement.
     '''
 
+    # section_pattern = re.compile(
+    #     r'\\(title|abstract|section|subsection)\*?(.*?)(?=\\(?:title|abstract|section|subsection))', re.DOTALL)
+
+    section_pattern = re.compile(
+        r'\\(?:(title|abstract|section)\*?|begin\{(abstract)\})(.*?)(?=\\(?:(?:title|abstract|section)\*?|begin\{abstract\}))', re.DOTALL)  # might want to add |subsection in there
+
     with open(sourcefilepath, 'r') as file:
         latexsource = file.read()
 
-    return []
+    sections = section_pattern.findall(latexsource)
+
+    sections = [[section[0], section[2]] if section[0] else [
+        section[1], section[2]] for section in sections]
+
+    return sections
 
 
 def main():
     '''
-    For every file in data/unzipped, parse the LaTeX and write it to data/sections with a custom delimiter.
+    For every file in data/unzipped, parse the LaTeX and write it to data/sections as json.
     '''
 
     unzippeddirectory = os.path.join('data', 'unzipped')
@@ -41,13 +54,11 @@ def main():
 
         sections = parsesections(sourcefilepath)
 
-        sectionsfilepath = os.path.join(sectionsdirectory, sourcefile)
+        sectionsfilepath = os.path.join(
+            sectionsdirectory, f'{sourcefile}.json')
 
         with open(sectionsfilepath, 'w') as file:
-            for section in sections:
-                file.write(f"### START SECTION {section['name']} ###")
-                file.write(section['body'])
-                file.write(f"### END SECTION {section['name']} ###")
+            json.dump(sections, file, indent=2)
 
 
 if __name__ == '__main__':
