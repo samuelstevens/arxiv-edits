@@ -311,7 +311,7 @@ def simpleLatexToText(inputfile, outputfile, sectioned=False):
 # END
 
 
-if __name__ == '__main__':
+def main():
     sourcefiles = os.path.join('data', 'unzipped')
     textfiles = os.path.join('data', 'text')
     os.makedirs(textfiles, exist_ok=True)
@@ -321,9 +321,13 @@ if __name__ == '__main__':
     for sourcefile in os.listdir(sourcefiles):
         sourcefilepath = os.path.join(sourcefiles, sourcefile)
         outputfilepath = os.path.join(textfiles, sourcefile)
-        result = pandoc_file(sourcefilepath, outputfilepath)
+        result = detex_file(sourcefilepath, outputfilepath)
 
         if result != 0:
             error_count += 1
 
     print(f'Saw {error_count} errors.')
+
+
+if __name__ == '__main__':
+    main()

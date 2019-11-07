@@ -1,44 +1,62 @@
-from typing import List, Set
 import shelve
 import os
+from math import inf, log
 
-from db import connection, TEX_DB, IDF_DB
+from db import IDF_DB
 from nlp import ArxivTokenizer
 
-import requests
+TOTALDOCS = len(os.listdir(os.path.join('data', 'unzipped')))
 
-t = ArxivTokenizer()
-
-
-def split(text: str) -> List[str]:
-    return t.split(text, group='sentence')
+tokenizer = ArxivTokenizer()
 
 
-def tokenize(sentence: str) -> List[str]:
-    return t.split(sentence, group='word')
+def idf(word: str) -> float:
+    '''
+    Returns the inverse document frequency of a word
+    '''
+    numerator = 1 + TOTALDOCS
+
+    if not word:
+        print(f'Word {word} not a string.')
+        return 0
+
+    with shelve.open(IDF_DB) as documentfrequency:
+        if word not in documentfrequency:
+            print(f'Word {word} not in document frequency.')
+            return 0
+
+        denominator = 1 + documentfrequency[word]
+
+    return log(numerator / denominator)  # natural log
 
 
 def adddoc(inputfile):
     added_words = set()
-    with open(inputfile, 'r') as f:
-        content = f.read()
+    with open(inputfile, 'r') as file:
+        content = file.read()
 
-    words = tokenize(content)
-    print(f'{inputfile} has {len(words)} words.')
+    words = tokenizer.split(content, group='word')
+    # print(f'{inputfile} has {len(words)} words.')
 
-    with shelve.open(IDF_DB) as idf:
+    with shelve.open(IDF_DB) as documentfrequency:
         for word in words:
             if word not in added_words:
-                if word in idf:
-                    idf[word] += 1
+                if word in documentfrequency:
+                    documentfrequency[word] += 1
                 else:
-                    idf[word] = 1
+                    documentfrequency[word] = 1
                 added_words.add(word)
 
 
-if __name__ == '__main__':
+def main():
+    os.remove(IDF_DB)
+
     textfiles = os.path.join('data', 'text')
 
     for textfile in os.listdir(textfiles):
         textfilepath = os.path.join(textfiles, textfile)
         adddoc(textfilepath)
+
+
+if __name__ == '__main__':
+    main()
