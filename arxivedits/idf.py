@@ -1,6 +1,6 @@
 import shelve
 import os
-from math import inf, log
+from math import log
 
 from db import IDF_DB
 from nlp import ArxivTokenizer

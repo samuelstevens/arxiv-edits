@@ -2,11 +2,9 @@
 Implements and exports a weighted-LCS algorithm.
 '''
 import shelve
-import os
-from math import log, inf  # natural log
+from math import inf  # natural log
 from typing import List, Optional, TypeVar
 from nlp import ArxivTokenizer
-from db import IDF_DB
 from idf import idf
 
 TOKENIZER = ArxivTokenizer()
@@ -14,15 +12,15 @@ TOKENIZER = ArxivTokenizer()
 
 DOCUMENTFREQ: Optional[shelve.DbfilenameShelf] = None
 
-Type = TypeVar('T')
+T = TypeVar('T')
 
 
-def lcs(seq1: List[Type], seq2: List[Type]) -> List[Type]:
+def lcs(seq1: List[T], seq2: List[T]) -> List[T]:
     '''
     longest common subsequence, inspired by https://en.wikipedia.org/wiki/Longest_common_subsequence_problem#Worked_example
     '''
 
-    table: List[List[List[Type]]] = [[[]] * (len(seq2) + 1)] * (len(seq1) + 1)
+    table: List[List[List[T]]] = [[[]] * (len(seq2) + 1)] * (len(seq1) + 1)
 
     for i in range(-1, len(seq1)):
         for j in range(-1, len(seq2)):
@@ -67,7 +65,7 @@ def main():
     sample_lcs2 = ['Hello', 'my', 'name', 'is', 'Steve',
                    'or', 'you', 'can', 'call', 'me', 'Sam']
 
-    # print(lcs(sample_lcs1, sample_lcs2))
+    print(lcs(sample_lcs1, sample_lcs2))
 
     sample1 = "The long-sought Higgs boson may soon be observed at the CERN Large Hadron."
     sample2 = "The long-sought Higgs boson particle will be observed at CERN."

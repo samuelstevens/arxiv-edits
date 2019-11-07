@@ -37,7 +37,7 @@ class ArxivTokenizer:
     def split(self, text: str, group='') -> List[str]:
         if group == 'sentence':
             return self.__split_sent(text)
-        elif group == 'word':
+        if group == 'word':
             return self.__split_word(text)
-        else:
-            raise ValueError("group must be either 'sentence' or 'word'.")
+
+        raise ValueError("group must be either 'sentence' or 'word'.")

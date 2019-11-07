@@ -1,5 +1,5 @@
 # built in
-from typing import Set, List, Tuple, NewType
+from typing import Tuple, NewType
 
 # external
 from oaipmh.common import Metadata, Header
