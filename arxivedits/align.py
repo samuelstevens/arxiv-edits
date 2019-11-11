@@ -5,9 +5,106 @@ Tries to align the sentences in two versions of a plain text research paper.
 import os
 import json
 import heapq
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
-from lcs import similarity
+from lcs import similarity as sim
+
+
+class Alignment():
+    '''
+    Represents an alignment between pairs of something, with a score.
+    '''
+
+    def __init__(self, score, pairs):
+        self.score = score
+        self.pairs = pairs[:]  # make a deep copy
+
+
+def align_sentences(s1: List[str], s2: List[str], mismatch: float, skip: float) -> List[Tuple[str, str]]:
+    '''
+    Aligns lists of sentences via a dynamic programming algorithm first described by Regina Barzilay and Noemie Elhadad in Sentence Alignment for Monolingual Comparable Corpora (2003).
+    '''
+
+    if not s1 or not s2:
+        return []
+
+    weighttable: List[List[Optional[Alignment]]] = [
+        [None for y in range(len(s2))] for x in range(len(s1))]
+
+    for i in range(len(s1)):
+        for j in range(len(s2)):
+
+            options: List[Alignment] = []
+
+            if i == 0 and j == 0:
+                # first element, always aligned
+                option = Alignment(
+                    sim(s1[i], s2[j]) - mismatch, [(s1[i], s2[j])]
+                )
+                options.append(option)
+
+            if j >= 1:
+                # s(i,j-1) - skip
+                option = Alignment(
+                    weighttable[i][j-1].score - skip,
+                    weighttable[i][j-1].pairs + [(s1[i], s2[j])]
+                )
+                options.append(option)
+
+            if i >= 1:
+                # s(i-1,j) - skip
+                option = Alignment(
+                    weighttable[i-1][j].score - skip,
+                    weighttable[i-1][j].pairs + [(s1[i], s2[j])]
+                )
+                options.append(option)
+
+            if i >= 1 and j >= 1:
+                # s(i-1,j-1) + sim(i,j)
+                option = Alignment(
+                    weighttable[i-1][j-1].score + sim(s1[i], s2[j]) - mismatch,
+                    weighttable[i-1][j-1].pairs + [(s1[i], s2[j])]
+                )
+                options.append(option)
+
+                if j >= 2:
+                    # s(i-1,j-2) + sim(i,j) + sim(i,j-1)
+                    option = Alignment(
+                        weighttable[i-1][j-2].score +
+                        sim(s1[i], s2[j]) - mismatch +
+                        sim(s1[i], s2[j-1]) - mismatch,
+
+                        weighttable[i-1][j-2].pairs + [(s1[i], s2[j])]
+                    )
+                    options.append(option)
+
+                if i >= 2:
+                    # s(i-2,j-1) + sim(i,j) + sim(i-1,j)
+                    option = Alignment(
+                        weighttable[i-2][j-1].score +
+                        sim(s1[i], s2[j]) - mismatch +
+                        sim(s1[i-1], s2[j]) - mismatch,
+
+                        weighttable[i-2][j-1].pairs + [(s1[i], s2[j])]
+                    )
+                    options.append(option)
+
+                if j >= 2 and i >= 2:  # not the most efficient code
+                    # s(i-2,j-2) + sim(i,j-1) + sim(i-1,j)
+                    option = Alignment(
+                        weighttable[i-2][j-2].score +
+                        sim(s1[i], s2[j-1]) - mismatch +
+                        sim(s1[i-1], s2[j]) - mismatch,
+
+                        weighttable[i-2][j-2].pairs + [(s1[i], s2[j])]
+                    )
+                    options.append(option)
+
+            bestoption = max(options, key=lambda o: o.score)
+
+            weighttable[i][j] = bestoption
+
+    return weighttable[-1][-1].pairs
 
 
 def get_sentence_pairs(v1filepath, v2filepath) -> List[Tuple[str, str]]:
@@ -27,18 +124,21 @@ def get_sentence_pairs(v1filepath, v2filepath) -> List[Tuple[str, str]]:
 
     sortedpairs = []
 
-    # probably can turn this into a list comprehension
     for v1section in v1source:
         for v2section in v2source:
             _, v1title, v1content = v1section
             _, v2title, v2content = v2section
 
-            score = similarity(v1title, v2title)
+            score = sim(v1title, v2title)
             possiblesectionpair = (score, (v1content, v2content),
                                    (v1title, v2title))
             sortedpairs.append(possiblesectionpair)
 
+    # assumes that each version has the same number of sections (len(v1source))
     matchedsections = heapq.nlargest(len(v1source), sortedpairs)
+
+    for _, contentpair, _ in matchedsections:
+        print(len(contentpair[0]))
 
     return []
 
@@ -101,4 +201,18 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+
+    sentences1 = [
+        'An additional complication arises when the fragmentation radiation is assumed to be exactly collinear to the photon\'s momentum, as implied by the photon fragmentation functions noun.',
+        'The collinear approximation constrains from below the values of noun accessible to noun: noun verbs noun.',
+        'The size of the fragmentation contribution may depend strongly on the values of noun and noun as a consequence of rapid variation of noun with noun.'
+    ]
+
+    sentences2 = [
+        'An additional complication arises when the fragmentation radiation is assumed to be exactly collinear to the photon\'s momentum, as implied by the photon fragmentation functions noun.',
+        'The collinear approximation constrains from below the values of noun accessible to noun: noun verbs noun.',
+        'The size of the fragmentation contribution may depend strongly on the values of noun and noun as a consequence of rapid variation of noun with noun.']
+
+    pairs = align_sentences(sentences1, sentences2, 0.1, 0.1)
+    print(pairs)

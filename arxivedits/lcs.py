@@ -20,19 +20,24 @@ def lcs(seq1: List[T], seq2: List[T]) -> List[T]:
     longest common subsequence, inspired by https://en.wikipedia.org/wiki/Longest_common_subsequence_problem#Worked_example
     '''
 
-    table: List[List[List[T]]] = [[[]] * (len(seq2) + 1)] * (len(seq1) + 1)
+    if not seq1 or not seq2:
+        return []
 
-    for i in range(-1, len(seq1)):
-        for j in range(-1, len(seq2)):
-            if i < 0 or j < 0:
-                table[i][j] = []
-            elif seq1[i] == seq2[j]:
-                table[i][j] = max(table[i][j-1], table[i-1]
-                                  [j], key=len) + [seq2[j]]
+    table: List[List[List[T]]] = [[[]
+                                   for i in range(len(seq2))] for j in range(len(seq1))]  # this might be really, really inefficient
+
+    for i in range(len(seq1)):
+        for j in range(len(seq2)):
+            if seq1[i] == seq2[j]:
+                prevrecord = table[i-1][j-1] if i > 0 and j > 0 else []
+
+                table[i][j] = prevrecord + [seq2[j]]
             else:
+                # this is dangerous when i == 0 or j == 0, because we're accessing table[-1] (which is valid in python)
+                # in addition, we are not creating a new list here. It's especially difficult because the table's data structure is also mutable.
                 table[i][j] = max(table[i][j-1], table[i-1][j], key=len)
 
-    return table[len(seq1) - 1][len(seq2) - 1]
+    return table[-1][-1]
 
 
 def similarity(sentence1: str, sentence2: str) -> float:
@@ -55,17 +60,10 @@ def similarity(sentence1: str, sentence2: str) -> float:
 
 
 def main():
-
     def lcs_of_sentence(sentence1, sentence2):
         words1 = TOKENIZER.split(sentence1, group='word')
         words2 = TOKENIZER.split(sentence2, group='word')
         return lcs(words1, words2)
-
-    sample_lcs1 = ['Hi', 'my', 'name', 'is', 'Sam']
-    sample_lcs2 = ['Hello', 'my', 'name', 'is', 'Steve',
-                   'or', 'you', 'can', 'call', 'me', 'Sam']
-
-    print(lcs(sample_lcs1, sample_lcs2))
 
     sample1 = "The long-sought Higgs boson may soon be observed at the CERN Large Hadron."
     sample2 = "The long-sought Higgs boson particle will be observed at CERN."
@@ -76,12 +74,15 @@ def main():
     sample5 = "A precise theoretical understanding of the kinematic distributions for diphoton production in the standard model could provide valuable guidance in the search for the Higgs boson signal and assist in the important measurement of Higgs boson coupling strengths."
     sample6 = "The long-sought Higgs boson may soon be observed at the CERN Large Hadron."
 
+    print(sample1)
     print(lcs_of_sentence(sample1, sample2))
     print(similarity(sample1, sample2))
 
+    print(sample3)
     print(lcs_of_sentence(sample3, sample4))
     print(similarity(sample3, sample4))
 
+    print(sample5)
     print(lcs_of_sentence(sample5, sample6))
     print(similarity(sample5, sample6))
 
