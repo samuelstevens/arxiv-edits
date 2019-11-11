@@ -2,7 +2,6 @@ import subprocess
 import string
 import re
 import os
-from typing import Optional
 
 import logging
 logger = logging.getLogger('delatex')
@@ -27,7 +26,7 @@ def detex_file(inputfile, outputfile):
             fout.write(output)
 
 
-def detex(text: str) -> Optional[str]:
+def detex(text: str) -> str:
     '''
     opendetex (https://github.com/pkubowicz/opendetex), installed via homebrew (brew install detex)
     '''
@@ -39,7 +38,7 @@ def detex(text: str) -> Optional[str]:
     except AttributeError:
         print(
             f"text {text[:16]} did not have attribute 'encode', which means it most likely wasn't a string (could be bytes).")
-        return None
+        return ''
 
 
 # Chenhao's code

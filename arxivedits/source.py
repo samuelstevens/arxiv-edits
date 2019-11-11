@@ -43,10 +43,11 @@ def longest_tex_from_tar(tar: tarfile.TarFile) -> str:
     for member in tar.getmembers():
         if member.isfile() and os.path.splitext(member.name)[1] == ".tex":
             file = tar.extractfile(member)
-            contents = file.read()
+            if file:
+                contents = file.read()
 
-            if len(contents) > len(tex):
-                tex = contents
+                if len(contents) > len(tex):
+                    tex = contents
 
     return tex
 

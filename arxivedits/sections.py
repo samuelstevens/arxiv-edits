@@ -18,14 +18,9 @@ def parsesections(sourcefilepath) -> List[Section]:
     '''
     Parses a latex source file and returns a list of tuples of
     (section name, original latex source)
-
-    TODO: parse original latex source.
-    TODO: implement.
     '''
 
-    # section_pattern = re.compile(
-    #     r'\\(title|abstract|section|subsection)\*?(.*?)(?=\\(?:title|abstract|section|subsection))', re.DOTALL)
-
+    # this regex is causing issues. It creates artifacts like "Approximation for extinction probability of the contact process based on the Gr", "\"obner basis}, which is clearly incorrect.
     section_pattern = re.compile(
         r'[^%]\\(?:(title|abstract|section)\*?|begin\{(abstract)\})(.*?)(?=[^%]\\(?:(?:title|abstract|section)\*?|begin\{abstract\}))', re.DOTALL)  # might want to add |subsection in there
 

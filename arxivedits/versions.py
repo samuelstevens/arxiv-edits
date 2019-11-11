@@ -99,7 +99,7 @@ def get_all_records() -> Iterable[Record]:
     return records
 
 
-def parse(record: Record) -> Tuple[str, bool]:
+def parse(record: Record) -> Tuple[str, int]:
     '''
     Takes a Record and returns the identifier and its version count.
     '''
@@ -133,7 +133,7 @@ def parse(record: Record) -> Tuple[str, bool]:
 
     versions: List[str] = meta['versions']
 
-    version_count = False
+    version_count = 0
 
     try:
         version_count = len(versions)

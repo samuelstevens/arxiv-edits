@@ -6,18 +6,18 @@ import os
 import json
 import heapq
 from typing import List, Tuple, Optional
+from collections import namedtuple
 
 from lcs import similarity as sim
+from nlp import ArxivTokenizer
+from tex import detex
 
+TOKENIZER = ArxivTokenizer()
 
-class Alignment():
-    '''
-    Represents an alignment between pairs of something, with a score.
-    '''
+MISMATCH_PENALTY = 0.1
+SKIP_PENALTY = 0
 
-    def __init__(self, score, pairs):
-        self.score = score
-        self.pairs = pairs[:]  # make a deep copy
+Alignment = namedtuple('Alignment', ['score', 'pairs'])
 
 
 def align_sentences(s1: List[str], s2: List[str], mismatch: float, skip: float) -> List[Tuple[str, str]]:
@@ -137,10 +137,22 @@ def get_sentence_pairs(v1filepath, v2filepath) -> List[Tuple[str, str]]:
     # assumes that each version has the same number of sections (len(v1source))
     matchedsections = heapq.nlargest(len(v1source), sortedpairs)
 
-    for _, contentpair, _ in matchedsections:
-        print(len(contentpair[0]))
+    sentencepairs = []
 
-    return []
+    for _, contentpair, _ in matchedsections:
+        text1 = detex(contentpair[0])
+        text2 = detex(contentpair[1])
+        print(text1)
+        print(text2)
+
+        # TODO: WORKING HERE
+
+        sentences1 = TOKENIZER.split(text1, group='sentence')
+        sentences2 = TOKENIZER.split(text2, group='sentence')
+        sentencepairs.extend(align_sentences(
+            sentences1, sentences2, MISMATCH_PENALTY, SKIP_PENALTY))
+
+    return sentencepairs
 
 
 def main():
@@ -201,18 +213,17 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
+    main()
 
-    sentences1 = [
-        'An additional complication arises when the fragmentation radiation is assumed to be exactly collinear to the photon\'s momentum, as implied by the photon fragmentation functions noun.',
-        'The collinear approximation constrains from below the values of noun accessible to noun: noun verbs noun.',
-        'The size of the fragmentation contribution may depend strongly on the values of noun and noun as a consequence of rapid variation of noun with noun.'
-    ]
+    # sentences1 = [
+    #     'An additional complication arises when the fragmentation radiation is assumed to be exactly collinear to the photon\'s momentum, as implied by the photon fragmentation functions noun.',
+    #     'The collinear approximation constrains from below the values of noun accessible to noun: noun verbs noun.',
+    #     'The size of the fragmentation contribution may depend strongly on the values of noun and noun as a consequence of rapid variation of noun with noun.'
+    # ]
 
-    sentences2 = [
-        'An additional complication arises when the fragmentation radiation is assumed to be exactly collinear to the photon\'s momentum, as implied by the photon fragmentation functions noun.',
-        'The collinear approximation constrains from below the values of noun accessible to noun: noun verbs noun.',
-        'The size of the fragmentation contribution may depend strongly on the values of noun and noun as a consequence of rapid variation of noun with noun.']
+    # sentences2 = [
+    #     'An additional complication arises when the fragmentation radiation is assumed to be exactly collinear to the photon\'s momentum, as implied by the photon fragmentation functions noun.',
+    #     'The collinear approximation constrains from below the values of noun accessible to noun: noun verbs noun.',
+    #     'The size of the fragmentation contribution may depend strongly on the values of noun and noun as a consequence of rapid variation of noun with noun.']
 
-    pairs = align_sentences(sentences1, sentences2, 0.1, 0.1)
-    print(pairs)
+    # print(align_sentences(sentences1, sentences2, 0.1, 0.1))
