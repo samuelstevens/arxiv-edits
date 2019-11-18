@@ -78,3 +78,7 @@ find . -name '*.py' | entr pytest
 
 pytest  --cov=arxivedits/
 ```
+
+## Style Guide
+
+- snake_case for functions

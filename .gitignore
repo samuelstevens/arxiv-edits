@@ -13,3 +13,5 @@ data
 *.swp
 
 tmp
+
+.hypothesis
