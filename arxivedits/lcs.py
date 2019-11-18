@@ -2,7 +2,7 @@
 Implements and exports a weighted-LCS algorithm.
 '''
 import shelve
-from math import inf  # natural log
+from math import inf
 from typing import List, Optional, TypeVar
 from nlp import ArxivTokenizer
 from idf import idf
@@ -12,10 +12,10 @@ TOKENIZER = ArxivTokenizer()
 
 DOCUMENTFREQ: Optional[shelve.DbfilenameShelf] = None
 
-T = TypeVar('T')
+Generic = TypeVar('T')
 
 
-def lcs(seq1: List[T], seq2: List[T]) -> List[T]:
+def lcs(seq1: List[Generic], seq2: List[Generic]) -> List[Generic]:
     '''
     longest common subsequence, inspired by https://en.wikipedia.org/wiki/Longest_common_subsequence_problem#Worked_example
     '''
@@ -23,11 +23,11 @@ def lcs(seq1: List[T], seq2: List[T]) -> List[T]:
     if not seq1 or not seq2:
         return []
 
-    table: List[List[List[T]]] = [[[]
-                                   for i in range(len(seq2))] for j in range(len(seq1))]  # this might be really, really inefficient
+    table: List[List[List[Generic]]] = [[[]
+                                         for i in range(len(seq2))] for j in range(len(seq1))]  # this might be really, really inefficient
 
-    for i in range(len(seq1)):
-        for j in range(len(seq2)):
+    for i, _ in enumerate(seq1):
+        for j, _ in enumerate(seq2):
             if seq1[i] == seq2[j]:
                 prevrecord = table[i-1][j-1] if i > 0 and j > 0 else []
 
@@ -44,6 +44,7 @@ def similarity(sentence1: str, sentence2: str) -> float:
     '''
     Uses an idf-weighted longest common subsequence algorithm to find the similarity between two English sentences. Returns -Infinity if there is an error.
     '''
+
     words1 = TOKENIZER.split(sentence1, group='word')
     words2 = TOKENIZER.split(sentence2, group='word')
 
@@ -60,6 +61,9 @@ def similarity(sentence1: str, sentence2: str) -> float:
 
 
 def main():
+    '''
+    Demonstrates `lcs()` and `similarity()`.
+    '''
     def lcs_of_sentence(sentence1, sentence2):
         words1 = TOKENIZER.split(sentence1, group='word')
         words2 = TOKENIZER.split(sentence2, group='word')

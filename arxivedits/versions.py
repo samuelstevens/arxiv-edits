@@ -1,3 +1,6 @@
+'''
+Stores a list of all arxiv ids with multiple versions.
+'''
 # built in
 from typing import Set, List, Tuple, Iterable
 

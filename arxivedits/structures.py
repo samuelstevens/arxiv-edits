@@ -1,3 +1,6 @@
+'''
+Various types used in this application.
+'''
 # built in
 from typing import Tuple, NewType
 

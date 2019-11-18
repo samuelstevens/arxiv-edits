@@ -1,3 +1,6 @@
+'''
+Downloads source files from arxiv.org and extracts the largest .tex file.
+'''
 # Builtin
 from typing import List, Tuple, Optional
 import tarfile
