@@ -5,7 +5,10 @@ Tries to align the sentences in two versions of a plain text research paper.
 import os
 import json
 import heapq
-from typing import List, Tuple, Optional
+import csv
+
+
+from typing import List, Tuple
 from collections import namedtuple
 
 from lcs import similarity as sim
@@ -28,11 +31,11 @@ def align_sentences(s1: List[str], s2: List[str], mismatch: float, skip: float) 
     if not s1 or not s2:
         return []
 
-    weighttable: List[List[Optional[Alignment]]] = [
-        [None for y in range(len(s2))] for x in range(len(s1))]
+    weighttable: List[List[Alignment]] = [
+        [Alignment(0, []) for y in range(len(s2))] for x in range(len(s1))]
 
-    for i in range(len(s1)):
-        for j in range(len(s2)):
+    for i, _ in enumerate(s1):
+        for j, _ in enumerate(s2):
 
             options: List[Alignment] = []
 
@@ -60,6 +63,7 @@ def align_sentences(s1: List[str], s2: List[str], mismatch: float, skip: float) 
                 options.append(option)
 
             if i >= 1 and j >= 1:
+
                 # s(i-1,j-1) + sim(i,j)
                 option = Alignment(
                     weighttable[i-1][j-1].score + sim(s1[i], s2[j]) - mismatch,
@@ -100,6 +104,18 @@ def align_sentences(s1: List[str], s2: List[str], mismatch: float, skip: float) 
                     )
                     options.append(option)
 
+            # The size of bestoption.pairs grows by ~72 bytes every loop.
+
+            # For sequences with 24 sentences, we have 72 bytes * 24 * 24 = 41,472 bytes in weighttable[-1][-1].
+
+            # Since weighttable[i][j] is about one byte smaller for each decrement of i or j, it's can be multiplied by 24 * 24 to see the the big-o total memory.
+
+            #     72 * 24^2 * 24^2 = 23,887,872 bytes = 22.7 MB.
+
+            # I don't think memory usage is the reason it's slowing down.
+
+            # Activity monitor shows the process taking 60% CPU.
+
             bestoption = max(options, key=lambda o: o.score)
 
             weighttable[i][j] = bestoption
@@ -137,20 +153,19 @@ def get_sentence_pairs(v1filepath, v2filepath) -> List[Tuple[str, str]]:
     # assumes that each version has the same number of sections (len(v1source))
     matchedsections = heapq.nlargest(len(v1source), sortedpairs)
 
-    sentencepairs = []
+    sentencepairs: List[Tuple[str, str]] = []
 
     for _, contentpair, _ in matchedsections:
         text1 = detex(contentpair[0])
         text2 = detex(contentpair[1])
-        print(text1)
-        print(text2)
-
-        # TODO: WORKING HERE
 
         sentences1 = TOKENIZER.split(text1, group='sentence')
         sentences2 = TOKENIZER.split(text2, group='sentence')
+
         sentencepairs.extend(align_sentences(
             sentences1, sentences2, MISMATCH_PENALTY, SKIP_PENALTY))
+
+        print(f'Found {len(sentencepairs)} pairs so far.')
 
     return sentencepairs
 
@@ -194,13 +209,15 @@ def main():
 
             # include both versions in the file name
             sentencefilepath = os.path.join(
-                sentencedirectory, f'{arxiv_id}-v{version}-v{version+1}')
+                sentencedirectory, f'{arxiv_id}-v{version}-v{version+1}.tsv')
 
-            with open(sentencefilepath, 'w') as file:
-                # write every sentence pair "sentence", "sentence"
-                # TODO: think about escaping " inside the sentences.
+            with open(sentencefilepath, 'w') as csvfile:
+                writer = csv.writer(csvfile, delimiter='\t')
+
                 for (sentence1, sentence2) in sentencepairs:
-                    file.write(f'"{sentence1}", "{sentence2}"')
+                    writer.writerow([sentence1, sentence2])
+
+            print(f'Wrote {sentencefilepath}')
 
             version += 1
 
@@ -209,21 +226,7 @@ def main():
 
         # only look at an id once
         already_seen.add(arxiv_id)
-        return
 
 
 if __name__ == '__main__':
     main()
-
-    # sentences1 = [
-    #     'An additional complication arises when the fragmentation radiation is assumed to be exactly collinear to the photon\'s momentum, as implied by the photon fragmentation functions noun.',
-    #     'The collinear approximation constrains from below the values of noun accessible to noun: noun verbs noun.',
-    #     'The size of the fragmentation contribution may depend strongly on the values of noun and noun as a consequence of rapid variation of noun with noun.'
-    # ]
-
-    # sentences2 = [
-    #     'An additional complication arises when the fragmentation radiation is assumed to be exactly collinear to the photon\'s momentum, as implied by the photon fragmentation functions noun.',
-    #     'The collinear approximation constrains from below the values of noun accessible to noun: noun verbs noun.',
-    #     'The size of the fragmentation contribution may depend strongly on the values of noun and noun as a consequence of rapid variation of noun with noun.']
-
-    # print(align_sentences(sentences1, sentences2, 0.1, 0.1))
