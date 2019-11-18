@@ -1,5 +1,7 @@
 '''
 Takes LaTeX source files and parses the sections. Writes the sections to data/sections.
+
+data/unzipped -> data/sections
 '''
 
 
@@ -7,6 +9,8 @@ import os
 import json
 import re
 from typing import List, Tuple
+
+from tex import detex
 
 # custom types
 Section = Tuple[str, str]
@@ -22,7 +26,7 @@ def parsesections(sourcefilepath) -> List[Section]:
 
     # this regex is causing issues. It creates artifacts like "Approximation for extinction probability of the contact process based on the Gr", "\"obner basis}, which is clearly incorrect.
     section_pattern = re.compile(
-        r'[^%]\\(?:(title|abstract|section)\*?|begin\{(abstract)\})(.*?)(?=[^%]\\(?:(?:title|abstract|section)\*?|begin\{abstract\}))', re.DOTALL)  # might want to add |subsection in there
+        r'[^%]\\(?:(abstract|section)\*?|begin\{(abstract)\})(.*?)(?=[^%]\\(?:(?:abstract|section)\*?|begin\{abstract\}))', re.DOTALL)  # might want to add |subsection in there
 
     with open(sourcefilepath, 'r') as file:
         latexsource = file.read()
@@ -35,27 +39,33 @@ def parsesections(sourcefilepath) -> List[Section]:
     def extract_section_type(section):
         sectiontype, content = section
         # we want to add the title of the section
-        if sectiontype in UNTITLED_SECTIONS and content[0] == '{':
-            try:
-                endbrace = content.index('}')
-            except ValueError:
-                endbrace = float('inf')
 
-            try:
-                newcommand = content.index('\\')
-            except ValueError:
-                newcommand = float('inf')
+        # we achive this by looking for {} pairs
 
-            endpos = min(endbrace, newcommand)
-            if endpos < len(content):
-                return (sectiontype, content[1:endpos], content[endpos+1:])
+        bracecount = 0
+        index = 0
 
-            print(
-                f'Did not find an ending for {sectiontype} in {sourcefilepath}')
+        if sectiontype in UNTITLED_SECTIONS:
+            while index < 200:
+                if content[index] == '{':
+                    bracecount += 1
+
+                if content[index] == '}':
+                    bracecount -= 1
+
+                if bracecount == 0:
+                    return (sectiontype, content[1:index], content[index+1:])
+
+                index += 1
+
+            print(f'Error.')
 
         return (sectiontype, sectiontype, content)
 
     sections = [extract_section_type(sec) for sec in sections]
+
+    # This line is causing a lot of problems. The words in detex(c) do not always match the words in data/text
+    sections = [(a, b, detex(c)) for a, b, c in sections]
 
     return sections
 

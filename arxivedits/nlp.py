@@ -1,3 +1,7 @@
+'''
+Exposes `ArxivTokenizer`, a sentence and word tokenizer with several hand-coded rules specific to Arxiv/LaTeX documents.
+'''
+
 from typing import List, Set
 from functools import reduce
 
@@ -6,6 +10,10 @@ from nltk.tokenize.treebank import TreebankWordTokenizer
 
 
 class ArxivTokenizer:
+    '''
+    A sentence and word tokenizer with several hand-coded rules specific to Arxiv/LaTeX documents.
+    '''
+
     def __init__(self):
         self.detector = nltk.data.load('tokenizers/punkt/english.pickle')
         self.false_split_suffixes: Set[str] = set(
@@ -32,9 +40,15 @@ class ArxivTokenizer:
         return reduce(join_sentences, split, [])
 
     def __split_word(self, sentence: str) -> List[str]:
+        '''
+        Splits a sentence into words.
+        '''
         return self.tokenizer.tokenize(sentence)
 
     def split(self, text: str, group='') -> List[str]:
+        '''
+        Splits text into either sentences or words.
+        '''
         if group == 'sentence':
             return self.__split_sent(text)
         if group == 'word':
