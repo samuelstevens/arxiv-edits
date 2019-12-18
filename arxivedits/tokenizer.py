@@ -8,6 +8,7 @@ Base tokenizer/tokens classes and utilities.
 '''
 import json
 import copy
+import os
 
 import pexpect
 
@@ -271,7 +272,7 @@ class CoreNLPTokenizer(Tokenizer):
         data = []
         tokens = [t for s in output['sentences'] for t in s['tokens']]
         # print(output)
-        for _, i in enumerate(tokens):
+        for i, _ in enumerate(tokens):
             # Get whitespace
             start_ws = tokens[i]['characterOffsetBegin']
             if i + 1 < len(tokens):
@@ -292,14 +293,43 @@ class CoreNLPTokenizer(Tokenizer):
 
 
 def main():
+    '''
+    Loads sections from data/sections and sends them to data/sentences
+    '''
     tok = CoreNLPTokenizer()
 
-    line = "Hi. I am Chao. I come from No. 1 Middle School (XX School)."
+    sectionsdirectory = os.path.join('data', 'sections')
+    sentencesdirectory = os.path.join('data', 'sentences')
 
-    # this step is quite important, in the original sent, there is \xa0 looks like a white space
-    line = " ".join(line.split())
+    if not os.path.isdir(sentencesdirectory):
+        os.mkdir(sentencesdirectory)
 
-    print(tok.tokenize(line).ssplit())
+    for sectionfile in os.listdir(sectionsdirectory):
+        sectionfilepath = os.path.join(sectionsdirectory, sectionfile)
+
+        with open(sectionfilepath, 'r') as file:
+            sections = json.load(file)
+
+        sentencelist = []
+
+        for section in sections:
+            title, text = section
+            # this step is quite important, in the original sent, there is \xa0 that looks like a white space
+            text = " ".join(text.split())
+
+            try:
+                sentences = tok.tokenize(text).ssplit()
+            except json.decoder.JSONDecodeError as err:
+                print(err.msg)
+                print(f'Error with {sectionfilepath} in {title}')
+
+            sentencelist.append([title, sentences])
+
+        sentencesfilepath = os.path.join(
+            sentencesdirectory, f'{sectionfile}.json')
+
+        with open(sentencesfilepath, 'w') as file:
+            json.dump(sentencelist, file, indent=2)
 
 
 if __name__ == '__main__':
