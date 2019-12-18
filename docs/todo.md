@@ -1,23 +1,25 @@
 # To Do
 
-1. [DONE] `CODE`: Persistently store arxivIDs and whether there are multiple versions.
+## Collect Information
 
-2. [DONE] `PROCESS`: start scraping (P1)
+### Required Information
 
-3. [DONE] `CODE`: turn section text into sentences via NLTK, Stanford, some combination.
+- basic stats about arXiv data
+  - total # of docs on arXiv
+  - % that have 2+ revisions
+  - other interesting stats
+    - can calculate these with a random sample
+- how to convert LaTeX to plain text
+  - which conversion tool is best 
+    - use manual evaluation
+  - modify and improve the converter
+- align sentences in a similar manner to Chenhao (or use massalign)
+  - initial analysis
+- zip file of code and data for getting papers form arXiv and extracting text from LaTeX
 
-4. [DONE] `READ`: Alternative paper with matrix to align sentences
+## Produce Written Format
 
-5. [DONE] `QUESTION`: How to store a `Dict[str, int]` for idf word counts?
-
-6. [DONE] `CODE`: Tokenize text for a word count for idf.
-
-7. `CODE`: Micro align sentences.
-
-8. `QUESTION`: How to store all these sentence pairs? Consider network speed, storage space.
-
-9. `CODE`: Write sentences to persistent storage.
-
-## Problems
-
-- Need to mimic human, slow down scraping methods.
+1. Find different Latex examples. 
+2. Create acceptable examples of output. 
+3. Write several algorithms.
+4. Score algorithms based on Levenstein distance from acceptable output.

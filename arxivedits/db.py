@@ -1,6 +1,6 @@
 import sqlite3
 
-DB_FILE_NAME = 'data/arxiv-edits.db'
+DB_FILE_NAME = 'data/arxivedits.sqlite3'
 
 
 IDF_DB = 'data/idf'

@@ -9,12 +9,22 @@ logger = logging.getLogger('delatex')
 
 def pandoc_file(inputfile, outputfile):
     result = subprocess.run(
-        ['pandoc', '--from', 'latex', '--to', 'plain', inputfile, '-o', outputfile], capture_output=True)
+        ['pandoc', '--from', 'latex', '--to', 'markdown', '-s', '--atx-headers', inputfile, '-o', outputfile], capture_output=True)
     if result and result.returncode != 0:
         print(result.stderr.decode('utf-8', errors='ignore'))
         print(f'Error with file {inputfile}')
 
     return result.returncode
+
+
+def pandoc(text: str) -> str:
+    result = subprocess.run(['pandoc', '--from', 'latex', '--to', 'markdown',
+                             '-s', '--atx-headers'], input=text, text=True, capture_output=True)
+    if result and result.returncode != 0:
+        print(result.stderr)
+        print(f'Error with "{text[:30]}..."')
+
+    return result.stdout
 
 
 def detex_file(inputfile, outputfile):
@@ -39,7 +49,6 @@ def detex(text: str) -> str:
         print(
             f"text {text[:16]} did not have attribute 'encode', which means it most likely wasn't a string (could be bytes).")
         return ''
-
 
 # Chenhao's code
 # START
@@ -320,7 +329,7 @@ def main():
     for sourcefile in os.listdir(sourcefiles):
         sourcefilepath = os.path.join(sourcefiles, sourcefile)
         outputfilepath = os.path.join(textfiles, sourcefile)
-        result = detex_file(sourcefilepath, outputfilepath)
+        result = pandoc_file(sourcefilepath, outputfilepath)
 
         if result != 0:
             error_count += 1

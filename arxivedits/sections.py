@@ -8,86 +8,81 @@ data/unzipped -> data/sections
 import os
 import json
 import re
-from typing import List, Tuple
+from typing import List
+from collections import namedtuple
 
-from tex import detex
 
 # custom types
-Section = Tuple[str, str]
-
-UNTITLED_SECTIONS = ['section', 'subsection', 'title']
+Section = namedtuple('Section', 'title text')
 
 
-def parsesections(sourcefilepath) -> List[Section]:
+def clean_text(text: str) -> str:
     '''
-    Parses a latex source file and returns a list of tuples of
-    (section name, original latex source)
+    Strips whitespace and turns 1+ whitespace characters into a single space.
+    '''
+    text = text.strip()
+
+    whitespacepattern = re.compile(r'\s+')
+
+    return whitespacepattern.sub(' ', text)
+
+
+def parsesections(textfilepath: str) -> List[Section]:
+    '''
+    Parses a markdown text file and returns a list of tuples of
+    (section name, )
     '''
 
-    # this regex is causing issues. It creates artifacts like "Approximation for extinction probability of the contact process based on the Gr", "\"obner basis}, which is clearly incorrect.
-    section_pattern = re.compile(
-        r'[^%]\\(?:(abstract|section)\*?|begin\{(abstract)\})(.*?)(?=[^%]\\(?:(?:abstract|section)\*?|begin\{abstract\}))', re.DOTALL)  # might want to add |subsection in there
+    titlepattern = re.compile(r'^# (.*)', re.MULTILINE)
 
-    with open(sourcefilepath, 'r') as file:
-        latexsource = file.read()
+    with open(textfilepath, 'r') as file:
+        markdowntext = file.read().replace('\u00a0', ' ')
 
-    sections = section_pattern.findall(latexsource)
+    title = titlepattern.search(markdowntext, 0)
+    intialtitle = '### Initial Section (MANUAL) ###'
 
-    sections = [[section[0], section[2]] if section[0] else [
-        section[1], section[2]] for section in sections]
+    # if there are no matches, then the entire file goes in a single json object.
+    if not title:
+        print(f'Only one section found in {textfilepath}')
+        return [Section(title=intialtitle, text=clean_text(markdowntext))]
 
-    def extract_section_type(section):
-        sectiontype, content = section
-        # we want to add the title of the section
+    text = markdowntext[0:title.span()[0]]
+    sections = [Section(title=intialtitle, text=clean_text(text))]
 
-        # we achive this by looking for {} pairs
+    # if you have a match, you need to find another further match and pick the text out.
+    while title:
+        nexttitle = titlepattern.search(markdowntext, title.span()[1])
+        if not nexttitle:
+            # reached end of file. Put the rest of the text in the section and call it a day
+            text = markdowntext[title.span()[1]:]
+            sections.append(Section(title=title[1], text=clean_text(text)))
+            break
 
-        bracecount = 0
-        index = 0
-
-        if sectiontype in UNTITLED_SECTIONS:
-            while index < 200:
-                if content[index] == '{':
-                    bracecount += 1
-
-                if content[index] == '}':
-                    bracecount -= 1
-
-                if bracecount == 0:
-                    return (sectiontype, content[1:index], content[index+1:])
-
-                index += 1
-
-            print(f'Error.')
-
-        return (sectiontype, sectiontype, content)
-
-    sections = [extract_section_type(sec) for sec in sections]
-
-    # This line is causing a lot of problems. The words in detex(c) do not always match the words in data/text
-    sections = [(a, b, detex(c)) for a, b, c in sections]
+        text = markdowntext[title.span()[1]:nexttitle.span()[0]]
+        sections.append(Section(title=title[1], text=clean_text(text)))
+        title = nexttitle
 
     return sections
 
 
 def main():
     '''
-    For every file in data/unzipped, parse the LaTeX and write it to data/sections as json.
+    For every file in data/text, take the sections out and write it to data/sections as json.
     '''
 
-    unzippeddirectory = os.path.join('data', 'unzipped')
+    textdirectory = os.path.join('data', 'text')
     sectionsdirectory = os.path.join('data', 'sections')
 
     if not os.path.isdir(sectionsdirectory):
         os.mkdir(sectionsdirectory)
 
-    for sourcefile in os.listdir(unzippeddirectory):
-        sourcefilepath = os.path.join(unzippeddirectory, sourcefile)
+    for textfile in os.listdir(textdirectory):
+        textfilepath = os.path.join(textdirectory, textfile)
 
-        sections = parsesections(sourcefilepath)
+        sections = parsesections(textfilepath)
 
         sectionsfilepath = os.path.join(
-            sectionsdirectory, f'{sourcefile}.json')
+            sectionsdirectory, f'{textfile}.json')
 
         with open(sectionsfilepath, 'w') as file:
             json.dump(sections, file, indent=2)

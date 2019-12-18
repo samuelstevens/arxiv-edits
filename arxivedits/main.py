@@ -14,7 +14,7 @@ def main():
     '''
     tex()  # data/unzipped -> data/text
     idf()  # data/text -> data/IDF_DB
-    sections()  # data/unzipped -> data/sections
+    sections()  # data/text -> data/sections
     align()
 
 

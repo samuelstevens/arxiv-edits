@@ -67,10 +67,6 @@ python main.py | detex -r > parsed_test.txt # can pipe stuff straight into detex
 
 - Could use NLTK to parse the sentences. https://www.nltk.org/data.html
 
-# Questions
-
-- Research credit hours - CSE 4998H - Undergraduate Research in Computer Science and Engineering
-
 ## Development
 
 ```bash
