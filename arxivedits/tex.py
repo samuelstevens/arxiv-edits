@@ -1,4 +1,4 @@
-from data import TEXT_DIR, UNZIPPED_DIR
+from data import TEXT_DIR, UNZIPPED_DIR, is_x
 import subprocess
 import string
 import re
@@ -320,7 +320,14 @@ def simpleLatexToText(inputfile, outputfile, sectioned=False):
 # END
 
 
+def is_detexed(arxivid, versioncount) -> bool:
+    return is_x(arxivid, versioncount, TEXT_DIR)
+
+
 def main():
+    '''
+    Takes files from data/unzipped and converts them to text, then sends them to data/text.
+    '''
     os.makedirs(TEXT_DIR, exist_ok=True)
 
     error_count = 0

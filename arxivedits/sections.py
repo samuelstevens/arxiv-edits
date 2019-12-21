@@ -11,7 +11,7 @@ import re
 from typing import List
 from collections import namedtuple
 
-from data import SECTIONS_DIR, TEXT_DIR
+from data import SECTIONS_DIR, TEXT_DIR, is_x
 
 
 # custom types
@@ -45,11 +45,15 @@ def parsesections(textfilepath: str) -> List[Section]:
 
     # if there are no matches, then the entire file goes in a single json object.
     if not title:
-        print(f'Only one section found in {textfilepath}')
+        # print(f'Only one section found in {textfilepath}')
         return [Section(title=intialtitle, text=clean_text(markdowntext))]
 
     text = markdowntext[0:title.span()[0]]
-    sections = [Section(title=intialtitle, text=clean_text(text))]
+
+    sections: List[Section] = []
+
+    if text:
+        sections.append(Section(title=intialtitle, text=clean_text(text)))
 
     # if you have a match, you need to find another further match and pick the text out.
     while title:
@@ -65,6 +69,10 @@ def parsesections(textfilepath: str) -> List[Section]:
         title = nexttitle
 
     return sections
+
+
+def is_sectioned(arxivid, versioncount) -> bool:
+    return is_x(arxivid, versioncount, SECTIONS_DIR, extension=".json")
 
 
 def main():

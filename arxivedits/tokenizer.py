@@ -304,6 +304,7 @@ def main():
         os.mkdir(SENTENCES_DIR)
 
     for sectionfile in os.listdir(SECTIONS_DIR):
+
         sectionfilepath = os.path.join(SECTIONS_DIR, sectionfile)
 
         with open(sectionfilepath, 'r') as file:
@@ -321,8 +322,10 @@ def main():
             except json.decoder.JSONDecodeError as err:
                 print(err.msg)
                 print(f'Error with {sectionfilepath} in {title}')
+            else:
+                sentencelist.append([title, sentences])
 
-            sentencelist.append([title, sentences])
+        sectionfile, _ = os.path.splitext(sectionfile)
 
         sentencesfilepath = os.path.join(
             SENTENCES_DIR, f'{sectionfile}.json')

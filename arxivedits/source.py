@@ -14,7 +14,7 @@ import magic  # type: ignore
 
 # internal
 from structures import ArxivID  # type: ignore
-from data import connection, SOURCE_DIR, EXTRACTED_DIR
+from data import connection, SOURCE_DIR, UNZIPPED_DIR, is_x
 
 
 def download_file(url: str, local_filename: str) -> str:
@@ -86,13 +86,17 @@ def get_filetype(file):
 
 
 def is_downloaded(arxivid, versioncount) -> bool:
-    arxividpath = arxivid.replace('/', '-')
+    '''
+    Check if a document is downloaded.
+    '''
+    return is_x(arxivid, versioncount, SOURCE_DIR)
 
-    for i in range(versioncount):
-        if not os.path.isfile(os.path.join(SOURCE_DIR, f'{arxividpath}-v{i + 1}')):
-            return False
 
-    return True
+def is_extracted(arxivid, versioncount) -> bool:
+    '''
+    Checks if a document was extracted.
+    '''
+    return is_x(arxivid, versioncount, UNZIPPED_DIR)
 
 
 def extract(in_dir, filename) -> Optional[bytes]:
@@ -184,10 +188,10 @@ def extract_all(extract_again=False):
     Extracts the longest .tex file from every file in SOURCE_DIR to UNZIPPED_DIR
     '''
 
-    os.makedirs(EXTRACTED_DIR, exist_ok=True)
+    os.makedirs(UNZIPPED_DIR, exist_ok=True)
 
     for filename in os.listdir(SOURCE_DIR):
-        if os.path.isfile(os.path.join(EXTRACTED_DIR, filename)) and not extract_again:
+        if os.path.isfile(os.path.join(UNZIPPED_DIR, filename)) and not extract_again:
             continue
 
         content = None
@@ -201,7 +205,7 @@ def extract_all(extract_again=False):
             # removes not utf characters
             content = content.decode(
                 'utf-8', errors='ignore').encode(encoding='utf-8', errors='ignore')
-            with open(os.path.join(EXTRACTED_DIR, filename), 'wb') as file:
+            with open(os.path.join(UNZIPPED_DIR, filename), 'wb') as file:
                 file.write(content)
 
 
