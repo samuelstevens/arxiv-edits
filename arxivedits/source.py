@@ -85,6 +85,16 @@ def get_filetype(file):
     return magic.from_buffer(buffer, mime=True)
 
 
+def is_downloaded(arxivid, versioncount) -> bool:
+    arxividpath = arxivid.replace('/', '-')
+
+    for i in range(versioncount):
+        if not os.path.isfile(os.path.join(SOURCE_DIR, f'{arxividpath}-v{i + 1}')):
+            return False
+
+    return True
+
+
 def extract(in_dir, filename) -> Optional[bytes]:
     '''
     Takes a filepath (dir, name) and extracts the longest .tex file, then returns the contents as a string.
@@ -123,14 +133,16 @@ def extract(in_dir, filename) -> Optional[bytes]:
                 raise TypeError(f'{filetype} not implemented yet.')
 
 
-def download_source_files(arxiv_id: ArxivID, version_count: int, output_directory: str = 'data') -> None:
+def download_source_files(arxiv_id: ArxivID, version_count: int, output_directory: str = SOURCE_DIR) -> None:
     '''
     Makes {version_count} network requests, one for each source file, and writest them to {output_directory}
     '''
 
+    arxividpath = arxiv_id.replace('/', '-')
+
     for version in range(1, version_count+1):
         url = f'https://arxiv.org/e-print/{arxiv_id}v{version}'
-        filename = os.path.join(output_directory, f'{arxiv_id}-v{version}')
+        filename = os.path.join(output_directory, f'{arxividpath}-v{version}')
 
         if not os.path.isdir(output_directory):
             os.makedirs(output_directory)
@@ -163,10 +175,10 @@ def download_all():
     arxiv_id_pairs = get_ids()
 
     for arxiv_id, version_count in arxiv_id_pairs:
-        download_source_files(arxiv_id, version_count, SOURCE_DIR)
+        download_source_files(arxiv_id, version_count)
 
 
-def extract_all():
+def extract_all(extract_again=False):
     '''
     Extracts the longest .tex file from every file in SOURCE_DIR to UNZIPPED_DIR
     '''
@@ -174,6 +186,9 @@ def extract_all():
     os.makedirs(EXTRACTED_DIR, exist_ok=True)
 
     for filename in os.listdir(SOURCE_DIR):
+        if os.path.isfile(os.path.join(EXTRACTED_DIR, filename)) and not extract_again:
+            continue
+
         try:
             content = extract(SOURCE_DIR, filename)
 

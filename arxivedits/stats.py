@@ -4,17 +4,40 @@ Generates stats for arXiv as a data source.
 * Might want to take a random sample of papers with 2+ versions, and a sample of all papers.
 * From the random sample, write the arxiv ids to a text file
 * From the text file, scrape all the papers + versions.
-* From the text file and for all downloaded papers, measure the statistics (listed in notebook)
+* From the text file and for all downloaded papers, measure the following statistics
+    * total # of papers
+    * total #, % of papers with 2+ versions
+    * total # of revision pairs: (1, 2), (2, 3), etc
+    * % of sentences with embedded LaTeX
+    * % of sentences deleted
+    * % of sentences modified (>= 4 in distance)
+    * % of sentences with typos (< 4 in distance)
 '''
 import os
+import csv
+
 
 import data
+import source
+
+MULTIPLE_VERSIONS = True
 
 
 def get_random_sample(samplesize=1000, multipleversions=False):
     '''
-    Takes a random sample of all rows.
+    Gets a new random sample unless one exists.
     '''
+
+    extension = '-only-multiversion' if MULTIPLE_VERSIONS else '-all'
+
+    samplefilepath = os.path.join(data.DATA_DIR, f'sample{extension}.csv')
+
+    if os.path.isfile(samplefilepath):
+        with open(samplefilepath, 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            ids = [(arxivid, int(versioncount))
+                   for arxivid, versioncount in reader]
+        return ids
 
     con = data.connection()
 
@@ -23,7 +46,13 @@ def get_random_sample(samplesize=1000, multipleversions=False):
     else:
         query = 'SELECT * FROM papers ORDER BY RANDOM() LIMIT ?'
 
-    return con.execute(query, (samplesize,)).fetchall()
+    sample = con.execute(query, (samplesize,)).fetchall()
+
+    with open(samplefilepath, 'w') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerows(sample)
+
+    return sample
 
 
 def main():
@@ -31,31 +60,25 @@ def main():
     Takes a random sample and writes them to a text file. Then calculates stats.
     '''
 
-    multipleversions = True
+    sample = get_random_sample()
 
-    extension = '-only-multiversion' if multipleversions else '-all'
+    # modifies to smaller sample
+    sample = sample[:50]
 
-    samplefilepath = os.path.join(data.DATA_DIR, f'sample{extension}.txt')
+    print(f'{len(sample)} ids in sample.')
 
-    # generate random sample if it doesn't exist
-    if not os.path.isfile(samplefilepath):
-        sample = get_random_sample(multipleversions=multipleversions)
+    downloadcount = len(sample)
 
-        with open(samplefilepath, 'w') as file:
-            for row in sample:
-                file.write(f'{row[0]}\n')
+    for arxivid, versioncount in sample:
+        if source.is_downloaded(arxivid, versioncount):
+            downloadcount -= 1
 
-    with open(samplefilepath, 'r') as file:
-        ids = file.read().split()
+    print(f'{downloadcount} to download. Estimated {downloadcount * 2 * 30 / 60 / 60:.1f} hours.')
 
-    print(f'{len(ids)} ids in sample.')
+    for arxivid, versioncount in sample:
+        source.download_source_files(arxivid, versioncount)
 
-    for arxivid in ids:
-        sourcefilepath = os.path.join(data.SOURCE_DIR, arxivid)
-
-        if not os.path.isfile(sourcefilepath):
-            # download source file.
-            pass
+    source.extract_all()
 
 
 if __name__ == '__main__':
