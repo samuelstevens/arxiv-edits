@@ -9,7 +9,7 @@ from oaipmh.client import Client
 from oaipmh.metadata import MetadataRegistry, MetadataReader
 
 # internal
-from db import connection
+from data import connection
 from structures import Record, ArxivID
 
 URL = 'http://export.arxiv.org/oai2'

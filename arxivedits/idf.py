@@ -7,10 +7,10 @@ import os
 import json
 from math import log
 
-from db import IDF_DB
+from data import IDF_DB, SECTIONS_DIR, UNZIPPED_DIR
 from nlp import ArxivTokenizer
 
-TOTALDOCS = len(os.listdir(os.path.join('data', 'unzipped')))
+TOTALDOCS = len(os.listdir(UNZIPPED_DIR))
 
 TOKENIZER = ArxivTokenizer()
 
@@ -81,10 +81,8 @@ def main():
     if os.path.isfile(IDF_DB):
         os.remove(IDF_DB)
 
-    sectionfiles = os.path.join('data', 'sections')
-
-    for sectionfile in os.listdir(sectionfiles):
-        sectionfilepath = os.path.join(sectionfiles, sectionfile)
+    for sectionfile in os.listdir(SECTIONS_DIR):
+        sectionfilepath = os.path.join(SECTIONS_DIR, sectionfile)
         add_doc(sectionfilepath)
 
 

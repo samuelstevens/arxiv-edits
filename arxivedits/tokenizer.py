@@ -12,6 +12,8 @@ import os
 
 import pexpect
 
+from data import SENTENCES_DIR, SECTIONS_DIR
+
 
 class Tokens():
     '''
@@ -298,14 +300,11 @@ def main():
     '''
     tok = CoreNLPTokenizer()
 
-    sectionsdirectory = os.path.join('data', 'sections')
-    sentencesdirectory = os.path.join('data', 'sentences')
+    if not os.path.isdir(SENTENCES_DIR):
+        os.mkdir(SENTENCES_DIR)
 
-    if not os.path.isdir(sentencesdirectory):
-        os.mkdir(sentencesdirectory)
-
-    for sectionfile in os.listdir(sectionsdirectory):
-        sectionfilepath = os.path.join(sectionsdirectory, sectionfile)
+    for sectionfile in os.listdir(SECTIONS_DIR):
+        sectionfilepath = os.path.join(SECTIONS_DIR, sectionfile)
 
         with open(sectionfilepath, 'r') as file:
             sections = json.load(file)
@@ -326,7 +325,7 @@ def main():
             sentencelist.append([title, sentences])
 
         sentencesfilepath = os.path.join(
-            sentencesdirectory, f'{sectionfile}.json')
+            SENTENCES_DIR, f'{sectionfile}.json')
 
         with open(sentencesfilepath, 'w') as file:
             json.dump(sentencelist, file, indent=2)

@@ -11,6 +11,8 @@ import re
 from typing import List
 from collections import namedtuple
 
+from data import SECTIONS_DIR, TEXT_DIR
+
 
 # custom types
 Section = namedtuple('Section', 'title text')
@@ -70,19 +72,16 @@ def main():
     For every file in data/text, take the sections out and write it to data/sections as json.
     '''
 
-    textdirectory = os.path.join('data', 'text')
-    sectionsdirectory = os.path.join('data', 'sections')
+    if not os.path.isdir(SECTIONS_DIR):
+        os.mkdir(SECTIONS_DIR)
 
-    if not os.path.isdir(sectionsdirectory):
-        os.mkdir(sectionsdirectory)
-
-    for textfile in os.listdir(textdirectory):
-        textfilepath = os.path.join(textdirectory, textfile)
+    for textfile in os.listdir(TEXT_DIR):
+        textfilepath = os.path.join(TEXT_DIR, textfile)
 
         sections = parsesections(textfilepath)
 
         sectionsfilepath = os.path.join(
-            sectionsdirectory, f'{textfile}.json')
+            SECTIONS_DIR, f'{textfile}.json')
 
         with open(sectionsfilepath, 'w') as file:
             json.dump(sections, file, indent=2)

@@ -14,10 +14,7 @@ import magic  # type: ignore
 
 # internal
 from structures import ArxivID  # type: ignore
-from db import connection
-
-SOURCE_DIR = os.path.join('data', 'source_files')
-EXTRACTED_DIR = os.path.join('data', 'unzipped')
+from data import connection, SOURCE_DIR, EXTRACTED_DIR
 
 
 def download_file(url: str, local_filename: str) -> str:

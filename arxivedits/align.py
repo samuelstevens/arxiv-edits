@@ -14,6 +14,7 @@ from collections import namedtuple
 from lcs import similarity as sim
 from nlp import ArxivTokenizer
 from tex import detex
+from data import SENTENCES_DIR, SECTIONS_DIR
 
 TOKENIZER = ArxivTokenizer()
 
@@ -175,15 +176,12 @@ def main():
     For every file in data/sections, find its other versions. Then create sentence pairs and write them to data/pairs.
     '''
 
-    textfiles = os.path.join('data', 'sections')
-    sentencedirectory = os.path.join('data', 'sentences')
-
     already_seen = set([])
 
-    if not os.path.isdir(sentencedirectory):
-        os.mkdir(sentencedirectory)
+    if not os.path.isdir(SENTENCES_DIR):
+        os.mkdir(SENTENCES_DIR)
 
-    for file in os.listdir(textfiles):
+    for file in os.listdir(SECTIONS_DIR):
         filename, extension = os.path.splitext(file)
         arxiv_id, version_code = filename.split('-')
 
@@ -195,21 +193,21 @@ def main():
 
         # next version is something like 0704.0002-v2
         nextversionfilepath = os.path.join(
-            textfiles, f'{arxiv_id}-v{version + 1}' + extension)
+            SECTIONS_DIR, f'{arxiv_id}-v{version + 1}' + extension)
 
         # keep looking for the next version of the paper
         while os.path.isfile(nextversionfilepath):
 
             # initial version is something like 0704.0002-v1
             currentversionfilepath = os.path.join(
-                textfiles, f'{arxiv_id}-v{version}' + extension)
+                SECTIONS_DIR, f'{arxiv_id}-v{version}' + extension)
 
             sentencepairs = get_sentence_pairs(
                 currentversionfilepath, nextversionfilepath)
 
             # include both versions in the file name
             sentencefilepath = os.path.join(
-                sentencedirectory, f'{arxiv_id}-v{version}-v{version+1}.tsv')
+                SENTENCES_DIR, f'{arxiv_id}-v{version}-v{version+1}.tsv')
 
             with open(sentencefilepath, 'w') as csvfile:
                 writer = csv.writer(csvfile, delimiter='\t')
@@ -222,7 +220,7 @@ def main():
             version += 1
 
             nextversionfilepath = os.path.join(
-                textfiles, f'{arxiv_id}-v{version + 1}' + extension)
+                SECTIONS_DIR, f'{arxiv_id}-v{version + 1}' + extension)
 
         # only look at an id once
         already_seen.add(arxiv_id)

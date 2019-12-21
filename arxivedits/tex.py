@@ -1,3 +1,4 @@
+from data import TEXT_DIR, UNZIPPED_DIR
 import subprocess
 import string
 import re
@@ -320,15 +321,13 @@ def simpleLatexToText(inputfile, outputfile, sectioned=False):
 
 
 def main():
-    sourcefiles = os.path.join('data', 'unzipped')
-    textfiles = os.path.join('data', 'text')
-    os.makedirs(textfiles, exist_ok=True)
+    os.makedirs(TEXT_DIR, exist_ok=True)
 
     error_count = 0
 
-    for sourcefile in os.listdir(sourcefiles):
-        sourcefilepath = os.path.join(sourcefiles, sourcefile)
-        outputfilepath = os.path.join(textfiles, sourcefile)
+    for sourcefile in os.listdir(UNZIPPED_DIR):
+        sourcefilepath = os.path.join(UNZIPPED_DIR, sourcefile)
+        outputfilepath = os.path.join(TEXT_DIR, sourcefile)
         result = pandoc_file(sourcefilepath, outputfilepath)
 
         if result != 0:
