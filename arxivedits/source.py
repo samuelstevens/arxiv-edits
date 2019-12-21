@@ -80,9 +80,9 @@ def get_filetype(file):
     returns the filetype of a file using magic (file utility on unix). Resets the file pointer to the start of the file.
     '''
     file.seek(0)  # ensures that we read the first 1024 bytes
-    buffer = file.read(1024)
+    buffer = file.read(2048)
     file.seek(0)  # resets the position to the start.
-    return magic.from_buffer(buffer, mime=True)
+    return magic.from_buffer(buffer, mime=False)
 
 
 def is_downloaded(arxivid, versioncount) -> bool:
@@ -130,7 +130,8 @@ def extract(in_dir, filename) -> Optional[bytes]:
                 return file.read()
 
             else:
-                raise TypeError(f'{filetype} not implemented yet.')
+                raise TypeError(
+                    f'{filetype} ({filepath}) not implemented yet.')
 
 
 def download_source_files(arxiv_id: ArxivID, version_count: int, output_directory: str = SOURCE_DIR) -> None:
@@ -189,9 +190,10 @@ def extract_all(extract_again=False):
         if os.path.isfile(os.path.join(EXTRACTED_DIR, filename)) and not extract_again:
             continue
 
+        content = None
+
         try:
             content = extract(SOURCE_DIR, filename)
-
         except TypeError as err:
             print(err)
 
