@@ -157,11 +157,11 @@ def get_papers_with_versions():
         i, version_count = parse(record)
 
         if not i:
-            # print('Missing id.')
+            print('Missing id.')
             continue
 
         if i in queried_ids:
-            # print(f'{i} has already been queried.')
+            print(f'{i} has already been queried.')
             continue
 
         add_record(i, version_count)
