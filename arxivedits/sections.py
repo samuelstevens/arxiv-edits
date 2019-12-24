@@ -8,14 +8,19 @@ data/unzipped -> data/sections
 import os
 import json
 import re
-from typing import List
+import heapq
+from typing import List, Tuple
 from collections import namedtuple
 
 from data import SECTIONS_DIR, TEXT_DIR, is_x
+import evaluate
+import structures
+from structures import Title, Score, Content
 
 
 # custom types
 Section = namedtuple('Section', 'title text')
+SectionPair = Tuple[Score, Tuple[Title, Title], Tuple[Content, Content]]
 
 
 def clean_text(text: str) -> str:
@@ -37,8 +42,12 @@ def parsesections(textfilepath: str) -> List[Section]:
 
     titlepattern = re.compile(r'^# (.*)', re.MULTILINE)
 
+    subtitlepattern = re.compile(r'^(##+ .*)', re.MULTILINE)
+
     with open(textfilepath, 'r') as file:
         markdowntext = file.read().replace('\u00a0', ' ')
+
+    markdowntext = subtitlepattern.sub('', markdowntext)
 
     title = titlepattern.search(markdowntext, 0)
     intialtitle = '### Initial Section (MANUAL) ###'
@@ -73,6 +82,42 @@ def parsesections(textfilepath: str) -> List[Section]:
 
 def is_sectioned(arxivid, versioncount) -> bool:
     return is_x(arxivid, versioncount, SECTIONS_DIR, extension=".json")
+
+
+def align(v1: List[structures.Section], v2: List[structures.Section]) -> List[SectionPair]:
+
+    sortedpairs: List[SectionPair] = []
+
+    for v1title, v1content in v1:
+        for v2title, v2content in v2:
+            score: Score = Score(evaluate.levenshtein(v1title, v2title))
+            possiblesectionpair: SectionPair = (
+                score, (v1title, v2title), (v1content, v2content))
+            heapq.heappush(sortedpairs, possiblesectionpair)
+
+    v1availabletitles = {title for title, _ in v1}
+    v2availabletitles = {title for title, _ in v2}
+
+    matchedsections: List[SectionPair] = []
+
+    while len(matchedsections) < max(len(v1), len(v2)):
+        nextsection = heapq.heappop(sortedpairs)
+        score, titles, _ = nextsection
+
+        v1title, v2title = titles
+
+        if v1title not in v1availabletitles and v2title not in v2availabletitles:
+            continue
+
+        if v1title in v1availabletitles:
+            v1availabletitles.remove(v1title)
+
+        if v2title in v2availabletitles:
+            v2availabletitles.remove(v2title)
+
+        matchedsections.append(nextsection)
+
+    return matchedsections
 
 
 def main():

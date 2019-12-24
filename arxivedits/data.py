@@ -16,6 +16,7 @@ SECTIONS_DIR = os.path.join(DATA_DIR, 'sections')
 SENTENCES_DIR = os.path.join(DATA_DIR, 'sentences')
 UNZIPPED_DIR = os.path.join(DATA_DIR, 'unzipped')
 TEXT_DIR = os.path.join(DATA_DIR, 'text')
+ALIGNMENTS_DIR = os.path.join(DATA_DIR, 'alignments')
 
 
 def connection():
