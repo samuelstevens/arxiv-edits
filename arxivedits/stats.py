@@ -17,9 +17,7 @@ import os
 import csv
 import json
 import re
-import heapq
 from typing import List, Tuple, Dict
-from collections import Counter
 
 
 import data
@@ -34,12 +32,12 @@ from structures import Section, Sentence
 MULTIPLE_VERSIONS = True
 
 
-def get_random_sample(samplesize=1000, multipleversions=False):
+def get_random_sample(samplesize=1000, multipleversions=MULTIPLE_VERSIONS):
     '''
     Gets a new random sample unless one exists.
     '''
 
-    extension = '-only-multiversion' if MULTIPLE_VERSIONS else '-all'
+    extension = '-only-multiversion' if multipleversions else '-all'
 
     samplefilepath = os.path.join(data.DATA_DIR, f'sample{extension}.csv')
 
@@ -53,7 +51,7 @@ def get_random_sample(samplesize=1000, multipleversions=False):
     con = data.connection()
 
     if multipleversions:
-        query = 'SELECT * FROM papers WHERE version_count > 2 ORDER BY RANDOM() LIMIT ?'
+        query = 'SELECT * FROM papers WHERE version_count > 1 ORDER BY RANDOM() LIMIT ?'
     else:
         query = 'SELECT * FROM papers ORDER BY RANDOM() LIMIT ?'
 
@@ -136,30 +134,6 @@ def stats(sample: List[Tuple[str, int]]):
     print(f'{(len(sentences) - len(nonmathsentences)) / len(sentences) * 100:.1f}% have embedded LaTeX math.')
 
 
-def find_pairs(sample: List[Tuple[str, int]]) -> List[Tuple[str, int]]:
-    '''
-    Finds pairs of documents that match particular criteria for later manual evaluation.
-    '''
-    sectionedsample = [(a, v)
-                       for a, v in sample if sections.is_sectioned(a, v)]
-
-    for arxivid, versioncount in sectionedsample:
-
-        arxividpath = arxivid.replace('/', '-')
-
-        for i in range(versioncount - 1):
-            versionpair = (i + 1, i + 2)
-
-            v1 = f'{arxividpath}-v{versionpair[0]}.json'
-            v2 = f'{arxividpath}-v{versionpair[1]}.json'
-
-            with open(os.path.join(data.SECTIONS_DIR, v1), 'r') as jsonfile:
-                v1 = json.load(jsonfile)
-
-            with open(os.path.join(data.SECTIONS_DIR, v2), 'r') as jsonfile:
-                v2 = json.load(jsonfile)
-
-
 def manually_align(arxivid, versionpair):
     '''
     Function to help manually align a paper.
@@ -170,7 +144,12 @@ def manually_align(arxivid, versionpair):
     v1 = f'{arxividpath}-v{versionpair[0]}.json'
     v2 = f'{arxividpath}-v{versionpair[1]}.json'
 
-    with open(os.path.join(data.SENTENCES_DIR, v1), 'r') as jsonfile:
+    v1filename = os.path.join(data.SENTENCES_DIR, v1)
+
+    if not os.path.isfile(v1filename):
+        return
+
+    with open(v1filename, 'r') as jsonfile:
         v1: List[Section] = json.load(jsonfile)
 
     with open(os.path.join(data.SENTENCES_DIR, v2), 'r') as jsonfile:
@@ -181,39 +160,26 @@ def manually_align(arxivid, versionpair):
     # v1sentenceset = [sentence for _, content in v1 for sentence in content]
     # v2sentenceset = [sentence for _, content in v2 for sentence in content]
 
-    pairlistfilename = os.path.join(
-        data.ALIGNMENTS_DIR, f'{arxividpath}-v{versionpair[0]}-v{versionpair[1]}.txt')
+    foldername = os.path.join(
+        data.ALIGNMENTS_DIR, f'{arxividpath}-v{versionpair[0]}-v{versionpair[1]}', 'working-set')
 
-    remainingfilename = os.path.join(
-        data.ALIGNMENTS_DIR, f'{arxividpath}-v{versionpair[0]}-v{versionpair[1]}-REMAINING.txt')
+    os.makedirs(foldername, exist_ok=True)
 
-    with open(remainingfilename, 'w') as file:
-        file.write('Remaining\n')
-        file.write(
-            'Instructions: open the relevant data files and look through any sentences listed in this file. Find them and their matching sentence, and edit the relevant alignment.txt file.\n')
-
-    with open(pairlistfilename, 'w') as file:
-        file.write('Pairs\n')
+    interestingjoins = 0
 
     for score, titles, contents in alignedsections:
         v1sentences, v2sentences = contents
         v1title, v2title = titles
 
+        pairlistfilename = os.path.join(foldername, f'{v1title}-TODO.txt')
+
+        remainingfilename = os.path.join(
+            foldername, f'{v1title}-REMAINING.txt')
+
         v1sentenceset = {s: i for i, s in enumerate(v1sentences)}
         v2sentenceset = {s: i for i, s in enumerate(v2sentences)}
 
         pairlist: Dict[Tuple[Sentence, Sentence], int] = {}
-        # remainingsentences = (set(), set())
-
-        # for s1 in v1sentences:
-        #     for s2 in v2sentences:
-        #         score = evaluate.levenshtein(s1, s2)
-        #         if score > 0 and score < 100:
-        #             print(score)
-        #             print(s1)
-        #             print(s2)
-        #             print(score / min(len(s1), len(s2)))
-        #             print()
 
         for i, s1 in enumerate(v1sentences):
             for j, s2 in enumerate(v2sentences):
@@ -229,26 +195,33 @@ def manually_align(arxivid, versionpair):
                     del v1sentenceset[s1]
                     del v2sentenceset[s2]
                     pairlist[(i, j)] = 1
-                elif score / max(len(s1), len(s2)) < 0.05:
+                elif score / max(len(s1), len(s2)) < 0.2:
+                    interestingjoins += 1
                     # print('Typo')
-                    del v1sentenceset[s1]
-                    del v2sentenceset[s2]
-                    pairlist[(i, j)] = 1
+                    # del v1sentenceset[s1]
+                    # del v2sentenceset[s2]
+                    # pairlist[(i, j)] = 1
 
-        with open(pairlistfilename, 'a') as file:
-            file.write(f'{v1title} | {v2title}\n')
-            file.writelines(
-                [f'({pair[0]}, {pair[1]}, {pairlist[pair]})\n' for pair in sorted(pairlist)])
+    # print(f"manually_align('{arxivid}', {versionpair}) # {interestingjoins}")
 
-        with open(remainingfilename, 'a') as file:
-            file.write(f'{v1title} | {v2title}\n')
-            file.write('---v1---\n')
-            file.writelines(
-                [f'{v1sentenceset[s]}: \t{s}\n' for s in v1sentenceset])
-            file.write('---v2---\n')
-            file.writelines(
-                [f'{v2sentenceset[s]}: \t{s}\n' for s in v2sentenceset])
-            file.write('\n')
+    with open(pairlistfilename, 'w') as file:
+        file.write('Pairs\n')
+        file.write(f'{v1title} | {v2title}\n')
+        file.writelines(
+            [f'({pair[0]}, {pair[1]}, {pairlist[pair]})\n' for pair in sorted(pairlist)])
+
+    with open(remainingfilename, 'w') as file:
+        file.write('Remaining\n')
+        file.write(
+            'Instructions: open the relevant data files and look through any sentences listed in this file. Find them and their matching sentence, and edit the relevant alignment.txt file.\n')
+        file.write(f'{v1title} | {v2title}\n')
+        file.write('---v1---\n')
+        file.writelines(
+            [f'{v1sentenceset[s]}: \t{s}\n' for s in v1sentenceset])
+        file.write('---v2---\n')
+        file.writelines(
+            [f'{v2sentenceset[s]}: \t{s}\n' for s in v2sentenceset])
+        file.write('\n')
 
 
 def main():
@@ -256,7 +229,7 @@ def main():
     Takes a random sample and writes them to a text file. Then calculates stats.
     '''
 
-    sample = get_random_sample()
+    sample = get_random_sample(multipleversions=True)
 
     # takes a smaller sample
     sample = sample[:50]
@@ -269,7 +242,7 @@ def main():
         if source.is_downloaded(arxivid, versioncount):
             downloadcount -= 1
 
-    print(f'{downloadcount} to download. Estimated {downloadcount * 2 * 30 / 60 / 60:.1f} hours.')
+    print(f'{downloadcount} to download. Estimated {downloadcount * 2 * 30 / 60 / 60:.1f} hours ({downloadcount * 2 * 30 / 60 :.0f} minutes).')
 
     for arxivid, versioncount in sample:
         # source.download_source_files(arxivid, versioncount)
@@ -290,9 +263,20 @@ def main():
     # * % of sentences with typos (< 4 in distance)
     # stats(sample)
 
-    # find_pairs(sample)
-    manually_align('1212.5406', (1, 2))
-    # manually_align('1212.5406', (2, 3))
+    # for arxivid, versioncount in sample:
+    #     for i in range(versioncount - 1):
+    #         manually_align(arxivid, (i, i + 1))
+
+    manually_align('1701.01370', (1, 2))  # 124
+    manually_align('1807.05692', (2, 3))  # 0
+    manually_align('1307.1155', (1, 2))  # 14
+    manually_align('1201.2485', (1, 2))  # 24
+    manually_align('1306.3888', (1, 2))  # 87
+    manually_align('1306.3888', (2, 3))  # 89
+    manually_align('cond-mat/0407626', (1, 2))  # 56
+    manually_align('1208.2382', (1, 2))  # 4
+    manually_align('1701.01370', (1, 2))  # 124
+    manually_align('1807.05692', (2, 3))  # 0
 
 
 if __name__ == '__main__':

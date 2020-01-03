@@ -6,13 +6,24 @@
 '''
 Base tokenizer/tokens classes and utilities.
 '''
+
+from functools import reduce
+from typing import List
 import json
 import copy
 import os
+import re
+import pathlib
 
 import pexpect
 
+from nltk.tokenize.treebank import TreebankWordTokenizer
+import nltk.data
+
 from data import SENTENCES_DIR, SECTIONS_DIR
+
+FALSE_SPLIT_SUFFIXES = set(
+    ['Fig.', 'Sec.', 'Ref.', 'Figs.', 'Secs.', 'Refs.'])
 
 
 class Tokens():
@@ -33,6 +44,9 @@ class Tokens():
         self.opts = opts or {}
         if output:
             self.output = output
+
+        # might want to use /\d+\w+\./ as a regex match for references that cause splitting as well, but only if the next letter is lowercase.
+        self.false_split_suffixes = FALSE_SPLIT_SUFFIXES
 
     def __len__(self):
         '''
@@ -59,7 +73,20 @@ class Tokens():
             sentence_list.append(
                 original_sentence[start_offset:end_offset+1].strip())
 
-        return sentence_list
+        def join_sentences(sentences: List[str], newsentence: str) -> List[str]:
+            if not sentences:
+                return [newsentence]
+
+            last_sentence = sentences[-1]
+
+            for suf in self.false_split_suffixes:
+                if last_sentence.endswith(suf):
+                    sentences[-1] = last_sentence + ' ' + newsentence
+                    return sentences
+
+            return sentences + [newsentence]
+
+        return reduce(join_sentences, sentence_list, [])
 
     def untokenize(self):
         '''
@@ -171,7 +198,7 @@ class Tokenizer():
     Tokenizers implement tokenize, which should return a Tokens class.
     '''
 
-    def tokenize(self, text):
+    def tokenize(self, text) -> Tokens:
         raise NotImplementedError
 
     def shutdown(self):
@@ -197,9 +224,14 @@ class CoreNLPTokenizer(Tokenizer):
             classpath: Path to the corenlp directory of jars
             mem: Java heap memory
         '''
+
         self.classpath = '/Users/samstevens/Java/stanford-corenlp/*'
         self.annotators = copy.deepcopy(kwargs.get('annotators', set()))
         self.mem = kwargs.get('mem', '2g')
+
+        with open(os.path.join(pathlib.Path(__file__).parent, 'latex-unicode.json'), 'r') as file:
+            self.latex = json.load(file)
+
         self._launch()
 
     def _launch(self):
@@ -247,7 +279,48 @@ class CoreNLPTokenizer(Tokenizer):
             return '}'
         return token
 
-    def tokenize(self, text):
+    def _process(self, text: str) -> str:
+        '''
+        Takes text and removes block math ($$...$$) and tries to reduce inline math ($...$) as much as possible.
+        '''
+        text = text.replace('\n', ' ')
+
+        blockpattern = re.compile(r'\$\$(.*)\$\$')
+
+        text = blockpattern.sub('', text)
+
+        inlinepattern = re.compile(r'\$(.*?)\$')
+
+        output = ''
+        cur = 0
+
+        for match in inlinepattern.finditer(text):
+            for i, group in enumerate(match.groups()):
+                if group in self.latex:
+                    start, end = match.span(i)
+                    output += text[cur:start]
+                    output += self.latex[group]
+                    cur = end
+                elif len(group) == 1:
+                    start, end = match.span(i)
+                    output += text[cur:start]
+                    output += group
+                    cur = end
+                else:
+                    try:
+                        float(group)
+                    except ValueError:
+                        pass
+                    else:
+                        start, end = match.span(i)
+                        output += text[cur:start]
+                        output += group
+                        cur = end
+
+        output += text[cur:]
+        return output
+
+    def tokenize(self, text: str) -> Tokens:
         # Since we're feeding text to the commandline, we're waiting on seeing
         # the NLP> prompt. Hacky!
         if 'NLP>' in text:
@@ -261,7 +334,7 @@ class CoreNLPTokenizer(Tokenizer):
             return Tokens(data, self.annotators)
 
         # Minor cleanup before tokenizing.
-        clean_text = text.replace('\n', ' ')
+        clean_text = self._process(text)
 
         self.corenlp.sendline(clean_text.encode('utf-8'))
         self.corenlp.expect_exact('NLP>', searchwindowsize=100)
@@ -284,7 +357,7 @@ class CoreNLPTokenizer(Tokenizer):
 
             data.append((
                 self._convert(tokens[i]['word']),
-                text[start_ws: end_ws],
+                clean_text[start_ws: end_ws],
                 (tokens[i]['characterOffsetBegin'],
                  tokens[i]['characterOffsetEnd']),
                 tokens[i].get('pos', None),
@@ -294,11 +367,62 @@ class CoreNLPTokenizer(Tokenizer):
         return Tokens(data, self.annotators, output=output)
 
 
+class ArxivTokenizer:
+    '''
+    A sentence and word tokenizer with several hand-coded rules specific to Arxiv/LaTeX documents.
+    '''
+
+    def __init__(self, annotators=None):
+        self.detector = nltk.data.load('tokenizers/punkt/english.pickle')
+
+        # might want to use /\d+\w+\./ as a regex match for references that cause splitting as well, but only if the next letter is lowercase.
+        self.false_split_suffixes = FALSE_SPLIT_SUFFIXES
+
+        self.tokenizer = TreebankWordTokenizer()
+        self.annotators = annotators or set()
+
+    def __split_sent(self, text: str) -> List[str]:
+        split = self.detector.tokenize(text.replace('\n', ' '))
+
+        def join_sentences(sentences: List[str], newsentence: str) -> List[str]:
+            if not sentences:
+                return [newsentence]
+
+            last_sentence = sentences[-1]
+
+            for suf in self.false_split_suffixes:
+                if last_sentence.endswith(suf):
+                    sentences[-1] = last_sentence + ' ' + newsentence
+                    return sentences
+
+            return sentences + [newsentence]
+
+        return reduce(join_sentences, split, [])
+
+    def __split_word(self, sentence: str) -> List[str]:
+        '''
+        Splits a sentence into words.
+        '''
+        return self.tokenizer.tokenize(sentence)
+
+    def split(self, text: str, group='') -> List[str]:
+        '''
+        Splits text by either 'sentence' or 'word'.
+        '''
+        if group == 'sentence':
+            return self.__split_sent(text)
+        if group == 'word':
+            return self.__split_word(text)
+
+        raise ValueError("group must be either 'sentence' or 'word'.")
+
+
 def main():
     '''
     Loads sections from data/sections and sends them to data/sentences
     '''
     tok = CoreNLPTokenizer()
+    # tok = ArxivTokenizer()
 
     if not os.path.isdir(SENTENCES_DIR):
         os.mkdir(SENTENCES_DIR)
@@ -319,6 +443,7 @@ def main():
 
             try:
                 sentences = tok.tokenize(text).ssplit()
+                # sentences = tok.split(text, group='sentence')
             except json.decoder.JSONDecodeError as err:
                 print(err.msg)
                 print(f'Error with {sectionfilepath} in {title}')
@@ -334,5 +459,16 @@ def main():
             json.dump(sentencelist, file, indent=2)
 
 
+def demo():
+    tok = CoreNLPTokenizer()
+
+    tokens = tok.tokenize(
+        r'Similarly, it can be observed from Fig. [\[fig:SF\_PS\_alpha\]](#fig:SF_PS_alpha){reference-type="ref" reference="fig:SF_PS_alpha"} that for the PSR protocol, throughput increases as $\rho$ increases from $0$ to some optimal $\rho$ ($0.63$ for $\sigma^2_{n_a}= 0.01$) but later, it starts decreasing as $\rho$ increases from its optimal value.')
+
+    for s in tokens.ssplit():
+        print(s)
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    demo()

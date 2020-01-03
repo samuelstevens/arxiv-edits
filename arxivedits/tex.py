@@ -1,31 +1,28 @@
-from data import TEXT_DIR, UNZIPPED_DIR, is_x
 import subprocess
 import string
 import re
 import os
+from typing import Optional
+
+from data import TEXT_DIR, UNZIPPED_DIR, is_x
+
 
 import logging
 logger = logging.getLogger('delatex')
 
 
-def pandoc_file(inputfile, outputfile):
-    result = subprocess.run(
-        ['pandoc', '--from', 'latex', '--to', 'markdown', '-s', '--atx-headers', inputfile, '-o', outputfile], capture_output=True)
-    if result and result.returncode != 0:
-        print(result.stderr.decode('utf-8', errors='ignore'))
-        print(f'Error with file {inputfile}')
-
-    return result.returncode
-
-
-def pandoc(text: str) -> str:
-    result = subprocess.run(['pandoc', '--from', 'latex', '--to', 'markdown',
-                             '-s', '--atx-headers'], input=text, text=True, capture_output=True)
-    if result and result.returncode != 0:
-        print(result.stderr)
-        print(f'Error with "{text[:30]}..."')
-
-    return result.stdout
+def pandoc_file(inputfile, outputfile) -> Optional[Exception]:
+    try:
+        result = subprocess.run([
+            'pandoc', '--from', 'latex', '--to', 'markdown', '--standalone',
+            '--atx-headers', inputfile, '--output', outputfile
+        ], text=True, timeout=5)
+    except subprocess.TimeoutExpired:
+        return Exception(f'Timed out on {inputfile}')
+    else:
+        if result and result.returncode != 0:
+            print(result.stderr)
+            return Exception(f'Error with {inputfile}')
 
 
 def detex_file(inputfile, outputfile):
@@ -335,13 +332,19 @@ def main():
     for sourcefile in os.listdir(UNZIPPED_DIR):
         sourcefilepath = os.path.join(UNZIPPED_DIR, sourcefile)
         outputfilepath = os.path.join(TEXT_DIR, sourcefile)
-        result = pandoc_file(sourcefilepath, outputfilepath)
+        err = pandoc_file(sourcefilepath, outputfilepath)
 
-        if result != 0:
+        if err:
+            print(err)
             error_count += 1
 
     print(f'Saw {error_count} errors.')
 
 
+def demo():
+    print(pandoc_file('data/unzipped/1406.4493-v2', 'data/text/1406.4493-v2'))
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    demo()
