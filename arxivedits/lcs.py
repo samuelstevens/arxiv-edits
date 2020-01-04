@@ -1,22 +1,63 @@
 '''
 Implements and exports a weighted-LCS algorithm.
+
+gcc -c -Wall -Werror -fpic arxivedits/lcs.c -o arxivedits/lcs.o
+gcc -shared -o arxivedits/lcs.so arxivedits/lcs.o
 '''
 import shelve
 import cProfile
+import pathlib
+import os
+import ctypes
+
 from math import inf
 from typing import List, Optional, TypeVar
 from tokenizer import ArxivTokenizer
 from idf import idf
 
 TOKENIZER = ArxivTokenizer()
-
-
 DOCUMENTFREQ: Optional[shelve.DbfilenameShelf] = None
 
-T = TypeVar('T')
+T = TypeVar('T')  # pylint: disable=invalid-name
+pwd = pathlib.Path(__file__).parent  # pylint: disable=invalid-name
 
 
-def lcs(seq1: List[T], seq2: List[T]) -> List[T]:
+class CELL(ctypes.Structure):
+    '''
+    struct Cell
+    {
+        int index;
+        int length;
+        struct Cell *prev;
+    };
+    '''
+
+
+# pylint: disable=protected-access
+CELL._fields_ = [('index', ctypes.c_int), ('length', ctypes.c_int),
+                 ('prev', ctypes.POINTER(CELL))]
+
+
+class SEQUENCE(ctypes.Structure):
+    '''
+    ```
+    struct Sequence
+    {
+        char **items;
+        int length;
+    };
+    ```
+    '''
+    _fields_ = [('items', ctypes.POINTER(ctypes.c_char_p)),
+                ('length', ctypes.c_int)]
+
+
+lcsmodule = ctypes.cdll.LoadLibrary(
+    os.path.join(pwd, 'lcsmodule', 'lcs.so'))
+lcsmodule.lcs.restype = ctypes.POINTER(SEQUENCE)
+
+
+def slow_lcs(seq1: List[T], seq2: List[T]) -> List[T]:
     '''
     longest common subsequence, inspired by https://en.wikipedia.org/wiki/Longest_common_subsequence_problem#Worked_example
     '''
@@ -24,20 +65,56 @@ def lcs(seq1: List[T], seq2: List[T]) -> List[T]:
     if not seq1 or not seq2:
         return []
 
-    table: List[List[List[T]]] = [[[]
-                                   for i in range(len(seq2))] for j in range(len(seq1))]  # this might be really, really inefficient
-
+    table = {}
     for i, _ in enumerate(seq1):
         for j, _ in enumerate(seq2):
+
             if seq1[i] == seq2[j]:
-                table[i][j] = table[i-1][j-1] + \
-                    [seq2[j]] if i > 0 and j > 0 else [seq2[j]]
+                table[(i, j)] = table[(i-1, j-1)] + \
+                    [j] if i > 0 and j > 0 else [j]
             else:
                 # this is dangerous when i == 0 or j == 0, because we're accessing table[-1] (which is valid in python)
                 # in addition, we are not creating a new list here. It's especially difficult because the table's data structure is also mutable.
-                table[i][j] = max(table[i][j-1], table[i-1][j], key=len)
+                # table[i][j] = max(table[i][j-1], table[i-1][j], key=len)
+                table[(i, j)] = []
+                if i > 0:
+                    table[(i, j)] = table[(i-1, j)]
 
-    return table[-1][-1]
+                if j > 0:
+                    if len(table[(i, j-1)]) > len(table[(i, j)]):
+                        table[(i, j)] = table[(i, j-1)]
+
+    finalsequence = table[(len(seq1) - 1, len(seq2) - 1)]
+
+    return [seq2[j] for j in finalsequence]
+
+
+def list_to_SEQUENCE(strlist: List[str]) -> SEQUENCE:
+    '''
+    Converts a list of strings to a sequence struct
+    '''
+    bytelist = [bytes(s, 'utf-8') for s in strlist]
+    arr = (ctypes.c_char_p * len(bytelist))()
+    arr[:] = bytelist
+    return SEQUENCE(arr, len(bytelist))
+
+
+def lcs(seq1: List[str], seq2: List[str]) -> List[str]:
+    '''
+    Fast LCS that uses ctypes
+    '''
+    seq1 = list_to_SEQUENCE(seq1)
+    seq2 = list_to_SEQUENCE(seq2)
+
+    common = lcsmodule.lcs(ctypes.byref(seq1), ctypes.byref(seq2))[0]
+
+    ret = []
+
+    for i in range(common.length):
+        ret.append(common.items[i].decode('utf-8'))
+    lcsmodule.freeSequence(common)
+
+    return ret
 
 
 def similarity(sentence1: str, sentence2: str) -> float:
@@ -47,8 +124,6 @@ def similarity(sentence1: str, sentence2: str) -> float:
 
     words1 = TOKENIZER.split(sentence1, group='word')
     words2 = TOKENIZER.split(sentence2, group='word')
-
-    print(words1, words2)
 
     numerator = sum([idf(word) for word in lcs(words1, words2)])
 
@@ -63,13 +138,7 @@ def similarity(sentence1: str, sentence2: str) -> float:
 
 
 def profile():
-    s1 = ['First', ',', 'we', 'validate', 'whether', 'our', 'models', 'for', 'segmentation', 'and', 'depth',
-          'estimation', 'perform', 'well', 'on', 'the', 'synthetic', 'test', 'set', 'of', 'our', 'SURREAL', 'dataset', '.']
-    s2 = ['Segmentation', 'and', 'depth', 'are', 'tested', 'on', 'the', 'synthetic', 'and', 'Human3.6M', 'test',
-          'sets', 'with', 'networks', 'pre-trained', 'on', 'a', 'subset', 'of', 'the', 'synthetic', 'training', 'data', '.']
-
-    cProfile.run(
-        f'lcs({s1}, {s2})', sort='tottime')
+    cProfile.run('lcs_many()', sort='tottime')
 
 
 def main():
@@ -109,3 +178,9 @@ def main():
 if __name__ == '__main__':
     # main()
     profile()
+    # fast_lcs(
+    #     ['First', ',', 'we', 'validate', 'whether', 'our', 'models', 'for', 'segmentation', 'and', 'depth', 'estimation',
+    #         'perform', 'well', 'on', 'the', 'synthetic', 'test', 'set', 'of', 'our', 'SURREAL', 'dataset', '.'],
+    #     ['Segmentation', 'and', 'depth', 'are', 'tested', 'on', 'the', 'synthetic', 'and', 'Human3.6M', 'test', 'sets',
+    #         'with', 'networks', 'pre-trained', 'on', 'a', 'subset', 'of', 'the', 'synthetic', 'training', 'data', '.']
+    # )

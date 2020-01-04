@@ -5,16 +5,19 @@ Provides functionality to write documents to a persistent dictionary (via `shelv
 import shelve
 import os
 import json
+import cProfile
+import functools
 from math import log
+from typing import Set
 
 from data import IDF_DB, SECTIONS_DIR, UNZIPPED_DIR
-from nlp import ArxivTokenizer
+from tokenizer import ArxivTokenizer
 
-TOTALDOCS = len(os.listdir(UNZIPPED_DIR))
+TOTALDOCS = 307  # len(os.listdir(UNZIPPED_DIR))
 
 TOKENIZER = ArxivTokenizer()
 
-DOCUMENTFREQUENCY = None
+DOCUMENTFREQUENCY = shelve.open(IDF_DB)
 
 
 def initialize_idf():
@@ -27,18 +30,18 @@ def initialize_idf():
     DOCUMENTFREQUENCY = shelve.open(IDF_DB)
 
 
+@functools.lru_cache(maxsize=512)
 def idf(word: str) -> float:
     '''
     Returns the inverse document frequency of a word
     '''
-    global DOCUMENTFREQUENCY
     numerator = 1 + TOTALDOCS
 
     if not word:
-        print(f'Word {word} not a string.')
+        # print(f'Word {word} not a string.')
         return 0
 
-    if not DOCUMENTFREQUENCY:
+    while not DOCUMENTFREQUENCY:
         initialize_idf()
 
     if word not in DOCUMENTFREQUENCY:
@@ -50,28 +53,33 @@ def idf(word: str) -> float:
     return log(numerator / denominator)  # natural log
 
 
-def add_doc(inputfile):
+def add_doc(sectionfile: str):
     '''
     Adds all the words in a json file to the IDF_DB.
 
     TODO: might need to optimize the repeated call to `shelve.open`
     '''
-    added_words = set()
-    with open(inputfile, 'r') as file:
+    addedwords: Set[str] = set()
+    with open(sectionfile, 'r') as file:
         sections = json.load(file)
 
-    for _, _, content in sections:
+    for title, content in sections:
         words = TOKENIZER.split(content, group='word')
+        words.extend(TOKENIZER.split(title, group='word'))
         # print(f'{inputfile} has {len(words)} words.')
 
         with shelve.open(IDF_DB) as documentfrequency:
             for word in words:
-                if word not in added_words:
+                if word not in addedwords:
                     if word in documentfrequency:
                         documentfrequency[word] += 1
                     else:
                         documentfrequency[word] = 1
-                    added_words.add(word)
+                    addedwords.add(word)
+
+
+def profile():
+    cProfile.run("idf('our')", sort='tottime')
 
 
 def main():
@@ -87,4 +95,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    profile()

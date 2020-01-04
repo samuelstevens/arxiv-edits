@@ -15,3 +15,13 @@ With 1.6M papers on Arxiv:
 ## NLTK vs Stanford
 
 - Both Stanford and NLTK struggled with `Sec.` and `Fig.`, but since the NLTK package has python bindings, it's easier to rejoin the array than with Stanford's CLI interface.
+
+## Profiling performance with cProfile and snakeviz
+
+```bash
+# this creates a binary profile file named evaluate.prof
+python -m cProfile -o evaluate.prof arxivedits/evaluate.py
+
+# this breaks it down and makes it easier to understand
+snakeviz evaluate.prof
+```

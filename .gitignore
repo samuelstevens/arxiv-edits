@@ -5,7 +5,7 @@ __pycache__
 *.pyc
 .vscode
 
-data
+/data
 *.tex
 *.db
 
@@ -15,3 +15,8 @@ data
 tmp
 
 .hypothesis
+
+# binaries
+*.prof
+*.so
+*.o

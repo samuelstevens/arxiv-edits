@@ -23,6 +23,7 @@ def pandoc_file(inputfile, outputfile) -> Optional[Exception]:
         if result and result.returncode != 0:
             print(result.stderr)
             return Exception(f'Error with {inputfile}')
+        return None
 
 
 def detex_file(inputfile, outputfile):

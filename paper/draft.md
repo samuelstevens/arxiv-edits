@@ -34,11 +34,23 @@ Multiple aligning algorithms were evaluated for the best alignment: MASSalign [@
 
 TODO: Need to create a table of results here
 
+
+
 ## Evaluation
 
 
 
 ## Analysis
+
+In some instances, the meaning of the sentence is changed deliberately: 
+
+v1: We use all frames from one repetition of each action for training, and every 64$^{th}$ frame from all repetitions at test.
+
+v2: We use all frames from one of the two instances of each action for training, and every 64$^{th}$ frame from all instances for testing.
+
+
+
+
 
 
 ## Conclusion

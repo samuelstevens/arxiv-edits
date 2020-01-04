@@ -17,7 +17,8 @@ import pathlib
 
 import pexpect
 
-from nltk.tokenize.treebank import TreebankWordTokenizer
+# from nltk.tokenize.treebank import TreebankWordTokenizer
+from nltk import word_tokenize
 import nltk.data
 
 from data import SENTENCES_DIR, SECTIONS_DIR
@@ -229,7 +230,7 @@ class CoreNLPTokenizer(Tokenizer):
         self.annotators = copy.deepcopy(kwargs.get('annotators', set()))
         self.mem = kwargs.get('mem', '2g')
 
-        with open(os.path.join(pathlib.Path(__file__).parent, 'latex-unicode.json'), 'r') as file:
+        with open(os.path.join(pathlib.Path(__file__).parent, 'data', 'latex-unicode.json'), 'r') as file:
             self.latex = json.load(file)
 
         self._launch()
@@ -286,7 +287,7 @@ class CoreNLPTokenizer(Tokenizer):
         text = text.replace('\n', ' ')
 
         blockpattern = re.compile(r'\$\$(.*)\$\$')
-
+        print('calling sub in tokenizer.py in _process')
         text = blockpattern.sub('', text)
 
         inlinepattern = re.compile(r'\$(.*?)\$')
@@ -378,7 +379,6 @@ class ArxivTokenizer:
         # might want to use /\d+\w+\./ as a regex match for references that cause splitting as well, but only if the next letter is lowercase.
         self.false_split_suffixes = FALSE_SPLIT_SUFFIXES
 
-        self.tokenizer = TreebankWordTokenizer()
         self.annotators = annotators or set()
 
     def __split_sent(self, text: str) -> List[str]:
@@ -388,11 +388,11 @@ class ArxivTokenizer:
             if not sentences:
                 return [newsentence]
 
-            last_sentence = sentences[-1]
+            lastsentence = sentences[-1]
 
             for suf in self.false_split_suffixes:
-                if last_sentence.endswith(suf):
-                    sentences[-1] = last_sentence + ' ' + newsentence
+                if lastsentence.endswith(suf):
+                    sentences[-1] = lastsentence + ' ' + newsentence
                     return sentences
 
             return sentences + [newsentence]
@@ -403,7 +403,7 @@ class ArxivTokenizer:
         '''
         Splits a sentence into words.
         '''
-        return self.tokenizer.tokenize(sentence)
+        return word_tokenize(sentence)
 
     def split(self, text: str, group='') -> List[str]:
         '''
