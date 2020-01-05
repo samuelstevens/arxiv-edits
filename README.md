@@ -11,8 +11,10 @@ cd arxiv-edits
 source ./venv/bin/activate
 
 # install MASSAlign
+cd ..
 git clone https://github.com/samuelstevens/massalign.git
 cd massalign
+pip install -r requirements.txt
 python setup.py install
 
 # install other dependencies
