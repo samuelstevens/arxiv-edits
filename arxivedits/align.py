@@ -138,7 +138,6 @@ def mass_align(s1: List[str], s2: List[str]) -> List[Tuple[int, int]]:
 def main():
     '''
     '''
-    pass
 
 
 if __name__ == '__main__':

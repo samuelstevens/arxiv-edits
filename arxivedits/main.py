@@ -17,7 +17,6 @@ def main():
     idf()  # data/text -> data/IDF_DB
     sections()  # data/text -> data/sections
     tokenize()  # data/sections -> data/sentences
-    align()
 
 
 if __name__ == '__main__':

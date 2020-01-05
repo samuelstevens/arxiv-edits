@@ -36,7 +36,7 @@ self.classpath = '/Users/samstevens/Java/stanford-corenlp/*'
 
 This path corresponds to this file structure:
 
-[File Structure](docs/images/filestructure.png)
+![File Structure](docs/images/filestructure.png)
 
 ```bash
 # You can now run the various scripts with:
@@ -52,6 +52,39 @@ python arxiv-edits/versions.py # etc
 
 
 ## Gathering Data
+Creates a sqlite3 database with all the papers on arxiv.org's version count
+```bash
+python arxiv-edits/versions.py 
+```
 
+Tries to download all documents with 2+ versions and then extracts the source files.
 
+NOTE: you most likely want to run `download_all` (in `source.py`) for a bit, and then stop it. Otherwise, you will download 800K+ papers at 30 seconds / paper.
+```bash
+python arxiv-edits/source.py
+```
 
+Extracts the text from the `.tex` source files.
+```bash
+python arxiv-edits/tex.py
+```
+
+Adds all the words to the IDF lookup table.
+```bash
+python arxiv-edits/idf.py
+```
+
+Takes raw text and sections it by section title
+```bash
+python arxiv-edits/sections.py
+```
+
+Takes raw text and converts it to sentences
+```bash
+python arxiv-edits/tokenizer.py
+```
+
+Evaluates algorithms based on manually aligned data (in `arxivedits/data/alignments`).
+```bash
+python arxiv-edits/evaluate.py
+```
