@@ -41,8 +41,8 @@ This path corresponds to this file structure:
 
 ![File Structure](docs/images/filestructure.png)
 
+You can now run the various scripts with:
 ```bash
-# You can now run the various scripts with:
 python arxiv-edits/versions.py # etc
 ```
 

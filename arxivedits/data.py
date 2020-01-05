@@ -5,9 +5,6 @@ Provides a central location to store all data locations
 import sqlite3
 import os
 
-DB_FILE_NAME = 'data/arxivedits.sqlite3'
-IDF_DB = 'data/idf'
-TEX_DB = 'data/tex'
 
 DATA_DIR = 'data'
 
@@ -17,6 +14,18 @@ SENTENCES_DIR = os.path.join(DATA_DIR, 'sentences')
 UNZIPPED_DIR = os.path.join(DATA_DIR, 'unzipped')
 TEXT_DIR = os.path.join(DATA_DIR, 'text')
 ALIGNMENTS_DIR = os.path.join(DATA_DIR, 'alignments')
+
+DB_FILE_NAME = os.path.join(DATA_DIR, 'arxivedits.sqlite3')
+IDF_DB = os.path.join(DATA_DIR, 'idf')
+
+if not os.path.isdir(DATA_DIR):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(SOURCE_DIR, exist_ok=True)
+    os.makedirs(SECTIONS_DIR, exist_ok=True)
+    os.makedirs(SENTENCES_DIR, exist_ok=True)
+    os.makedirs(UNZIPPED_DIR, exist_ok=True)
+    os.makedirs(TEXT_DIR, exist_ok=True)
+    os.makedirs(ALIGNMENTS_DIR, exist_ok=True)
 
 
 def connection():
