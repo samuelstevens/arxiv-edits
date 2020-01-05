@@ -12,8 +12,10 @@ import heapq
 from typing import List, Tuple
 from collections import namedtuple
 
+import Levenshtein
+
+
 from data import SECTIONS_DIR, TEXT_DIR, is_x
-import evaluate
 import structures
 from structures import Title, Score, Content
 
@@ -90,7 +92,7 @@ def align(v1: List[structures.Section], v2: List[structures.Section]) -> List[Se
 
     for v1title, v1content in v1:
         for v2title, v2content in v2:
-            score: Score = Score(evaluate.levenshtein(v1title, v2title))
+            score: Score = Score(Levenshtein.distance(v1title, v2title))
             possiblesectionpair: SectionPair = (
                 score, (v1title, v2title), (v1content, v2content))
             heapq.heappush(sortedpairs, possiblesectionpair)

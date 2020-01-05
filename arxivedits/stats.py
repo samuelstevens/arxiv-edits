@@ -19,13 +19,13 @@ import json
 import re
 from typing import List, Tuple, Dict
 
+import Levenshtein
 
 import data
 import source
 import tex
 import sections
 import tokenizer
-import evaluate
 from structures import Section, Sentence
 
 
@@ -118,7 +118,9 @@ def stats(sample: List[Tuple[str, int]]):
 
                     sentences.extend(sentencelist)
 
-    print(f'{len(sentences)} sentences in {len(sectionedsample)} documents: {len(sentences) / len(sectionedsample):.1f} per document.')
+    print(f'{len(sentences)} sentences in {len(sectionedsample)} extracted documents: {len(sentences) / len(sectionedsample):.1f} per extracted document.')
+
+    print(f'{len(sentences)} sentences in {len(sample)} documents: {len(sentences) / len(sample):.1f} per (extracted) document.')
 
     embeddedoldlatexpattern = re.compile(r'\$.*\$')
     embeddedcurrentlatexpatern = re.compile(r'\\\(.*\\\)')
@@ -129,7 +131,8 @@ def stats(sample: List[Tuple[str, int]]):
     nonmathsentences = [
         s for s in nonmathsentences if not embeddedcurrentlatexpatern.search(s)]
 
-    print(f'{len(nonmathsentences)} sentences (with no math) in {len(sectionedsample)} documents: {len(nonmathsentences) / len(sectionedsample):.1f} per document.')
+    print(f'{len(nonmathsentences)} sentences (with no math) in {len(sectionedsample)} extracted documents: {len(nonmathsentences) / len(sectionedsample):.1f} per extracted document.')
+    print(f'{len(nonmathsentences)} sentences (with no math) in {len(sample)} documents: {len(nonmathsentences) / len(sample):.1f} per document.')
 
     print(f'{(len(sentences) - len(nonmathsentences)) / len(sentences) * 100:.1f}% have embedded LaTeX math.')
 
@@ -188,7 +191,7 @@ def manually_align(arxivid, versionpair):
                 if s1 not in v1sentenceset or s2 not in v2sentenceset:
                     continue
 
-                score = evaluate.levenshtein(s1, s2)
+                score = Levenshtein.distance(s1, s2)
 
                 if score == 0:
                     # print('Identical')
@@ -260,22 +263,22 @@ def main():
     # * % of sentences deleted
     # * % of sentences modified (>= 4 in distance)
     # * % of sentences with typos (< 4 in distance)
-    # stats(sample)
+    stats(sample)
 
     # for arxivid, versioncount in sample:
     #     for i in range(versioncount - 1):
     #         manually_align(arxivid, (i, i + 1))
 
-    manually_align('1701.01370', (1, 2))  # 124
-    manually_align('1807.05692', (2, 3))  # 0
-    manually_align('1307.1155', (1, 2))  # 14
-    manually_align('1201.2485', (1, 2))  # 24
-    manually_align('1306.3888', (1, 2))  # 87
-    manually_align('1306.3888', (2, 3))  # 89
-    manually_align('cond-mat/0407626', (1, 2))  # 56
-    manually_align('1208.2382', (1, 2))  # 4
-    manually_align('1701.01370', (1, 2))  # 124
-    manually_align('1807.05692', (2, 3))  # 0
+    # manually_align('1701.01370', (1, 2))  # 124
+    # manually_align('1807.05692', (2, 3))  # 0
+    # manually_align('1307.1155', (1, 2))  # 14
+    # manually_align('1201.2485', (1, 2))  # 24
+    # manually_align('1306.3888', (1, 2))  # 87
+    # manually_align('1306.3888', (2, 3))  # 89
+    # manually_align('cond-mat/0407626', (1, 2))  # 56
+    # manually_align('1208.2382', (1, 2))  # 4
+    # manually_align('1701.01370', (1, 2))  # 124
+    # manually_align('1807.05692', (2, 3))  # 0
 
 
 if __name__ == '__main__':
