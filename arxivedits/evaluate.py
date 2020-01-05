@@ -1,4 +1,5 @@
 '''
+Evaluates MASSAlign vs weighted-LCS on a manually aligned dataset
 '''
 
 import csv
@@ -10,6 +11,55 @@ from typing import Tuple, Callable, List, Dict
 import Levenshtein as fast_levenshtein
 import data
 import align
+
+Algorithm = Callable[[List[str], List[str]], List[Tuple[int, int]]]
+
+
+class Evaluation:
+    '''
+    True/false positive/negative results for an algorithm
+    '''
+
+    def __init__(self, algorithm: Algorithm):
+        self.algorithm = algorithm
+        self.TP = 0
+        self.FP = 0
+        self.TN = 0
+        self.FN = 0
+        self.precision = 0
+        self.recall = 0
+        self.f1 = 0
+
+    def add_results(self, TP: int, FP: int, TN: int, FN: int):
+        '''
+        Adds a number of true/false positive/negative results
+        '''
+        self.TP += TP
+        self.FP += FP
+        self.TN += TN
+        self.FN += FN
+
+        if self.TP + self.FP > 0:
+            self.precision = self.TP / (self.TP + self.FP)
+        if self.TP + self.FN > 0:
+            self.recall = self.TP / (self.TP + self.FN)
+        if self.precision + self.recall > 0:
+            self.f1 = 2 * (self.precision * self.recall) / \
+                (self.precision + self.recall)
+
+    def display(self, verbose=False):
+        '''
+        Displays results to stdout
+        '''
+        print(self.algorithm.__name__)
+        if verbose:
+            print(f'TP: {self.TP}')
+            print(f'FP: {self.FP}')
+            print(f'TN: {self.TN}')
+            print(f'FN: {self.FN}')
+        print(f'Precision: {self.precision:.2f}')
+        print(f'Recall:    {self.recall:.2f}')
+        print(f'F1:        {self.f1:.2f}')
 
 
 def levenshtein(s1: str, s2: str) -> int:
@@ -45,7 +95,7 @@ def levenshtein(s1: str, s2: str) -> int:
 
 
 def evaluate_algorithm(
-        algorithm: Callable[[List[str], List[str]], List[Tuple[int, int]]],
+        algorithm: Algorithm,
         sentenceset1: List[str],
         sentenceset2: List[str],
         alignment: Dict[Tuple[int, int], int]) -> Tuple[int, int, int, int]:
@@ -73,12 +123,20 @@ def evaluate_algorithm(
         elif predicted[k] == 1 and alignment[k] == 0:
             # false positive
             FP += 1
+            print(f'{algorithm.__name__} incorrectly aligned these sentences.')
+            print(sentenceset1[k[0]])
+            print(sentenceset2[k[1]])
+            print()
         elif predicted[k] == 0 and alignment[k] == 0:
             # true negative
             TN += 1
         elif predicted[k] == 0 and alignment[k] == 1:
             # false negative
             FN += 1
+            print(f'{algorithm.__name__} incorrectly didn\'t align these sentences.')
+            print(sentenceset1[k[0]])
+            print(sentenceset2[k[1]])
+            print()
         else:
             print('Error:', k, predicted[k], alignment[k])
 
@@ -105,128 +163,92 @@ def main():
 
     pwd = pathlib.Path(__file__).parent
     alignmentsdir = os.path.join(pwd, 'data', 'alignments')
-    TP, FP, TN, FN = 0, 0, 0, 0
-    for filename in os.listdir(alignmentsdir):
 
-        name, _ = os.path.splitext(filename)
+    algorithms = [align.mass_align, align.lcs_align]
+    evaluations = [Evaluation(a) for a in algorithms]
 
-        arxivid, v1, v2 = parse_aligned_name(name)
+    finalpositive = 0
+    finalnegative = 0
 
-        filepath = os.path.join(alignmentsdir, filename)
+    for foldername in os.listdir(alignmentsdir):
+        arxivid, v1, v2 = parse_aligned_name(foldername)
 
-        with open(filepath, 'r') as file:
-            lines = file.read().splitlines()
+        folderpath = os.path.join(alignmentsdir, foldername)
 
-        section1, section2 = lines[1].split(' | ')
+        for sectionfile in os.listdir(folderpath):
+            filepath = os.path.join(folderpath, sectionfile)
 
-        # I will now get the gold alignment
-        alignment = {}
-        for line in lines[2:]:
-            i1, i2, value = line[1:-1].split(', ')
-            i1 = int(i1)
-            i2 = int(i2)
-            value = int(value)
-            alignment[(i1, i2)] = value
+            with open(filepath, 'r') as file:
+                lines = file.read().splitlines()
 
-        # Now I have the paper id, the versions, and the sections.
-        # I will retrieve the sections from the tmp data folder
+            section1, section2 = lines[1].split(' | ')
 
-        v1filename = os.path.join(data.SENTENCES_DIR, f'{arxivid}-v{v1}.json')
-        v2filename = os.path.join(data.SENTENCES_DIR, f'{arxivid}-v{v2}.json')
+            # I will now get the gold alignment
+            alignment = {}
+            for line in lines[2:]:
+                i1, i2, value = line[1:-1].split(', ')
+                i1 = int(i1)
+                i2 = int(i2)
+                value = int(value)
+                alignment[(i1, i2)] = value
 
-        with open(v1filename, 'r') as file:
-            v1 = json.load(file)
+            # Now I have the paper id, the versions, and the sections.
+            # I will retrieve the sections from the tmp data folder
 
-        with open(v2filename, 'r') as file:
-            v2 = json.load(file)
+            v1filename = os.path.join(
+                data.SENTENCES_DIR, f'{arxivid}-v{v1}.json')
+            v2filename = os.path.join(
+                data.SENTENCES_DIR, f'{arxivid}-v{v2}.json')
 
-        for section in v1:
-            if section[0] == section1:
-                v1sentences = section[1]
-                break
+            with open(v1filename, 'r') as file:
+                v1sentences = json.load(file)
 
-        if not v1sentences:
-            raise Exception(f'Did not find section {section1} in {v1filename}')
+            with open(v2filename, 'r') as file:
+                v2sentences = json.load(file)
 
-        for section in v2:
-            if section[0] == section2:
-                v2sentences = section[1]
-                break
+            for section in v1sentences:
+                if section[0] == section1:
+                    v1sentences = section[1]
+                    break
 
-        if not v2sentences:
-            raise Exception(f'Did not find section {section2} in {v2filename}')
+            if not v1sentences:
+                raise Exception(
+                    f'Did not find section {section1} in {v1filename}')
 
-        # I now have two lists of sentences.
-        # I need to test the alignment algorithm.
-        _TP, _FP, _TN, _FN = evaluate_algorithm(align.lcs_align, v1sentences,
-                                                v2sentences, alignment)
-        TP += _TP
-        FP += _FP
-        TN += _TN
-        FN += _FN
+            for section in v2sentences:
+                if section[0] == section2:
+                    v2sentences = section[1]
+                    break
 
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
-    f1 = 2 * (precision * recall) / (precision + recall)
-    print(precision, recall, f1)
+            if not v2sentences:
+                raise Exception(
+                    f'Did not find section {section2} in {v2filename}')
 
+            # I now have two lists of sentences.
+            # I need to test the alignment algorithm.
+            for e in evaluations:
+                print(f'--- {section1}, {v1filename} ---')
+                results = evaluate_algorithm(
+                    e.algorithm, v1sentences, v2sentences, alignment)
+                e.add_results(*results)
+                finalpositive += (results[0] + results[3])
+                finalnegative += (results[1] + results[2])
 
-def demo():
-    '''
-    Going through all of the sentence pair files in data/sentences, look for sentences that are not identical and categorize them into typos (edit distance < 3), edits (edit distance < 50 %), and mistakes (edit distance > 50%).
-    '''
+        print(f'{arxivid} evaluated.')
+        for e in evaluations:
+            e.display()
+        print()
 
-    paircount = 0
-    typocount = 0
-    editcount = 0
-    mistakecount = 0
+    print()
+    print("Final Results:")
+    for e in evaluations:
+        e.display(verbose=True)
 
-    outputfile = open('data/examples.txt', 'w')
+    finalnegative /= len(algorithms)
+    finalpositive /= len(algorithms)
 
-    for file in os.listdir(data.SENTENCES_DIR):
-        filepath = os.path.join(data.SENTENCES_DIR, file)
-
-        with open(filepath, 'r') as csvfile:
-            reader = csv.reader(csvfile, delimiter='\t')
-            for s1, s2 in reader:
-                paircount += 1
-                avglength = (len(s1) + len(s2)) / 2
-                if s1 == s2:
-                    continue
-
-                editdistance = levenshtein(s1, s2)
-
-                if editdistance == 0:
-                    print('Oops')
-                    continue
-                elif editdistance < 3:
-                    typocount += 1
-                    outputfile.write('TYPO: \n')
-                    outputfile.write(s1 + '\n')
-                    outputfile.write(s2 + '\n')
-                elif editdistance < avglength * 3/4:
-                    editcount += 1
-                    outputfile.write('EDIT: \n')
-                    outputfile.write(s1 + '\n')
-                    outputfile.write(s2 + '\n')
-                else:
-                    mistakecount += 1
-                    outputfile.write('MISTAKE: \n')
-                    outputfile.write(s1 + '\n')
-                    outputfile.write(s2 + '\n')
-                outputfile.write(str(editdistance) + '/' +
-                                 str(avglength) + '\n')
-                outputfile.write('\n')
-
-    outputfile.flush()
-    outputfile.close()
-
-    print(f'''
-
-
-Edit:    {editcount: 3}
-Typo:    {typocount: 3}
-Mistake: {mistakecount: 3}''')
+    print(f'Positive targets: {finalpositive}')
+    print(f'Negative targets: {finalnegative}')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,7 @@
+Pairs
+Proof of Theorem [\[poly3\]](#poly3){reference-type="ref" reference="poly3"} {#sec-3} | Proof of Theorem [\[poly\]](#poly){reference-type="ref" reference="poly"} {#sec-3}
+(0, 0, 0)
+(0, 1, 0)
+(0, 2, 0)
+(0, 3, 0)
+(0, 4, 0)

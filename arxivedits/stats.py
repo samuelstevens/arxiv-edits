@@ -202,26 +202,26 @@ def manually_align(arxivid, versionpair):
                     # del v2sentenceset[s2]
                     # pairlist[(i, j)] = 1
 
-    # print(f"manually_align('{arxivid}', {versionpair}) # {interestingjoins}")
+        with open(pairlistfilename, 'w') as file:
+            file.write('Pairs\n')
+            file.write(f'{v1title} | {v2title}\n')
+            file.writelines(
+                [f'({pair[0]}, {pair[1]}, {pairlist[pair]})\n' for pair in sorted(pairlist)])
 
-    with open(pairlistfilename, 'w') as file:
-        file.write('Pairs\n')
-        file.write(f'{v1title} | {v2title}\n')
-        file.writelines(
-            [f'({pair[0]}, {pair[1]}, {pairlist[pair]})\n' for pair in sorted(pairlist)])
+        with open(remainingfilename, 'w') as file:
+            file.write('Remaining\n')
+            file.write(
+                'Instructions: open the relevant data files and look through any sentences listed in this file. Find them and their matching sentence, and edit the relevant alignment.txt file.\n')
+            file.write(f'{v1title} | {v2title}\n')
+            file.write('---v1---\n')
+            file.writelines(
+                [f'{v1sentenceset[s]}: \t{s}\n' for s in v1sentenceset])
+            file.write('---v2---\n')
+            file.writelines(
+                [f'{v2sentenceset[s]}: \t{s}\n' for s in v2sentenceset])
+            file.write('\n')
 
-    with open(remainingfilename, 'w') as file:
-        file.write('Remaining\n')
-        file.write(
-            'Instructions: open the relevant data files and look through any sentences listed in this file. Find them and their matching sentence, and edit the relevant alignment.txt file.\n')
-        file.write(f'{v1title} | {v2title}\n')
-        file.write('---v1---\n')
-        file.writelines(
-            [f'{v1sentenceset[s]}: \t{s}\n' for s in v1sentenceset])
-        file.write('---v2---\n')
-        file.writelines(
-            [f'{v2sentenceset[s]}: \t{s}\n' for s in v2sentenceset])
-        file.write('\n')
+     # print(f"manually_align('{arxivid}', {versionpair}) # {interestingjoins}")
 
 
 def main():
@@ -245,8 +245,7 @@ def main():
     print(f'{downloadcount} to download. Estimated {downloadcount * 2 * 30 / 60 / 60:.1f} hours ({downloadcount * 2 * 30 / 60 :.0f} minutes).')
 
     for arxivid, versioncount in sample:
-        # source.download_source_files(arxivid, versioncount)
-        pass
+        source.download_source_files(arxivid, versioncount)
 
     # source.extract_all()
     # tex.main()

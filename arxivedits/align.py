@@ -2,26 +2,28 @@
 Tries to align the sentences in two versions of a plain text research paper.
 '''
 
-import os
-import json
-import heapq
-import csv
-
-
 from typing import List, Tuple
 from collections import namedtuple
 
+import massalign.core as massalign
+
 import lcs
+import idf
 from tokenizer import ArxivTokenizer
-from tex import detex
-from data import SENTENCES_DIR, SECTIONS_DIR
 
 TOKENIZER = ArxivTokenizer()
 
 MISMATCH_PENALTY = 0.1
 SKIP_PENALTY = 0
 
+m = massalign.MASSAligner()
+
+sentence_aligner = massalign.VicinityDrivenSentenceAligner(
+    similarity_model=idf.TFIDFMODEL, acceptable_similarity=0.2, similarity_slack=0.05)
+
 Alignment = namedtuple('Alignment', ['score', 'pairs'])
+
+SentenceAlignment = List[Tuple[List[int], List[int]]]
 
 
 def lcs_align(
@@ -111,108 +113,32 @@ def lcs_align(
     return weighttable[-1][-1].pairs
 
 
-def get_sentence_pairs(v1filepath, v2filepath) -> List[Tuple[int, int]]:
+def mass_align(s1: List[str], s2: List[str]) -> List[Tuple[int, int]]:
     '''
-    Returns all the sentence pairs between filepath1 and filepath2. First aligns by sections (title, abstract, introduction, section, subsection). Then aligns using weighted-LCS.
-
-    TODO: find better parameter names
+    Uses MASSAlign to align two lists of sentences
     '''
 
-    sim = lcs.similarity
+    alignments: SentenceAlignment = []
 
-    with open(v1filepath, 'r') as fin:
-        v1source = json.load(fin)
+    alignments, _ = m.getSentenceAlignments(
+        s1, s2, sentence_aligner)
 
-    with open(v2filepath, 'r') as fin:
-        v2source = json.load(fin)
+    finalalignments = []
 
-    # Because these section titles should be very similar, I am going to use a greedy approach and apply weighted-lcs to all possible pairs of section titles. Then I will take the maximum from those pairs and align those sections
+    for pair in alignments:
+        if isinstance(pair, tuple):
+            a1, a2 = pair
+            for i in a1:
+                for j in a2:
+                    finalalignments.append((i, j))
 
-    sortedpairs = []
-
-    for v1section in v1source:
-        for v2section in v2source:
-            _, v1title, v1content = v1section
-            _, v2title, v2content = v2section
-
-            score = sim(v1title, v2title)
-            possiblesectionpair = (score, (v1content, v2content),
-                                   (v1title, v2title))
-            sortedpairs.append(possiblesectionpair)
-
-    # assumes that each version has the same number of sections (len(v1source))
-    matchedsections = heapq.nlargest(len(v1source), sortedpairs)
-
-    sentencepairs: List[Tuple[int, int]] = []
-
-    for _, contentpair, _ in matchedsections:
-        text1 = detex(contentpair[0])
-        text2 = detex(contentpair[1])
-
-        sentences1 = TOKENIZER.split(text1, group='sentence')
-        sentences2 = TOKENIZER.split(text2, group='sentence')
-
-        sentencepairs.extend(lcs_align(
-            sentences1, sentences2, MISMATCH_PENALTY, SKIP_PENALTY))
-
-        print(f'Found {len(sentencepairs)} pairs so far.')
-
-    return sentencepairs
+    return finalalignments
 
 
 def main():
     '''
-    For every file in data/sections, find its other versions. Then create sentence pairs and write them to data/pairs.
     '''
-
-    alreadyseen = set([])
-
-    if not os.path.isdir(SENTENCES_DIR):
-        os.mkdir(SENTENCES_DIR)
-
-    for file in os.listdir(SECTIONS_DIR):
-        filename, extension = os.path.splitext(file)
-        arxivid, versioncode = filename.split('-')
-
-        if arxivid in alreadyseen:
-            continue
-
-        # assume there are no double digit versions
-        version = int(versioncode[-1])
-
-        # next version is something like 0704.0002-v2
-        nextversionfilepath = os.path.join(
-            SECTIONS_DIR, f'{arxivid}-v{version + 1}' + extension)
-
-        # keep looking for the next version of the paper
-        while os.path.isfile(nextversionfilepath):
-
-            # initial version is something like 0704.0002-v1
-            currentversionfilepath = os.path.join(
-                SECTIONS_DIR, f'{arxivid}-v{version}' + extension)
-
-            sentencepairs = get_sentence_pairs(
-                currentversionfilepath, nextversionfilepath)
-
-            # include both versions in the file name
-            sentencefilepath = os.path.join(
-                SENTENCES_DIR, f'{arxivid}-v{version}-v{version+1}.tsv')
-
-            with open(sentencefilepath, 'w') as csvfile:
-                writer = csv.writer(csvfile, delimiter='\t')
-
-                for (sentence1, sentence2) in sentencepairs:
-                    writer.writerow([sentence1, sentence2])
-
-            print(f'Wrote {sentencefilepath}')
-
-            version += 1
-
-            nextversionfilepath = os.path.join(
-                SECTIONS_DIR, f'{arxivid}-v{version + 1}' + extension)
-
-        # only look at an id once
-        alreadyseen.add(arxivid)
+    pass
 
 
 if __name__ == '__main__':

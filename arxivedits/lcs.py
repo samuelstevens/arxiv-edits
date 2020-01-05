@@ -11,7 +11,7 @@ import os
 import ctypes
 
 from math import inf
-from typing import List, Optional, TypeVar
+from typing import List, Optional, TypeVar, Dict, Tuple
 from tokenizer import ArxivTokenizer
 from idf import idf
 
@@ -65,7 +65,7 @@ def slow_lcs(seq1: List[T], seq2: List[T]) -> List[T]:
     if not seq1 or not seq2:
         return []
 
-    table = {}
+    table: Dict[Tuple[int, int], List[int]] = {}
     for i, _ in enumerate(seq1):
         for j, _ in enumerate(seq2):
 
@@ -99,12 +99,12 @@ def list_to_SEQUENCE(strlist: List[str]) -> SEQUENCE:
     return SEQUENCE(arr, len(bytelist))
 
 
-def lcs(seq1: List[str], seq2: List[str]) -> List[str]:
+def lcs(s1: List[str], s2: List[str]) -> List[str]:
     '''
     Fast LCS that uses ctypes
     '''
-    seq1 = list_to_SEQUENCE(seq1)
-    seq2 = list_to_SEQUENCE(seq2)
+    seq1 = list_to_SEQUENCE(s1)
+    seq2 = list_to_SEQUENCE(s2)
 
     common = lcsmodule.lcs(ctypes.byref(seq1), ctypes.byref(seq2))[0]
 

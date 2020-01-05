@@ -10,14 +10,22 @@ import functools
 from math import log
 from typing import Set
 
-from data import IDF_DB, SECTIONS_DIR, UNZIPPED_DIR
+from massalign.core import TFIDFModel
+
+import data
 from tokenizer import ArxivTokenizer
 
 TOTALDOCS = 307  # len(os.listdir(UNZIPPED_DIR))
 
 TOKENIZER = ArxivTokenizer()
 
-DOCUMENTFREQUENCY = shelve.open(IDF_DB)
+DOCUMENTFREQUENCY = shelve.open(data.IDF_DB)
+
+inputfiles = map(lambda f: os.path.join(
+    data.TEXT_DIR, f), os.listdir(data.TEXT_DIR))
+
+TFIDFMODEL = TFIDFModel(input_files=inputfiles,
+                        stop_list='https://ghpaetzold.github.io/massalign_data/stop_words.txt')
 
 
 def initialize_idf():
@@ -27,7 +35,7 @@ def initialize_idf():
     TODO: need to write a way to close.
     '''
     global DOCUMENTFREQUENCY
-    DOCUMENTFREQUENCY = shelve.open(IDF_DB)
+    DOCUMENTFREQUENCY = shelve.open(data.IDF_DB)
 
 
 @functools.lru_cache(maxsize=512)
@@ -68,7 +76,7 @@ def add_doc(sectionfile: str):
         words.extend(TOKENIZER.split(title, group='word'))
         # print(f'{inputfile} has {len(words)} words.')
 
-        with shelve.open(IDF_DB) as documentfrequency:
+        with shelve.open(data.IDF_DB) as documentfrequency:
             for word in words:
                 if word not in addedwords:
                     if word in documentfrequency:
@@ -86,11 +94,11 @@ def main():
     '''
     Resets the IDF_DB with every file in data/sections
     '''
-    if os.path.isfile(IDF_DB):
-        os.remove(IDF_DB)
+    if os.path.isfile(data.IDF_DB):
+        os.remove(data.IDF_DB)
 
-    for sectionfile in os.listdir(SECTIONS_DIR):
-        sectionfilepath = os.path.join(SECTIONS_DIR, sectionfile)
+    for sectionfile in os.listdir(data.SECTIONS_DIR):
+        sectionfilepath = os.path.join(data.SECTIONS_DIR, sectionfile)
         add_doc(sectionfilepath)
 
 
