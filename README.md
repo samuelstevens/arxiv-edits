@@ -24,6 +24,9 @@ pandoc --version
 
 # make sure you have sqlite3 installed
 sqlite3 --version
+
+# make the lcs.so library
+make
 ```
 
 ### Java
@@ -49,6 +52,7 @@ python arxiv-edits/versions.py # etc
 * [Pandoc](https://pandoc.org/)
 * [SQLite3](https://sqlite.org/index.html)
 * [Stanford CoreNLP](https://stanfordnlp.github.io/CoreNLP/index.html#download)
+* GCC and `make` (for the LCS algorithm)
 
 
 ## Gathering Data
