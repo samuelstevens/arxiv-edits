@@ -2,11 +2,15 @@
 Downloads source files from arxiv.org and extracts the largest .tex file.
 '''
 # Builtin
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 import tarfile
 import gzip
 import os
+import shutil
 import time
+import re
+import random
+import pathlib
 
 # External
 import requests
@@ -15,6 +19,13 @@ import magic  # type: ignore
 # internal
 from structures import ArxivID  # type: ignore
 from data import connection, SOURCE_DIR, UNZIPPED_DIR, is_x
+
+# latexcommands = [r'\\include', r'\\includeonly', r'\\input', r'\\@input']
+commandpattern = re.compile(
+    r'\\(?:include|includeonly|input|@input).*?[{ ](.*?)(?:\}| |\n|$)')
+macrocommentpattern = re.compile(r'\w%$')
+citepattern = re.compile(r'\\citep?\{.*?\}')
+tmpdir = 'tmp'
 
 
 def download_file(url: str, local_filename: str) -> str:
@@ -33,49 +44,7 @@ def download_file(url: str, local_filename: str) -> str:
     return local_filename
 
 
-def longest_tex_from_tar(tar: tarfile.TarFile) -> str:
-    '''
-    Takes a directory and returns the longest .tex files contents
-    '''
-
-    tex = b''
-
-    for member in tar.getmembers():
-        if member.isfile() and os.path.splitext(member.name)[1] == ".tex":
-            file = tar.extractfile(member)
-            if file:
-                contents = file.read()
-
-                if len(contents) > len(tex):
-                    tex = contents
-
-    return tex
-
-
-def longest_tex_from_dir(directory: str) -> str:
-    '''
-    Returns the contents of the longest .tex file in a directory as a string.
-    '''
-    tex = ''
-    for filename in os.listdir(directory):
-        path = os.path.join(directory, filename)
-
-        if os.path.isdir(path):
-            # recursively search
-            contents = longest_tex_from_dir(path)
-
-            if len(contents) > len(tex):
-                tex = contents
-
-        elif os.path.splitext(filename)[1] == ".tex":
-            with open(os.path.join(directory, filename), 'r') as file:
-                contents = file.read()
-                if len(contents) > len(tex):
-                    tex = contents
-    return tex
-
-
-def get_filetype(file):
+def get_filetype(file) -> str:
     '''
     returns the filetype of a file using magic (file utility on unix). Resets the file pointer to the start of the file.
     '''
@@ -99,17 +68,165 @@ def is_extracted(arxivid, versioncount) -> bool:
     return is_x(arxivid, versioncount, UNZIPPED_DIR)
 
 
-def extract(in_dir, filename) -> Optional[bytes]:
+def add_folder_to_dict(dirpath, dictionary):
     '''
-    Takes a filepath (dir, name) and extracts the longest .tex file, then returns the contents as a string.
-    TODO
+    Opens a folder and recursively adds all .tex to the dictionary.
+    '''
+    for filename in os.listdir(dirpath):
+        filepath = os.path.join(dirpath, filename)
+
+        if os.path.isfile(filepath):
+            _, ext = os.path.splitext(filename)
+
+            if ext != '.tex':
+                continue
+
+            with open(filepath, 'rb') as file:
+                contents = file.read()
+
+            lines = contents.decode('utf-8', errors='ignore').split('\n')
+
+            dictionary[filepath] = lines
+        else:
+            add_folder_to_dict(filepath, dictionary)
+
+
+def get_lines(filename, openfiles, closedfiles):
+
+    finallines = []
+
+    if filename in openfiles:
+        lines = openfiles[filename]
+        del openfiles[filename]
+    elif filename in closedfiles:
+        lines = closedfiles[filename]
+        del closedfiles[filename]
+    else:
+        print(openfiles.keys(), closedfiles.keys())
+        print(f'{filename} not in openfiles or closedfiles.')
+        closedfiles[filename] = []
+        return
+
+    lines = [line for line in lines
+             if not line.lstrip().startswith('%')]
+
+    for line in lines:
+        m = commandpattern.match(line)
+        if m:
+            includepath = os.path.join(tmpdir, m.group(1))
+
+            # normalizes paths like ./sub/something.txt
+            includepath = str(pathlib.Path(includepath))
+
+            _, ext = os.path.splitext(includepath)
+
+            # if not ext:
+            #     ext = '.tex'
+            #     includepath += ext
+
+            if ext != '.tex':
+                break
+
+            get_lines(includepath, openfiles, closedfiles)
+            finallines.extend(closedfiles[includepath])
+            break
+        else:
+            finallines.append(line)
+
+    closedfiles[filename] = finallines
+
+
+def clean_tex(texstr: str) -> str:
+    lines = texstr.split('\n')
+
+    # removes comments
+    lines = [line for line in lines
+             if not line.lstrip().startswith('%')]
+
+    # joins all lines that end with <non-whitespace>%
+    i = 0
+    while i < len(lines):
+        if macrocommentpattern.search(lines[i]):
+            lines[i] = lines[i][: -1]
+            lines[i] += lines[i + 1]
+            lines[i + 1] = None
+            i += 1
+
+        i += 1
+
+    lines = [line for line in lines if line]
+
+    # removes lines with \includegraphics
+    lines = [line for line in lines if not line.lstrip(
+    ).startswith(r'\includegraphics')]
+
+    # removes lines with \authorblock
+    lines = [line for line in lines if not line.lstrip(
+    ).startswith(r'\authorblock')]
+
+    # at this point, there should be no \include-esque commands inside finallines
+
+    lines = [
+        line for line in lines if not commandpattern.search(line)]
+
+    for line in lines:
+        m = commandpattern.search(line)
+        if m:
+            print(f'removing {line}')
+
+    text = '\n'.join(lines)
+
+    # removes \cite{something}
+    text = citepattern.sub('', text)
+
+    m = citepattern.search(text)
+
+    if m:
+        print(m)
+    return text
+
+
+def tex_from_tar(tar: tarfile.TarFile) -> Optional[str]:
+    '''
+    Constructs a .tex file from tarfile contents.
+
+    Removes all comments.
     '''
 
-    os.makedirs('tmp', exist_ok=True)
-    filepath = os.path.join(in_dir, filename)
+    shutil.rmtree(tmpdir)
+    os.makedirs(tmpdir, exist_ok=True)
+
+    tar.extractall(tmpdir)
+
+    openfiles: Dict[str, List[str]] = {}
+    closedfiles: Dict[str, List[str]] = {}
+
+    add_folder_to_dict(tmpdir, openfiles)
+
+    # do the imports.
+    while openfiles:
+        filepath = random.choice(list(openfiles))
+        get_lines(filepath, openfiles, closedfiles)
+
+    if not closedfiles:
+        return None
+
+    # now take the longest one in closedfiles
+    filelengths = {filename: sum(
+        [len(line) for line in closedfiles[filename]]) for filename in closedfiles}
+
+    bestfilename = max(filelengths, key=lambda f: filelengths[f])
+
+    return '\n'.join(closedfiles[bestfilename])
+
+
+def extract(filepath) -> Optional[str]:
+    '''
+    Takes a directory and creates a .tex file and returns the contents.
+    '''
 
     if os.path.isdir(filepath):
-        return longest_tex_from_dir(filepath)
+        raise ValueError(f'{filepath} is a directory.')
 
     # now, filepath is not a directory
     with open(filepath, 'rb') as file:
@@ -128,10 +245,15 @@ def extract(in_dir, filename) -> Optional[bytes]:
             elif 'tar' in filetype:
                 # print(f'Using tar to extract from {filename}')
                 with tarfile.open(fileobj=file, mode='r') as tar:
-                    return longest_tex_from_tar(tar)
+                    tex = tex_from_tar(tar)
+                    if tex:
+                        tex = clean_tex(tex)
+                    return tex
+
             elif 'tex' in filetype:
                 # print(f'Reading directly from {filename}')
-                return file.read()
+                return clean_tex(file.read().decode(
+                    'utf-8', errors='ignore'))
 
             else:
                 raise TypeError(
@@ -183,32 +305,35 @@ def download_all():
         download_source_files(arxiv_id, version_count)
 
 
-def extract_all(extract_again=False):
+def extract_all(extract_again: bool = True):
     '''
-    Extracts the longest .tex file from every file in SOURCE_DIR to UNZIPPED_DIR
+    Extracts the a .tex file from every file in SOURCE_DIR to UNZIPPED_DIR
     '''
 
     os.makedirs(UNZIPPED_DIR, exist_ok=True)
 
     for filename in os.listdir(SOURCE_DIR):
-        if os.path.isfile(os.path.join(UNZIPPED_DIR, filename)) and not extract_again:
+        unzippedfilepath = os.path.join(UNZIPPED_DIR, filename)
+        sourcefilepath = os.path.join(SOURCE_DIR, filename)
+
+        if os.path.isfile(unzippedfilepath) and not extract_again:
             continue
 
         content = None
 
         try:
-            content = extract(SOURCE_DIR, filename)
+            content = extract(sourcefilepath)
         except TypeError as err:
             print(err)
 
         if content:
             # removes not utf characters
-            content = content.decode(
-                'utf-8', errors='ignore').encode(encoding='utf-8', errors='ignore')
-            with open(os.path.join(UNZIPPED_DIR, filename), 'wb') as file:
+            content = content.encode(encoding='utf-8', errors='ignore')
+            with open(unzippedfilepath, 'wb') as file:
                 file.write(content)
 
 
 if __name__ == '__main__':
-    download_all()
+    # download_all()
     extract_all()
+    # contents = extract('data/source/hep-th-0404134-v1')

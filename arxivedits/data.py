@@ -18,14 +18,14 @@ ALIGNMENTS_DIR = os.path.join(DATA_DIR, 'alignments')
 DB_FILE_NAME = os.path.join(DATA_DIR, 'arxivedits.sqlite3')
 IDF_DB = os.path.join(DATA_DIR, 'idf')
 
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(SOURCE_DIR, exist_ok=True)
-    os.makedirs(SECTIONS_DIR, exist_ok=True)
-    os.makedirs(SENTENCES_DIR, exist_ok=True)
-    os.makedirs(UNZIPPED_DIR, exist_ok=True)
-    os.makedirs(TEXT_DIR, exist_ok=True)
-    os.makedirs(ALIGNMENTS_DIR, exist_ok=True)
+# if not os.path.isdir(DATA_DIR):
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(SOURCE_DIR, exist_ok=True)
+os.makedirs(SECTIONS_DIR, exist_ok=True)
+os.makedirs(SENTENCES_DIR, exist_ok=True)
+os.makedirs(UNZIPPED_DIR, exist_ok=True)
+os.makedirs(TEXT_DIR, exist_ok=True)
+os.makedirs(ALIGNMENTS_DIR, exist_ok=True)
 
 
 def connection():

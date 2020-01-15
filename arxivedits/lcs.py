@@ -22,20 +22,20 @@ T = TypeVar('T')  # pylint: disable=invalid-name
 pwd = pathlib.Path(__file__).parent  # pylint: disable=invalid-name
 
 
-class CELL(ctypes.Structure):
-    '''
-    struct Cell
-    {
-        int index;
-        int length;
-        struct Cell *prev;
-    };
-    '''
+# class CELL(ctypes.Structure):
+#     '''
+#     struct Cell
+#     {
+#         int index;
+#         int length;
+#         struct Cell *prev;
+#     };
+#     '''
 
 
-# pylint: disable=protected-access
-CELL._fields_ = [('index', ctypes.c_int), ('length', ctypes.c_int),
-                 ('prev', ctypes.POINTER(CELL))]
+# # pylint: disable=protected-access
+# CELL._fields_ = [('index', ctypes.c_int), ('length', ctypes.c_int),
+#                  ('prev', ctypes.POINTER(CELL))]
 
 
 class SEQUENCE(ctypes.Structure):
@@ -176,8 +176,8 @@ def main():
 
 
 if __name__ == '__main__':
-    # main()
-    profile()
+    main()
+    # profile()
     # fast_lcs(
     #     ['First', ',', 'we', 'validate', 'whether', 'our', 'models', 'for', 'segmentation', 'and', 'depth', 'estimation',
     #         'perform', 'well', 'on', 'the', 'synthetic', 'test', 'set', 'of', 'our', 'SURREAL', 'dataset', '.'],

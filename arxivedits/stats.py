@@ -160,15 +160,13 @@ def manually_align(arxivid, versionpair):
 
     alignedsections = sections.align(v1, v2)
 
-    # v1sentenceset = [sentence for _, content in v1 for sentence in content]
-    # v2sentenceset = [sentence for _, content in v2 for sentence in content]
-
     foldername = os.path.join(
         data.ALIGNMENTS_DIR, f'{arxividpath}-v{versionpair[0]}-v{versionpair[1]}', 'working-set')
 
     os.makedirs(foldername, exist_ok=True)
 
     interestingjoins = 0
+    boringjoins = 0
 
     for score, titles, contents in alignedsections:
         v1sentences, v2sentences = contents
@@ -195,6 +193,7 @@ def manually_align(arxivid, versionpair):
 
                 if score == 0:
                     # print('Identical')
+                    boringjoins += 1
                     del v1sentenceset[s1]
                     del v2sentenceset[s2]
                     pairlist[(i, j)] = 1
@@ -224,7 +223,8 @@ def manually_align(arxivid, versionpair):
                 [f'{v2sentenceset[s]}: \t{s}\n' for s in v2sentenceset])
             file.write('\n')
 
-     # print(f"manually_align('{arxivid}', {versionpair}) # {interestingjoins}")
+    # print(f"manually_align('{arxivid}', {versionpair}) # {interestingjoins}")
+    print(f'{arxivid} {versionpair}: \t{boringjoins / (boringjoins + interestingjoins):.2f}')
 
 
 def main():
@@ -252,8 +252,8 @@ def main():
 
     # source.extract_all()
     # tex.main()
-    # sections.main()
-    # tokenizer.main()
+    sections.main()
+    tokenizer.main()
 
     # * total # of papers
     # * total #, % of papers with 2+ versions

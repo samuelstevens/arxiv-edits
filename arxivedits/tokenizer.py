@@ -287,7 +287,6 @@ class CoreNLPTokenizer(Tokenizer):
         text = text.replace('\n', ' ')
 
         blockpattern = re.compile(r'\$\$(.*)\$\$')
-        print('calling sub in tokenizer.py in _process')
         text = blockpattern.sub('', text)
 
         inlinepattern = re.compile(r'\$(.*?)\$')

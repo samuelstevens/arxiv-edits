@@ -16,7 +16,7 @@ def pandoc_file(inputfile, outputfile) -> Optional[Exception]:
         result = subprocess.run([
             'pandoc', '--from', 'latex', '--to', 'markdown', '--standalone',
             '--atx-headers', inputfile, '--output', outputfile
-        ], text=True, timeout=5)
+        ], text=True, timeout=5, capture_output=True)
     except subprocess.TimeoutExpired:
         return Exception(f'Timed out on {inputfile}')
     else:
@@ -27,10 +27,22 @@ def pandoc_file(inputfile, outputfile) -> Optional[Exception]:
 
 
 def detex_file(inputfile, outputfile):
+
+    mathtag = '[MATH]'
+    verbtag = '[DOES]'
+    nountag = '[NOUN]'
+
     with open(inputfile, 'r') as fin:
         with open(outputfile, 'w') as fout:
             content = fin.read()
+
+            content = content.replace('noun', nountag)
+
             output = detex(content)
+
+            output = output.replace('noun', mathtag)
+            output = output.replace('verbs', verbtag)
+            output = output.replace(nountag, 'noun')
 
             fout.write(output)
 
@@ -326,7 +338,6 @@ def main():
     '''
     Takes files from data/unzipped and converts them to text, then sends them to data/text.
     '''
-    os.makedirs(TEXT_DIR, exist_ok=True)
 
     error_count = 0
 
@@ -335,17 +346,23 @@ def main():
         outputfilepath = os.path.join(TEXT_DIR, sourcefile)
         err = pandoc_file(sourcefilepath, outputfilepath)
 
-        if err:
-            print(err)
+        # detex_file(sourcefilepath, outputfilepath)
+
+        if not os.path.isfile(outputfilepath):
             error_count += 1
 
+        if err:
+            print(err)
+
     print(f'Saw {error_count} errors.')
+    print(f'{(len(os.listdir(UNZIPPED_DIR)) - error_count) / len(os.listdir(UNZIPPED_DIR)) * 100:.1f}% success.')
 
 
 def demo():
-    print(pandoc_file('data/unzipped/1406.4493-v2', 'data/text/1406.4493-v2'))
+    print(pandoc_file('data/unzipped/hep-ph-0405286-v1',
+                      'data/text/hep-ph-0405286-v1'))
 
 
 if __name__ == '__main__':
-    # main()
-    demo()
+    main()
+    # demo()
