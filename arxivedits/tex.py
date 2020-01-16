@@ -15,7 +15,8 @@ def pandoc_file(inputfile, outputfile) -> Optional[Exception]:
     try:
         result = subprocess.run([
             'pandoc', '--from', 'latex', '--to', 'markdown', '--standalone',
-            '--atx-headers', inputfile, '--output', outputfile
+            '--atx-headers',
+            inputfile, '--output', outputfile
         ], text=True, timeout=5, capture_output=True)
     except subprocess.TimeoutExpired:
         return Exception(f'Timed out on {inputfile}')
@@ -359,10 +360,14 @@ def main():
 
 
 def demo():
-    print(pandoc_file('data/unzipped/hep-ph-0405286-v1',
-                      'data/text/hep-ph-0405286-v1'))
+    # print(pandoc_file('data/unzipped/0704.0001-v1',
+                    #   'data/text/0704.0001-v1'))
+    print(pandoc_file('data/unzipped/0704.0001-v1',
+                      'data/text/ascii/0704.0001-v1'))
+    print(detex_file('data/unzipped/0704.0001-v1',
+                     'data/text/detex/0704.0001-v1'))
 
 
 if __name__ == '__main__':
-    main()
-    # demo()
+    # main()
+    demo()

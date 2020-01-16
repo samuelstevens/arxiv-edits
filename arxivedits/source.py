@@ -24,7 +24,9 @@ from data import connection, SOURCE_DIR, UNZIPPED_DIR, is_x
 commandpattern = re.compile(
     r'\\(?:include|includeonly|input|@input).*?[{ ](.*?)(?:\}| |\n|$)')
 macrocommentpattern = re.compile(r'\w%$')
-citepattern = re.compile(r'\\citep?\{.*?\}')
+citepattern = re.compile(r'\\citep?(?:alt)?\{.*?\}')
+graphicspattern = re.compile(
+    r'\\includegraphics(:?\[.*?\])?\{.*?\}', re.MULTILINE)
 tmpdir = 'tmp'
 
 
@@ -117,19 +119,13 @@ def get_lines(filename, openfiles, closedfiles):
 
             # normalizes paths like ./sub/something.txt
             includepath = str(pathlib.Path(includepath))
-
             _, ext = os.path.splitext(includepath)
 
-            # if not ext:
-            #     ext = '.tex'
-            #     includepath += ext
-
-            if ext != '.tex':
-                break
-
-            get_lines(includepath, openfiles, closedfiles)
-            finallines.extend(closedfiles[includepath])
-            break
+            if ext == '.tex':
+                get_lines(includepath, openfiles, closedfiles)
+                finallines.extend(closedfiles[includepath])
+            else:
+                finallines.append(line)
         else:
             finallines.append(line)
 
@@ -149,7 +145,7 @@ def clean_tex(texstr: str) -> str:
         if macrocommentpattern.search(lines[i]):
             lines[i] = lines[i][: -1]
             lines[i] += lines[i + 1]
-            lines[i + 1] = None
+            lines[i + 1] = ''
             i += 1
 
         i += 1
@@ -167,22 +163,20 @@ def clean_tex(texstr: str) -> str:
     # at this point, there should be no \include-esque commands inside finallines
 
     lines = [
-        line for line in lines if not commandpattern.search(line)]
+        line for line in lines if not commandpattern.match(line)]
 
-    for line in lines:
+    for i, line in enumerate(lines):
         m = commandpattern.search(line)
         if m:
-            print(f'removing {line}')
+            print(f'line {i} will cause problems "{line}')
 
     text = '\n'.join(lines)
 
-    # removes \cite{something}
+    # removes \cite{something}, \citep{something} and \citealt{something}
     text = citepattern.sub('', text)
 
-    m = citepattern.search(text)
+    text = graphicspattern.sub('', text)
 
-    if m:
-        print(m)
     return text
 
 
@@ -235,7 +229,7 @@ def extract(filepath) -> Optional[str]:
             filetype = get_filetype(file)
 
             if 'gzip' in filetype:
-                # print(f'Using gunzip to unzip {filename}.')
+                # print(f'Using gunzip to unzip {filepath}.')
                 file = gzip.open(file, 'rb')
 
             elif 'pdf' in filetype:
@@ -243,7 +237,7 @@ def extract(filepath) -> Optional[str]:
                 return None
 
             elif 'tar' in filetype:
-                # print(f'Using tar to extract from {filename}')
+                # print(f'Using tar to extract from {filepath}')
                 with tarfile.open(fileobj=file, mode='r') as tar:
                     tex = tex_from_tar(tar)
                     if tex:
@@ -305,6 +299,23 @@ def download_all():
         download_source_files(arxiv_id, version_count)
 
 
+def extract_file(sourcefilepath: str, outfilepath) -> Optional[Exception]:
+    content: Optional[str] = None
+
+    try:
+        content = extract(sourcefilepath)
+    except TypeError as err:
+        return err
+
+    if content:
+        # removes not utf characters
+        contentbytes = content.encode(encoding='utf-8', errors='ignore')
+        with open(outfilepath, 'wb') as file:
+            file.write(contentbytes)
+
+    return None
+
+
 def extract_all(extract_again: bool = True):
     '''
     Extracts the a .tex file from every file in SOURCE_DIR to UNZIPPED_DIR
@@ -319,21 +330,13 @@ def extract_all(extract_again: bool = True):
         if os.path.isfile(unzippedfilepath) and not extract_again:
             continue
 
-        content = None
-
-        try:
-            content = extract(sourcefilepath)
-        except TypeError as err:
+        err = extract_file(sourcefilepath, unzippedfilepath)
+        if err:
             print(err)
-
-        if content:
-            # removes not utf characters
-            content = content.encode(encoding='utf-8', errors='ignore')
-            with open(unzippedfilepath, 'wb') as file:
-                file.write(content)
 
 
 if __name__ == '__main__':
     # download_all()
     extract_all()
-    # contents = extract('data/source/hep-th-0404134-v1')
+    # err = extract_file('data/source/0704.0001-v1',
+    #                    'data/unzipped/0704.0001-v1')

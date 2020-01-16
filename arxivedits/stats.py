@@ -30,6 +30,7 @@ from structures import Section, Sentence
 
 
 MULTIPLE_VERSIONS = True
+SENTENCELENGTH = 20
 
 
 def get_random_sample(samplesize=1000, multipleversions=MULTIPLE_VERSIONS):
@@ -114,7 +115,7 @@ def stats(sample: List[Tuple[str, int]]):
             for title, sentencelist in contents:
                 if title != '### Initial Section (MANUAL) ###':
                     sentencelist = [
-                        sentence for sentence in sentencelist if len(sentence) > 20]
+                        sentence for sentence in sentencelist if len(sentence) > SENTENCELENGTH]
 
                     sentences.extend(sentencelist)
 
@@ -235,7 +236,7 @@ def main():
     sample = get_random_sample(multipleversions=True)
 
     # takes a smaller sample
-    sample = sample[:50]
+    sample = sample[:200]
 
     print(f'{len(sample)} ids in sample.')
 
@@ -252,8 +253,8 @@ def main():
 
     # source.extract_all()
     # tex.main()
-    sections.main()
-    tokenizer.main()
+    # sections.main()
+    # tokenizer.main()
 
     # * total # of papers
     # * total #, % of papers with 2+ versions
