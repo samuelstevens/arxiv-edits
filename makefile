@@ -14,3 +14,6 @@ profile: arxivedits/lcsmodule/lcs.so
 
 visualize: evaluate.py.prof
 	snakeviz evaluate.py.prof
+
+proposal: paper/proposal.md
+	pandoc --from markdown --to pdf paper/proposal.md --standalone --out paper/proposal.pdf
