@@ -14,6 +14,7 @@ import copy
 import os
 import re
 import pathlib
+import string
 
 import pexpect
 
@@ -24,7 +25,19 @@ import nltk.data
 from tex import BLOCK_MATH_TAG
 
 FALSE_SPLIT_SUFFIXES = set(
-    ["Fig.", "Sec.", "Ref.", "Figs.", "Secs.", "Refs.", "Eq.", "Eqs.", "et al."]
+    [
+        "Fig.",
+        "Sec.",
+        "Ref.",
+        "Figs.",
+        "Secs.",
+        "Refs.",
+        "Eq.",
+        "Eqs.",
+        "Eqn.",
+        "Eqns.",
+        "et al.",
+    ]
 )
 FALSE_SPLIT_PUNC = set([".", "("])
 
@@ -79,7 +92,10 @@ class Tokens:
             )
 
         def join_sentences(sentences: List[str], newsentence: str) -> List[str]:
-            newsentences = [newsentence]  # split_on_tag(BLOCK_MATH_TAG, newsentence)
+            if newsentence == ".":
+                return sentences
+
+            newsentences = split_on_tag(BLOCK_MATH_TAG, newsentence)
 
             if not sentences:
                 return newsentences
@@ -103,10 +119,24 @@ class Tokens:
 
             return sentences + newsentences
 
-        def split_on_tag(tag: str, text: str) -> List[str]:
-            if tag in text:
-                start = text.index(tag) + len(tag)
-                return [text[:start], *split_on_tag(tag, text[start:].lstrip())]
+        def split_on_tag(tag: str, text: str, offset: int = 0) -> List[str]:
+
+            if tag in text[offset:]:
+
+                nextsentence = text.index(tag, offset) + len(tag)
+
+                if nextsentence + 1 >= len(text):
+                    return [text]
+
+                # if the next letter after the tag is uppercase, split.
+                if text[nextsentence + 1] in string.ascii_uppercase:
+                    return [
+                        text[:nextsentence],
+                        *split_on_tag(tag, text[nextsentence:].lstrip()),
+                    ]
+
+                # else try and split further on
+                return split_on_tag(tag, text, nextsentence + 1)
 
             return [text]
 
@@ -518,6 +548,8 @@ def demo():
         r"The specific kinetic energy is obtained through the real part (in Fig. 4) of the expression: [EQUATION] On the other hand, the specific flow energy can be evaluated through the real part of the following: [EQUATION] Combining the two, is seen in Fig.(3).",
         r"There are two collapsed halos, A and B, of mass [MATH] and [MATH] respectively, at [MATH] in our simulation as shown in the right panel of Fig.(5).",
         r"There are two collapsed halos (shown in Fig.(5)), A and B, of mass [MATH] and [MATH] respectively, at [MATH] in our simulation as shown in the right panel of Fig.(5).",
+        r"Given a Hamiltonian [MATH], one can evolve the wave function through (23). It is simply a unitary transformation of the system, [EQUATION] We use the pseudo-spectral method to solve the Schrodinger equation in the comoving box. Let [MATH] be the kinetic energy operator ([MATH] in Fourier space) and [MATH] the potential operator([MATH] in real space). The evolution is then split into [EQUATION] On the other hand, we need to consider the non-commutative relation between [MATH] and [MATH], where [EQUATION] [EQUATION] It follows that we obtain, to the second order accuracy, [EQUATION] which will be adopted to advance the time steps.",
+        r"It is simply a unitary transformation of the system, [EQUATION] We use the pseudo-spectral method to solve the Schrodinger equation in the comoving box.",
     ]
 
     for ex in examples:

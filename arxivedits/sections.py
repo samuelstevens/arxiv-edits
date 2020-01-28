@@ -1,8 +1,8 @@
-'''
+"""
 Takes LaTeX source files and parses the sections. Writes the sections to data/sections.
 
 data/unzipped -> data/sections
-'''
+"""
 
 
 import os
@@ -21,45 +21,45 @@ from structures import Title, Score, Content
 
 
 # custom types
-Section = namedtuple('Section', 'title text')
+Section = namedtuple("Section", "title text")
 SectionPair = Tuple[Score, Tuple[Title, Title], Tuple[Content, Content]]
 
 
 def clean_text(text: str) -> str:
-    '''
+    """
     Strips whitespace and turns 1+ whitespace characters into a single space.
-    '''
+    """
     text = text.strip()
 
-    whitespacepattern = re.compile(r'\s+')
+    whitespacepattern = re.compile(r"\s+")
 
-    return whitespacepattern.sub(' ', text)
+    return whitespacepattern.sub(" ", text)
 
 
 def parsesections(textfilepath: str) -> List[Section]:
-    '''
+    """
     Parses a markdown text file and returns a list of tuples of
     (section name, )
-    '''
+    """
 
-    titlepattern = re.compile(r'^# (.*)', re.MULTILINE)
+    titlepattern = re.compile(r"^# (.*)", re.MULTILINE)
 
-    subtitlepattern = re.compile(r'^(##+ .*)', re.MULTILINE)
+    subtitlepattern = re.compile(r"^(##+ .*)", re.MULTILINE)
 
-    with open(textfilepath, 'r') as file:
-        markdowntext = file.read().replace('\u00a0', ' ')
+    with open(textfilepath, "r") as file:
+        markdowntext = file.read().replace("\u00a0", " ")
 
-    markdowntext = subtitlepattern.sub('', markdowntext)
+    markdowntext = subtitlepattern.sub("", markdowntext)
 
     title = titlepattern.search(markdowntext, 0)
-    intialtitle = '### Initial Section (MANUAL) ###'
+    intialtitle = "### Initial Section (MANUAL) ###"
 
     # if there are no matches, then the entire file goes in a single json object.
     if not title:
         # print(f'Only one section found in {textfilepath}')
         return [Section(title=intialtitle, text=clean_text(markdowntext))]
 
-    text = markdowntext[0:title.span()[0]]
+    text = markdowntext[0 : title.span()[0]]
 
     sections: List[Section] = []
 
@@ -71,11 +71,11 @@ def parsesections(textfilepath: str) -> List[Section]:
         nexttitle = titlepattern.search(markdowntext, title.span()[1])
         if not nexttitle:
             # reached end of file. Put the rest of the text in the section and call it a day
-            text = markdowntext[title.span()[1]:]
+            text = markdowntext[title.span()[1] :]
             sections.append(Section(title=title[1], text=clean_text(text)))
             break
 
-        text = markdowntext[title.span()[1]:nexttitle.span()[0]]
+        text = markdowntext[title.span()[1] : nexttitle.span()[0]]
         sections.append(Section(title=title[1], text=clean_text(text)))
         title = nexttitle
 
@@ -86,7 +86,9 @@ def is_sectioned(arxivid, versioncount) -> bool:
     return is_x(arxivid, versioncount, SECTIONS_DIR, extension=".json")
 
 
-def align(v1: List[structures.Section], v2: List[structures.Section]) -> List[SectionPair]:
+def align(
+    v1: List[structures.Section], v2: List[structures.Section]
+) -> List[SectionPair]:
 
     sortedpairs: List[SectionPair] = []
 
@@ -94,7 +96,10 @@ def align(v1: List[structures.Section], v2: List[structures.Section]) -> List[Se
         for v2title, v2content in v2:
             score: Score = Score(Levenshtein.distance(v1title, v2title))
             possiblesectionpair: SectionPair = (
-                score, (v1title, v2title), (v1content, v2content))
+                score,
+                (v1title, v2title),
+                (v1content, v2content),
+            )
             heapq.heappush(sortedpairs, possiblesectionpair)
 
     v1availabletitles = {title for title, _ in v1}
@@ -123,9 +128,9 @@ def align(v1: List[structures.Section], v2: List[structures.Section]) -> List[Se
 
 
 def main():
-    '''
+    """
     For every file in data/text, take the sections out and write it to data/sections as json.
-    '''
+    """
 
     if not os.path.isdir(SECTIONS_DIR):
         os.mkdir(SECTIONS_DIR)
@@ -135,12 +140,11 @@ def main():
 
         sections = parsesections(textfilepath)
 
-        sectionsfilepath = os.path.join(
-            SECTIONS_DIR, f'{textfile}.json')
+        sectionsfilepath = os.path.join(SECTIONS_DIR, f"{textfile}.json")
 
-        with open(sectionsfilepath, 'w') as file:
+        with open(sectionsfilepath, "w") as file:
             json.dump(sections, file, indent=2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

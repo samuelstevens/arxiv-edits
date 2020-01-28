@@ -1,4 +1,4 @@
-'''
+"""
 Generates stats for arXiv as a data source.
 
 * Might want to take a random sample of papers with 2+ versions, and a sample of all papers.
@@ -12,7 +12,7 @@ Generates stats for arXiv as a data source.
     * % of sentences deleted
     * % of sentences modified (>= 4 in distance)
     * % of sentences with typos (< 4 in distance)
-'''
+"""
 import os
 import csv
 import json
@@ -34,31 +34,30 @@ SENTENCELENGTH = 20
 
 
 def get_random_sample(samplesize=1000, multipleversions=MULTIPLE_VERSIONS):
-    '''
+    """
     Gets a new random sample unless one exists.
-    '''
+    """
 
-    extension = '-only-multiversion' if multipleversions else '-all'
+    extension = "-only-multiversion" if multipleversions else "-all"
 
-    samplefilepath = os.path.join(data.DATA_DIR, f'sample{extension}.csv')
+    samplefilepath = os.path.join(data.DATA_DIR, f"sample{extension}.csv")
 
     if os.path.isfile(samplefilepath):
-        with open(samplefilepath, 'r') as csvfile:
+        with open(samplefilepath, "r") as csvfile:
             reader = csv.reader(csvfile)
-            ids = [(arxivid, int(versioncount))
-                   for arxivid, versioncount in reader]
+            ids = [(arxivid, int(versioncount)) for arxivid, versioncount in reader]
         return ids
 
     con = data.connection()
 
     if multipleversions:
-        query = 'SELECT * FROM papers WHERE version_count > 1 ORDER BY RANDOM() LIMIT ?'
+        query = "SELECT * FROM papers WHERE version_count > 1 ORDER BY RANDOM() LIMIT ?"
     else:
-        query = 'SELECT * FROM papers ORDER BY RANDOM() LIMIT ?'
+        query = "SELECT * FROM papers ORDER BY RANDOM() LIMIT ?"
 
     sample = con.execute(query, (samplesize,)).fetchall()
 
-    with open(samplefilepath, 'w') as csvfile:
+    with open(samplefilepath, "w") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerows(sample)
 
@@ -66,103 +65,121 @@ def get_random_sample(samplesize=1000, multipleversions=MULTIPLE_VERSIONS):
 
 
 def stats(sample: List[Tuple[str, int]]):
-    '''
+    """
     Calculates some stats for some given ids
-    '''
+    """
 
-    print(f'Given {len(sample)} documents:')
+    print(f"Given {len(sample)} documents:")
 
-    extractedsample = [(arxivid, versioncount) for arxivid,
-                       versioncount in sample if source.is_extracted(arxivid, versioncount)]
+    extractedsample = [
+        (arxivid, versioncount)
+        for arxivid, versioncount in sample
+        if source.is_extracted(arxivid, versioncount)
+    ]
 
-    print(f'{len(extractedsample)} documents could be extracted.')
+    print(f"{len(extractedsample)} documents could be extracted.")
 
     multipleversioncount = len(
-        [_ for _, versioncount in extractedsample if versioncount > 2])
+        [_ for _, versioncount in extractedsample if versioncount > 2]
+    )
 
     if not MULTIPLE_VERSIONS:
         print(
-            f'{multipleversioncount} ({len(extractedsample) / multipleversioncount:2f}%)have 2+ versions.')
+            f"{multipleversioncount} ({len(extractedsample) / multipleversioncount:2f}%)have 2+ versions."
+        )
 
     paircount = 0
     for _, versioncount in extractedsample:
         paircount += versioncount - 1
 
-    print(f'There are {paircount} revision pairs.')
+    print(f"There are {paircount} revision pairs.")
 
-    detexedsample = [(a, v)
-                     for a, v in extractedsample if tex.is_detexed(a, v)]
+    detexedsample = [(a, v) for a, v in extractedsample if tex.is_detexed(a, v)]
 
-    print(f'{len(detexedsample)} documents could be detexed.')
+    print(f"{len(detexedsample)} documents could be detexed.")
 
-    sectionedsample = [(a, v)
-                       for a, v in detexedsample if sections.is_sectioned(a, v)]
+    sectionedsample = [(a, v) for a, v in detexedsample if sections.is_sectioned(a, v)]
 
-    print(f'{len(sectionedsample)} documents could be sectioned.')
+    print(f"{len(sectionedsample)} documents could be sectioned.")
 
-    sentences = []
+    sentences: List[str] = []
 
     for arxivid, versioncount in sectionedsample:
-        arxividpath = arxivid.replace('/', '-')
+        arxividpath = arxivid.replace("/", "-")
 
         for i in range(versioncount):
-            filepath = os.path.join(
-                data.SENTENCES_DIR, f'{arxividpath}-v{i + 1}.json')
+            filepath = os.path.join(data.SENTENCES_DIR, f"{arxividpath}-v{i + 1}.json")
 
-            with open(filepath, 'r') as file:
+            with open(filepath, "r") as file:
                 contents = json.load(file)
 
             for title, sentencelist in contents:
-                if title != '### Initial Section (MANUAL) ###':
+                if title != "### Initial Section (MANUAL) ###":
                     sentencelist = [
-                        sentence for sentence in sentencelist if len(sentence) > SENTENCELENGTH]
+                        sentence
+                        for sentence in sentencelist
+                        if len(sentence) > SENTENCELENGTH
+                    ]
 
                     sentences.extend(sentencelist)
 
-    print(f'{len(sentences)} sentences in {len(sectionedsample)} extracted documents: {len(sentences) / len(sectionedsample):.1f} per extracted document.')
+    print(
+        f"{len(sentences)} sentences in {len(sectionedsample)} extracted documents: {len(sentences) / len(sectionedsample):.1f} per extracted document."
+    )
 
-    print(f'{len(sentences)} sentences in {len(sample)} documents: {len(sentences) / len(sample):.1f} per (extracted) document.')
+    print(
+        f"{len(sentences)} sentences in {len(sample)} documents: {len(sentences) / len(sample):.1f} per (extracted) document."
+    )
 
-    embeddedoldlatexpattern = re.compile(r'\$.*\$')
-    embeddedcurrentlatexpatern = re.compile(r'\\\(.*\\\)')
+    embeddedoldlatexpattern = re.compile(r"\$.*\$")
+    embeddedcurrentlatexpatern = re.compile(r"\\\(.*\\\)")
+
+    nonmathsentences = [s for s in sentences if not embeddedoldlatexpattern.search(s)]
 
     nonmathsentences = [
-        s for s in sentences if not embeddedoldlatexpattern.search(s)]
+        s for s in nonmathsentences if not embeddedcurrentlatexpatern.search(s)
+    ]
 
-    nonmathsentences = [
-        s for s in nonmathsentences if not embeddedcurrentlatexpatern.search(s)]
+    print(
+        f"{len(nonmathsentences)} sentences (with no math) in {len(sectionedsample)} extracted documents: {len(nonmathsentences) / len(sectionedsample):.1f} per extracted document."
+    )
+    print(
+        f"{len(nonmathsentences)} sentences (with no math) in {len(sample)} documents: {len(nonmathsentences) / len(sample):.1f} per document."
+    )
 
-    print(f'{len(nonmathsentences)} sentences (with no math) in {len(sectionedsample)} extracted documents: {len(nonmathsentences) / len(sectionedsample):.1f} per extracted document.')
-    print(f'{len(nonmathsentences)} sentences (with no math) in {len(sample)} documents: {len(nonmathsentences) / len(sample):.1f} per document.')
-
-    print(f'{(len(sentences) - len(nonmathsentences)) / len(sentences) * 100:.1f}% have embedded LaTeX math.')
+    print(
+        f"{(len(sentences) - len(nonmathsentences)) / len(sentences) * 100:.1f}% have embedded LaTeX math."
+    )
 
 
 def manually_align(arxivid, versionpair):
-    '''
+    """
     Function to help manually align a paper.
-    '''
+    """
 
-    arxividpath = arxivid.replace('/', '-')
+    arxividpath = arxivid.replace("/", "-")
 
-    v1 = f'{arxividpath}-v{versionpair[0]}.json'
-    v2 = f'{arxividpath}-v{versionpair[1]}.json'
+    v1 = f"{arxividpath}-v{versionpair[0]}.json"
+    v2 = f"{arxividpath}-v{versionpair[1]}.json"
 
     v1filename = os.path.join(data.SENTENCES_DIR, v1)
 
     if not os.path.isfile(v1filename):
         return
 
-    with open(v1filename, 'r') as jsonfile:
+    with open(v1filename, "r") as jsonfile:
         v1: List[Section] = json.load(jsonfile)
 
-    with open(os.path.join(data.SENTENCES_DIR, v2), 'r') as jsonfile:
+    with open(os.path.join(data.SENTENCES_DIR, v2), "r") as jsonfile:
         v2: List[Section] = json.load(jsonfile)
 
     alignedsections = sections.align(v1, v2)
 
     foldername = os.path.join(
-        data.ALIGNMENTS_DIR, f'{arxividpath}-v{versionpair[0]}-v{versionpair[1]}', 'working-set')
+        data.ALIGNMENTS_DIR,
+        f"{arxividpath}-v{versionpair[0]}-v{versionpair[1]}",
+        "working-set",
+    )
 
     os.makedirs(foldername, exist_ok=True)
 
@@ -173,10 +190,9 @@ def manually_align(arxivid, versionpair):
         v1sentences, v2sentences = contents
         v1title, v2title = titles
 
-        pairlistfilename = os.path.join(foldername, f'{v1title}-TODO.txt')
+        pairlistfilename = os.path.join(foldername, f"{v1title}-TODO.txt")
 
-        remainingfilename = os.path.join(
-            foldername, f'{v1title}-REMAINING.txt')
+        remainingfilename = os.path.join(foldername, f"{v1title}-REMAINING.txt")
 
         v1sentenceset = {s: i for i, s in enumerate(v1sentences)}
         v2sentenceset = {s: i for i, s in enumerate(v2sentences)}
@@ -205,40 +221,45 @@ def manually_align(arxivid, versionpair):
                     # del v2sentenceset[s2]
                     # pairlist[(i, j)] = 1
 
-        with open(pairlistfilename, 'w') as file:
-            file.write('Pairs\n')
-            file.write(f'{v1title} | {v2title}\n')
+        with open(pairlistfilename, "w") as file:
+            file.write("Pairs\n")
+            file.write(f"{v1title} | {v2title}\n")
             file.writelines(
-                [f'({pair[0]}, {pair[1]}, {pairlist[pair]})\n' for pair in sorted(pairlist)])
+                [
+                    f"({pair[0]}, {pair[1]}, {pairlist[pair]})\n"
+                    for pair in sorted(pairlist)
+                ]
+            )
 
-        with open(remainingfilename, 'w') as file:
-            file.write('Remaining\n')
+        with open(remainingfilename, "w") as file:
+            file.write("Remaining\n")
             file.write(
-                'Instructions: open the relevant data files and look through any sentences listed in this file. Find them and their matching sentence, and edit the relevant alignment.txt file.\n')
-            file.write(f'{v1title} | {v2title}\n')
-            file.write('---v1---\n')
-            file.writelines(
-                [f'{v1sentenceset[s]}: \t{s}\n' for s in v1sentenceset])
-            file.write('---v2---\n')
-            file.writelines(
-                [f'{v2sentenceset[s]}: \t{s}\n' for s in v2sentenceset])
-            file.write('\n')
+                "Instructions: open the relevant data files and look through any sentences listed in this file. Find them and their matching sentence, and edit the relevant alignment.txt file.\n"
+            )
+            file.write(f"{v1title} | {v2title}\n")
+            file.write("---v1---\n")
+            file.writelines([f"{v1sentenceset[s]}: \t{s}\n" for s in v1sentenceset])
+            file.write("---v2---\n")
+            file.writelines([f"{v2sentenceset[s]}: \t{s}\n" for s in v2sentenceset])
+            file.write("\n")
 
     # print(f"manually_align('{arxivid}', {versionpair}) # {interestingjoins}")
-    print(f'{arxivid} {versionpair}: \t{boringjoins / (boringjoins + interestingjoins):.2f}')
+    print(
+        f"{arxivid} {versionpair}: \t{boringjoins / (boringjoins + interestingjoins):.2f}"
+    )
 
 
 def main():
-    '''
+    """
     Takes a random sample and writes them to a text file. Then calculates stats.
-    '''
+    """
 
     sample = get_random_sample(multipleversions=True)
 
     # takes a smaller sample
     sample = sample[:200]
 
-    print(f'{len(sample)} ids in sample.')
+    print(f"{len(sample)} ids in sample.")
 
     downloadcount = len(sample)
 
@@ -246,7 +267,9 @@ def main():
         if source.is_downloaded(arxivid, versioncount):
             downloadcount -= 1
 
-    print(f'{downloadcount} to download. Estimated {downloadcount * 2 * 30 / 60 / 60:.1f} hours ({downloadcount * 2 * 30 / 60 :.0f} minutes).')
+    print(
+        f"{downloadcount} to download. Estimated {downloadcount * 2 * 30 / 60 / 60:.1f} hours ({downloadcount * 2 * 30 / 60 :.0f} minutes)."
+    )
 
     for arxivid, versioncount in sample:
         source.download_source_files(arxivid, versioncount)
@@ -282,5 +305,5 @@ def main():
     # manually_align('1807.05692', (2, 3))  # 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
