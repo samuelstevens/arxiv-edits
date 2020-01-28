@@ -1,0 +1,7 @@
+1602.08739-v2 does not have any content.
+
+The original source has two documents. One is long and filled with commands, and the other is shorter and filled with content. Neither imports the other. 
+
+Possible fixes:
+  * some .tex preprocess (comments) before merging
+  * look for \begin{document} in the file that we choose as the longest.

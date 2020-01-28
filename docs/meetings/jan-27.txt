@@ -1,0 +1,14 @@
+how to consider documents? all as one class or differentiate them into different classes?
+
+word diff vs sentence diff vs section diff?
+
+studying this data is valuable; that's why we can write the paper
+
+can also move on to beyond nlp; why do people upload new versions of papers, when, etc.
+
+we need to figure out how to approach sentence alignment; should we use section alignment, paragraph alignment, etc; should we use a uniform aligner, or some sort of filter beforehand; 
+
+need explanations of analysises (might be 5 different analysises)
+
+spend a full day thinking about different analysises; think about an optimal order (order for time) (include estimation of time) -> no more than 2 weeks (can take a lot of time)
+
