@@ -23,6 +23,7 @@ from nltk import word_tokenize
 import nltk.data
 
 from tex import BLOCK_MATH_TAG
+import data
 
 FALSE_SPLIT_SUFFIXES = set(
     [
@@ -491,53 +492,54 @@ class ArxivTokenizer:
         raise ValueError("group must be either 'sentence' or 'word'.")
 
 
+def is_sentenced(arxividpath: str, version: int) -> bool:
+    return os.path.isfile(data.sentences_path(arxividpath, version))
+
+
 def main():
     """
-    Loads sections from data/sections and sends them to data/sentences
+    Converts information in detexed text to sentences.
     """
 
     tok = CoreNLPTokenizer()
-    # tok = ArxivTokenizer()
 
-    sentence = 'Given the extremely low particle mass assumed here, [MATH] is derived from the relativitic Bose-Einstein particle-antiparticle distribution with the chemical potential set to particle mass [MATH]. Here the "charge" density [MATH], where [MATH] and [MATH] are the number densities of particles and antiparticles in excited states. On the other hand, we have [MATH] [DOES] [MATH], and it follows that [MATH] [DOES] [MATH].  Note that [MATH] scales as [MATH] and [MATH] as [MATH], and it follows [MATH] scales as [MATH].'
+    for arxivid, version in data.get_local_files():
+        textfilepath = data.text_path(arxivid, version)
 
-    sentences = tok.tokenize(sentence).ssplit()
-    for sent in sentences:
+        if not os.path.isfile(textfilepath):
+            print(f"{arxivid}-v{version} was not converted to text.")
+            continue
 
-        print(sent)
+        with open(textfilepath, "r") as textfile:
+            paragraphs = textfile.read().split("\n\n")
 
-    # if not os.path.isdir(SENTENCES_DIR):
-    #     os.mkdir(SENTENCES_DIR)
+        paragraphs = [" ".join(p.split("\n")).strip() for p in paragraphs]
+        paragraphs = [p for p in paragraphs if p]
 
-    # for sectionfile in os.listdir(SECTIONS_DIR):
+        sentencefilepath = data.sentences_path(arxivid, version)
+        with open(sentencefilepath, "w") as sentencefile:
+            for p in paragraphs:
+                try:
+                    sentences = tok.tokenize(p).ssplit()
 
-    #     sectionfilepath = os.path.join(SECTIONS_DIR, sectionfile)
+                    for s in sentences:
+                        sentencefile.write(s + "\n")
+                    sentencefile.write("\n")
 
-    #     with open(sectionfilepath, "r") as file:
-    #         sections = json.load(file)
+                except AttributeError as err:
+                    print(f"Error on {textfilepath}: {err}")
+                    # print(p)
 
-    #     sentencelist = []
+    total = len(data.get_local_files())
+    sentenced = len(
+        [
+            1
+            for arxivid, version in data.get_local_files()
+            if is_sentenced(arxivid, version)
+        ]
+    )
 
-    #     for section in sections:
-    #         title, text = section
-    #         # this step is quite important, in the original sent, there is \xa0 that looks like a white space
-    #         text = " ".join(text.split())
-
-    #         try:
-    #             sentences = tok.tokenize(text).ssplit()
-    #             # sentences = tok.split(text, group='sentence')
-    #         except json.decoder.JSONDecodeError as err:
-    #             print(err.msg)
-    #             print(f"Error with {sectionfilepath} in {title}")
-    #         else:
-    #             sentencelist.append([title, sentences])
-
-    #     sectionfile, _ = os.path.splitext(sectionfile)
-
-    #     sentencesfilepath = os.path.join(SENTENCES_DIR, f"{sectionfile}.json")
-
-    #     with open(sentencesfilepath, "w") as file:
-    #         json.dump(sentencelist, file, indent=2)
+    print(f"{sentenced/total*100:.2f}% converted to sentences.")
 
 
 def demo():
@@ -561,5 +563,5 @@ def demo():
 
 
 if __name__ == "__main__":
-    # main()
-    demo()
+    main()
+    # demo()

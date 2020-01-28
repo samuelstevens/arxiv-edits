@@ -15,7 +15,7 @@ from massalign.core import TFIDFModel
 import data
 from tokenizer import ArxivTokenizer
 
-TOTALDOCS = 307  # len(os.listdir(UNZIPPED_DIR))
+TOTALDOCS = 307
 
 TOKENIZER = ArxivTokenizer()
 

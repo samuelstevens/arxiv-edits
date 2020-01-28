@@ -6,7 +6,7 @@ from typing import Optional, List, Tuple, Dict
 
 import logging
 
-from data import TEXT_DIR, UNZIPPED_DIR, is_x
+import data
 from structures import Res
 
 logger = logging.getLogger("delatex")
@@ -38,7 +38,7 @@ BAD_TAGS = [
     "footnote",
     "pacs",
     "address",
-    "setcounter"
+    "setcounter",
 ]
 
 # $...$
@@ -99,14 +99,10 @@ def detex_file(inputfile, outputfile, clean=True):
     with open(inputfile, "r") as fin:
         with open(outputfile, "w") as fout:
             content = fin.read()
-
             content = content.replace("noun", nountag)
-
             if clean:
                 content = clean_tex(content)
-
             output = detex(content)
-
             output = output.replace("noun", mathtag)
             output = output.replace("verbs", verbtag)
             output = output.replace(nountag, "noun")
@@ -182,6 +178,9 @@ def clean_tex(initial_tex: str, basic=False) -> str:
     # removes comments
     lines = [line for line in lines if not line.lstrip().startswith("%")]
 
+    # remove extra whitespace
+    lines = [" ".join(line.split()) for line in lines]
+
     # joins all lines that end with <non-whitespace>%
     i = 0
     while i < len(lines):
@@ -202,9 +201,7 @@ def clean_tex(initial_tex: str, basic=False) -> str:
     text = EXTRACT_CITATION_PATTERN.sub(CITE_TAG, text)
 
     text = GRAPHICS_PATTERN.sub("", text)
-
     text = remove_environments(text)
-
     bad_tags = ["\\" + t for t in BAD_TAGS]
 
     for tag in bad_tags:
@@ -334,12 +331,14 @@ def remove_environments(text: str) -> str:
 
             end_env_command = r"\end{" + env_name + r"}"
 
-            end_env = text.find(end_env_command, start_env + 1) + len(end_env_command)
+            end_env = text.find(end_env_command, start_env + 1)
 
             if end_env < 0:
                 logger.warning("Missing \\end for %s", end_env_command)
                 end_env = len(text)
-                break
+
+            end_env += len(end_env_command)
+
             pos = end_env
         else:
             pos = start_env + 1  # +1 gets past the initial .find()
@@ -355,12 +354,15 @@ def remove_environments(text: str) -> str:
     return "".join(final)
 
 
-def remove_tag(tag: str, text: str, braces=["{", "}"]) -> str:
+def remove_tag(tag: str, text: str, braces=None) -> str:
     """
     Removes tags like `\\footnote` or `\\def` from a string by using `find_pair()` to handle nested braces. This is better than guessing if a greedy regex will work.
     """
 
-    tags_with_extra_braces = [r'\setcounter']
+    if not braces:
+        braces = ["{", "}"]
+
+    tags_with_extra_braces = [r"\setcounter"]
 
     string_builder: List[str] = []
 
@@ -392,6 +394,11 @@ def remove_tag(tag: str, text: str, braces=["{", "}"]) -> str:
 
         if tag in tags_with_extra_braces:
             end_of_tag = find_pair(braces[0], braces[1], text, end_of_tag + 1)
+
+        if isinstance(end_of_tag, Exception):
+            print(f"Error in remove tag.")
+            print(end_of_tag)
+            break
 
         end_pos = end_of_tag + 1  # +1 is for getting past }
 
@@ -898,71 +905,61 @@ def simpleLatexToText(inputfile: str, outputfile: str, sectioned=False):
 # END
 
 
-def is_detexed(arxivid, versioncount) -> bool:
-    return is_x(arxivid, versioncount, TEXT_DIR)
+def is_detexed(arxivid: str, versioncount: int) -> bool:
+    return os.path.isfile(data.text_path(arxivid, versioncount))
 
 
 def main():
     """
-    Takes files from data/unzipped and converts them to text, then sends them to data/text.
+    Takes .tex files and converts them to text.
     """
 
-    error_count = 0
+    for arxivid, version in data.get_local_files():
+        latexfilepath = data.latex_path(arxivid, version)
 
-    for sourcefile in os.listdir(UNZIPPED_DIR):
-        sourcefilepath = os.path.join(UNZIPPED_DIR, sourcefile)
-        outputfilepath = os.path.join(TEXT_DIR, sourcefile)
-        err = pandoc_file(sourcefilepath, outputfilepath)
+        if not os.path.isfile(latexfilepath):
+            print(f"{arxivid}-v{version} was not extracted to .tex")
+            continue
 
-        # detex_file(sourcefilepath, outputfilepath)
+        outputfilepath = data.text_path(arxivid, version)
+        detex_file(latexfilepath, outputfilepath)
 
-        if not os.path.isfile(outputfilepath):
-            error_count += 1
+        outputfilepath = data.clean_latex_path(arxivid, version)
+        with open(latexfilepath, 'r') as infile:
+            with open(outputfilepath, 'w') as outfile:
+                outfile.write(clean_tex(infile.read()))
 
-        if err:
-            print(err)
+        # outputfilepath = os.path.join(
+        #     data.extrafiles_path(arxivid, version), f"{arxivid}-v{version}-chenhao.txt"
+        # )
+        # if not os.path.isfile(outputfilepath):
+        #     simpleLatexToText(latexfilepath, outputfilepath, sectioned=True)
 
-    print(f"Saw {error_count} errors.")
-    print(
-        f"{(len(os.listdir(UNZIPPED_DIR)) - error_count) / len(os.listdir(UNZIPPED_DIR)) * 100:.1f}% success."
-    )
+        # outputfilepath = os.path.join(
+        #     data.extrafiles_path(arxivid, version), f"{arxivid}-v{version}-pandoc.md"
+        # )
+        # if not os.path.isfile(outputfilepath):
+        #     pandoc_file(latexfilepath, outputfilepath)
+
+        
+
+
+def test():
+    inputfilepath = "data/math-0207295/v3/extra/math-0207295-v3-original.tex"
+    with open(inputfilepath, "r") as file:
+        contents = file.read()
+
+        cleaned = clean_tex(contents)
+        print(len(cleaned))
 
 
 def demo():
-    # print(pandoc_file('data/unzipped/0704.0001-v1',
-    #   'data/text/0704.0001-v1'))
-    # print(
-    #     pandoc_file(
-    #         "data/unzipped/1505.04499-v2",
-    #         "data/text/1505.04499-v2/pandoc.txt",
-    #         to="plain",
-    #     )
-    # )
-
-    with open("data/unzipped/0806.0232-v2", "r") as infile:
-        with open("data/text/0806.0232-v2/clean-tex.tex", "w") as outfile:
-            outfile.write(clean_tex(infile.read()))
-
-    with open("data/unzipped/1505.04499-v2", "r") as infile:
-        with open("data/text/1505.04499-v2/clean-tex.tex", "w") as outfile:
-            outfile.write(clean_tex(infile.read()))
-
-    with open("data/unzipped/cond-mat-0602062-v2", "r") as infile:
-        with open("data/text/cond-mat-0602062-v2/clean-tex.tex", "w") as outfile:
-            outfile.write(clean_tex(infile.read()))
-
-    # print(
-    #     pandoc_file(
-    #         "data/unzipped/1505.04499-v2", "data/text/1505.04499-v2/pandoc-updated.md",
-    #     )
-    # )
-
     teststrings = [
         r"""
-\begin{document}
-    \title{hello}
+        \begin{document}
+        \title{hello}
 
-    \begin{abstract}
+        \begin{abstract}
         This is my abstract (1).
 
         \begin{table}
@@ -970,65 +967,56 @@ def demo():
         \end{table}
         
         This is my abstract (2).
-    \end{abstract}
+        \end{abstract}
 
-    This is my document (1).
+        This is my document (1).
 
-    \begin{equation}
-        This is my equation (1).
-    \end{equation}
+        \begin{equation}
+            This is my equation (1).
+        \end{equation}
 
-    \begin{table*}
-        This is my table* (1).
-    \end{table*}
+        \begin{table*}
+            This is my table* (1).
+        \end{table*}
 
-    This is my document (2).
-\end{document}
-""",
+        This is my document (2).
+        \end{document}""",
         r"\begin{document} \begin{abstract} This is my abstract (1). \end{abstract} \end{document}",
         r"""
-Despite ELBDM particles in the excited state are with a relativistic temperature, almost all particles are in the ground state and described by a single non-relativistic wave function.
+        Despite ELBDM particles in the excited state are with a relativistic temperature, almost all particles are in the ground state and described by a single non-relativistic wave function.
 
-\subsection{Basic Analysis}
+        \subsection{Basic Analysis}
 
-The Lagrangian of non-relativistic scalar field in the comoving
-frame is
-""",
+        The Lagrangian of non-relativistic scalar field in the comoving
+        frame is
+        """,
         r"""
-In the early stage([MATH]), the stability condition is
-governed by the kinetic energy term, where
-[MATH] and $dt \leq {{(6 \pi)}^{-1}} (\eta
-a^2)$. At the late time, the gravitational potential becomes ever
-deeper, and therefore [MATH] is controlled by the potential energy,
-where [MATH] is the greatest value of potential in the real
-space.
-""",
+        In the early stage([MATH]), the stability condition is
+        governed by the kinetic energy term, where
+        [MATH] and $dt \leq {{(6 \pi)}^{-1}} (\eta
+        a^2)$. At the late time, the gravitational potential becomes ever
+        deeper, and therefore [MATH] is controlled by the potential energy,
+        where [MATH] is the greatest value of potential in the real
+        space.
+        """,
         r"""
-We prepare the initial conditions with CMBFAST \citep{cmbfast96} at $z=1000$ with $\Lambda$CDM cosmology.  Such initial conditions differ from that of \citet{hu00},
-where the Compton length of ELBDM already has imprints on the power spectrum
-at $z=1000$.  We choose this initial condition because only a few low-$k$ modes can grow for our choice of Jean's length and the details of initial power spectrum are irrelevant at the late time.
-""",
+        We prepare the initial conditions with CMBFAST \citep{cmbfast96} at $z=1000$ with $\Lambda$CDM cosmology.  Such initial conditions differ from that of \citet{hu00},
+        where the Compton length of ELBDM already has imprints on the power spectrum
+        at $z=1000$.  We choose this initial condition because only a few low-$k$ modes can grow for our choice of Jean's length and the details of initial power spectrum are irrelevant at the late time.
+        """,
     ]
 
     macrotests = [
         r"""
-\newcommand{\mdot}{\mbox{M$_{\odot}$ yr$^{-1}$}}
-\newcommand{\test}{Hi there!}
+        \newcommand{\mdot}{\mbox{M$_{\odot}$ yr$^{-1}$}}
+        \newcommand{\test}{Hi there!}
 
-\test hello there \mdot\
-\\mdot
-"""
+        \test hello there \mdot\
+        \\mdot
+        """
     ]
 
 
 if __name__ == "__main__":
-    # main()
-    # example_detex()
+    main()
 
-    # print(
-    #     detex(
-    #         "On the other hand, we have $n_{ch}\sim (m/T) n_+$, and it follows that $T_c\sim(\frac{n_+}{3T})^{1/2}$."
-    #     )
-    # )
-
-    demo()

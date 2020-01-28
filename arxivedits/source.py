@@ -18,10 +18,11 @@ import magic  # type: ignore
 
 # internal
 from structures import ArxivID  # type: ignore
-from data import connection, SOURCE_DIR, UNZIPPED_DIR, is_x
+from data import connection
+import data
 
-# latexcommands = [r'\\include', r'\\includeonly', r'\\input', r'\\@input']
-commandpattern = re.compile(
+
+INCLUDEPATTERN = re.compile(
     r"\\(?:include|includeonly|input|@input).*?[{ ](.*?)(?:\}| |\n|$)"
 )
 tmpdir = "tmp"
@@ -53,18 +54,18 @@ def get_filetype(file) -> str:
     return magic.from_buffer(buffer, mime=False)
 
 
-def is_downloaded(arxivid, versioncount) -> bool:
+def is_downloaded(arxivid: str, versioncount: int) -> bool:
     """
     Check if a document is downloaded.
     """
-    return is_x(arxivid, versioncount, SOURCE_DIR)
+    return os.path.isfile(data.source_path(arxivid, versioncount))
 
 
-def is_extracted(arxivid, versioncount) -> bool:
+def is_extracted(arxivid, version: int) -> bool:
     """
     Checks if a document was extracted.
     """
-    return is_x(arxivid, versioncount, UNZIPPED_DIR)
+    return os.path.isfile(data.latex_path(arxivid, version))
 
 
 def add_folder_to_dict(dirpath, dictionary):
@@ -72,7 +73,7 @@ def add_folder_to_dict(dirpath, dictionary):
     Opens a folder and recursively adds all .tex to the dictionary.
     """
     for filename in os.listdir(dirpath):
-        filepath = os.path.join(dirpath, filename)
+        filepath = os.path.join(dirpath, filename).lower()
 
         if os.path.isfile(filepath):
             _, ext = os.path.splitext(filename)
@@ -109,22 +110,23 @@ def get_lines(filename, openfiles, closedfiles):
     lines = [line for line in lines if not line.lstrip().startswith("%")]
 
     for line in lines:
-        m = commandpattern.match(line)
+        m = INCLUDEPATTERN.match(line)
         if m:
-            print(m.group(1))
             includepath = os.path.join(tmpdir, m.group(1))
 
             # normalizes paths like ./sub/something.txt
-            includepath = str(pathlib.Path(includepath))
+            includepath = str(pathlib.Path(includepath)).lower()
             _, ext = os.path.splitext(includepath)
 
             if not ext:
                 if os.path.isfile(includepath + ".tex"):
                     includepath = includepath + ".tex"
+                # elif os.path.isfile(includepath + ".cls"):
+                #     includepath = includepath + ".cls"
 
             _, ext = os.path.splitext(includepath)
 
-            if ext == ".tex":
+            if ext not in [".pdf"]:
                 get_lines(includepath, openfiles, closedfiles)
                 finallines.extend(closedfiles[includepath])
             else:
@@ -206,30 +208,37 @@ def extract(filepath) -> Optional[str]:
                 raise TypeError(f"{filetype} ({filepath}) not implemented yet.")
 
 
-def download_source_files(
-    arxiv_id: ArxivID, version_count: int, output_directory: str = SOURCE_DIR
-) -> None:
+def download_source_files(arxivid: ArxivID, version_count: int,) -> None:
     """
-    Makes {version_count} network requests, one for each source file, and writest them to {output_directory}
+    Makes {version_count} network requests, one for each source file, and writes them to {output_directory}
     """
 
-    arxividpath = arxiv_id.replace("/", "-")
+    arxividpath = arxivid.replace("/", "-")
 
     for version in range(1, version_count + 1):
-        url = f"https://arxiv.org/e-print/{arxiv_id}v{version}"
-        filename = os.path.join(output_directory, f"{arxividpath}-v{version}")
+        url = f"https://arxiv.org/e-print/{arxivid}v{version}"
+        filepath = data.source_path(arxividpath, version)
 
-        if not os.path.isdir(output_directory):
-            os.makedirs(output_directory)
-
-        if not os.path.isfile(filename):
+        if not os.path.isfile(filepath):
             try:
-                download_file(url, filename)
+                download_file(url, filepath)
             except requests.exceptions.HTTPError as err:
                 print(err)
-                print(f"Cannot download source for {arxiv_id}v{version}")
+                print(f"Cannot download source for {arxivid}v{version}")
 
             time.sleep(30)  # respect the server
+
+        url = f"https://arxiv.org/pdf/{arxivid}v{version}"
+        filepath = data.pdf_path(arxividpath, version)
+
+        if not os.path.isfile(filepath):
+            try:
+                download_file(url, filepath)
+            except requests.exceptions.HTTPError as err:
+                print(err)
+                print(f"Cannot download source for {arxivid}v{version}")
+            print(f"downloaded pdf for {filepath}")
+            time.sleep(5)  # respect the server
 
 
 def get_ids() -> List[Tuple[ArxivID, int]]:
@@ -249,8 +258,11 @@ def download_all():
     """
     arxiv_id_pairs = get_ids()
 
-    for arxiv_id, version_count in arxiv_id_pairs:
-        download_source_files(arxiv_id, version_count)
+    for arxivid, version_count in data.get_local_files(maximum_only=True):
+        download_source_files(arxivid, version_count)
+
+    # for arxiv_id, version_count in arxiv_id_pairs:
+    #     download_source_files(arxiv_id, version_count)
 
 
 def extract_file(sourcefilepath: str, outfilepath) -> Optional[Exception]:
@@ -272,26 +284,30 @@ def extract_file(sourcefilepath: str, outfilepath) -> Optional[Exception]:
 
 def extract_all(extract_again: bool = True):
     """
-    Extracts the a .tex file from every file in SOURCE_DIR to UNZIPPED_DIR
+    Extracts the a .tex file from every .gz file to its directory.
     """
 
-    os.makedirs(UNZIPPED_DIR, exist_ok=True)
+    for arxivid, version in data.get_local_files():
+        sourcefilepath = data.source_path(arxivid, version)
+        latexpath = data.latex_path(arxivid, version)
+        sourcecopypath = data.source_path(arxivid, version)
 
-    for filename in os.listdir(SOURCE_DIR):
-        unzippedfilepath = os.path.join(UNZIPPED_DIR, filename)
-        sourcefilepath = os.path.join(SOURCE_DIR, filename)
+        if not os.path.isfile(sourcecopypath):
+            shutil.copyfile(sourcefilepath, sourcecopypath)
 
-        if os.path.isfile(unzippedfilepath) and not extract_again:
+        if os.path.isfile(latexpath) and not extract_again:
             continue
 
-        err = extract_file(sourcefilepath, unzippedfilepath)
+        err = extract_file(sourcefilepath, latexpath)
         if err:
             print(err)
 
 
+def main():
+    download_all()
+    extract_all()
+
+
 if __name__ == "__main__":
-    # download_all()
-    # extract_all()
-    err = extract_file(
-        "data/unzipped/hep-th-9912274-v2", "data/unzipped/hep-th-9912274-v2"
-    )
+    main()
+

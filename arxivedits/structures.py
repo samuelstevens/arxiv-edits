@@ -1,6 +1,8 @@
 """
 Various types used in this application.
 """
+import os
+
 # built in
 from typing import Tuple, List, NewType, Union, TypeVar
 
@@ -18,3 +20,4 @@ Sentence = NewType("Sentence", str)
 Content = List[Sentence]
 Score = NewType("Score", float)
 Section = Tuple[Title, Content]
+
