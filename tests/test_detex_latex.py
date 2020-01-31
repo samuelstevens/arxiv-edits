@@ -142,7 +142,7 @@ with unrenormalized local superconducting states for infinite gap
 
 We start by discussing the [MATH] transition line, by comparison to
 the numerical renormalization group (NRG) data by Bauer 
-et al.. Fig. [REF] shows the 
+et al.[CITATION]. Fig. [REF] shows the 
 extension to smaller gaps [MATH] values of the phase diagram obtained 
 with unrenormalized local superconducting states for infinite gap 
 (Fig. [REF])."""
