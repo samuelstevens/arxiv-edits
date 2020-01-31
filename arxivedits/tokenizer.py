@@ -22,7 +22,7 @@ import pexpect
 from nltk import word_tokenize
 import nltk.data
 
-from tex import BLOCK_MATH_TAG
+from arxivedits.detex.constants import BLOCK_MATH_TAG
 import data
 
 FALSE_SPLIT_SUFFIXES = set(

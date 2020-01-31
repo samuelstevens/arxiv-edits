@@ -19,8 +19,7 @@ import magic  # type: ignore
 
 # internal
 from structures import ArxivID  # type: ignore
-from data import connection
-import data
+import arxivedits.data as data
 
 TIMEOUT = 30
 
@@ -253,7 +252,7 @@ def get_ids(count: int = 1000, shuffled=False, ALL=False) -> List[Tuple[ArxivID,
     """
     query = "SELECT arxiv_id, version_count FROM papers WHERE version_count > 1"
 
-    rows = connection().execute(query).fetchall()
+    rows = data.connection().execute(query).fetchall()
 
     result = list(rows)
 

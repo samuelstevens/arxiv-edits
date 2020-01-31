@@ -433,3 +433,22 @@ def test_def():
 \end{document}
 """
     assert macros.process(original_tex) == expected_tex
+
+
+def test_commented_command():
+    original_tex = r"""
+\newcommand{\mdot}{\mbox{M$_{\odot}$ yr$^{-1}$}}
+\newcommand{\test}{Hi there!}
+
+\test hello there \mdot\
+\\mdot
+"""
+    expected_tex = r"""
+
+
+
+Hi there! hello there \mbox{M$_{\odot}$ yr$^{-1}$}
+\\mdot
+"""
+
+    assert macros.process(original_tex) == expected_tex

@@ -136,7 +136,9 @@ extension to smaller gaps $\Delta$ values of the phase diagram obtained
 with unrenormalized local superconducting states for infinite gap 
 (Fig. \ref{fig:phase-diag-inf})."""
 
-    expected_text = r"""\section{# Results}
+    expected_text = r"""
+\section{# Results}
+
 
 \section{## Phase diagram}
 

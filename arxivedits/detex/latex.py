@@ -68,13 +68,9 @@ def strip_abstract(text: str) -> str:
     return text
 
 
-def clean(initial_tex: str, basic=False, macros_processed=False) -> str:
+def clean(initial_tex: str) -> str:
     """
     Preprocesses a LaTeX file for use with `opendetex`.
-
-    Args:
-        initial_tex (str): LaTeX file as a string.
-        basic (bool): if True, clean will not preprocess macros or other advanced cleaning. When using pandoc, set basic to True.
     """
 
     text = remove_comments(initial_tex)

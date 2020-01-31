@@ -8,7 +8,7 @@ import string
 from typing import Optional, Set, List, Tuple
 
 
-from arxivedits.detex import latex
+from arxivedits.detex.latex import find_pair
 from arxivedits import structures
 
 VALID_MACRO_CHARS = "@<>?"
@@ -153,7 +153,6 @@ class DefParser(MacroParser):
             return self.Error("Needs to start with '{'")
 
         start_def = self.pos + 1
-       
 
         end_def = self.text.find("\n", self.pos) - 1
 
@@ -263,7 +262,7 @@ class NewCommandParser(MacroParser):
 
         start_def = self.pos + 1
 
-        end_def, err = latex.find_pair("{", "}", self.text, start=self.pos)
+        end_def, err = find_pair("{", "}", self.text, start=self.pos)
 
         if isinstance(err, Exception):
             print("could not find end of definition.")
@@ -295,7 +294,7 @@ def get_args(
 
     if command.default_arg:
         if text[position] == "[":
-            end_of_arg, err = latex.find_pair("[", "]", text, position)
+            end_of_arg, err = find_pair("[", "]", text, position)
 
             if err:
                 print(err)
@@ -314,7 +313,7 @@ def get_args(
         position += 1
         arg_start = position
 
-        arg_end, err = latex.find_pair("{", "}", text, position - 1)
+        arg_end, err = find_pair("{", "}", text, position - 1)
 
         args.append(text[arg_start:arg_end])
 
@@ -406,11 +405,11 @@ def process(initial_tex: str) -> str:
 
             end_command, arguments = get_args(text, end_command, command)
 
-            if (
-                text[end_command] not in [".", ",", "-", "}", "{", "\n", "$"]
-                and text[end_command : end_command + 1] != "{}"
-            ):
+            if text[end_command] in ["\\"]:
                 end_command += 1
+            elif text[end_command : end_command + 1] == "{}":
+                end_command += 2
+
             command_result, err = command.result(arguments)
 
             if err:

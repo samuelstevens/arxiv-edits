@@ -7,8 +7,9 @@ from collections import namedtuple
 
 import massalign.core as massalign
 
-import arxivedits.lcs
-from tokenizer import ArxivTokenizer
+import arxivedits.similarity as similarity
+import arxivedits.idf as idf
+from arxivedits.tokenizer import ArxivTokenizer
 
 TOKENIZER = ArxivTokenizer()
 
@@ -17,8 +18,9 @@ SKIP_PENALTY = 0
 
 m = massalign.MASSAligner()
 
-# sentence_aligner = massalign.VicinityDrivenSentenceAligner(
-#     similarity_model=idf.TFIDFMODEL, acceptable_similarity=0.2, similarity_slack=0.05)
+sentence_aligner = massalign.VicinityDrivenSentenceAligner(
+    similarity_model=idf.TFIDFMODEL, acceptable_similarity=0.2, similarity_slack=0.05
+)
 
 Alignment = namedtuple("Alignment", ["score", "pairs"])
 
@@ -35,7 +37,7 @@ def lcs_align(
     Aligns lists of sentences via a dynamic programming algorithm first described by Regina Barzilay and Noemie Elhadad in Sentence Alignment for Monolingual Comparable Corpora (2003).
     """
 
-    sim = lcs.similarity
+    sim = similarity.similarity
 
     if not s1 or not s2:
         return []

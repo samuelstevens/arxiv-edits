@@ -13,12 +13,12 @@ from typing import Tuple, Callable, List, Dict
 
 import requests
 
-import data
-import stats
-import align
-import source
-import tex
-import tokenizer
+import arxivedits.data as data
+import arxivedits.stats as stats
+import arxivedits.align as align
+import arxivedits.source as source
+import arxivedits.tex as tex
+import arxivedits.tokenizer as tokenizer
 
 Algorithm = Callable[[List[str], List[str]], List[Tuple[int, int]]]
 
