@@ -4,13 +4,14 @@ Provides a central location to store all data locations
 
 import sqlite3
 import os
+import pathlib
 
 from typing import Tuple, List
 from arxivedits.structures import Res
 
-DATA_DIR = (
-    "/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/arxivedits/data"
-)
+pwd = pathlib.Path(__file__).parent.parent.absolute()  # pylint: disable=invalid-name
+DATA_DIR = pwd / "data"  # arxivedits/data, NOT arxivedits/arxivedits/data
+print(DATA_DIR)
 
 
 def path_asserts(arxividpath: str, version: int):

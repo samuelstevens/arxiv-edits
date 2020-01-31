@@ -57,6 +57,64 @@ def test_command_with_default_with_braces():
     )
 
 
+def test_parse_command():
+    original_tex = r"""\newcommand{\wbal}{The Wikibook about \LaTeX}
+
+\begin{itemize}
+\item \wbal
+\item \wbalsup{lots of users!}
+\end{itemize}
+"""
+    expected_command = macros.LatexCommand(r"\wbal", r"The Wikibook about \LaTeX")
+
+    parser = macros.NewCommandParser(original_tex, 0)
+
+    result, err = parser.parse()
+    actual_command, actual_pos = result
+
+    assert actual_command == expected_command
+    assert actual_pos == 44
+    assert err is None
+
+
+def test_parse_def():
+    original_tex = r"""\def \name{\emph{sam}}
+
+\name
+
+\end{document}
+"""
+    expected_command = macros.LatexCommand(r"\name", r"\emph{sam}")
+
+    parser = macros.DefParser(original_tex, 0)
+
+    result, err = parser.parse()
+    actual_command, actual_pos = result
+
+    assert actual_command == expected_command
+    assert actual_pos == 21
+    assert err is None
+
+
+def test_parse_def_with_symbol():
+    original_tex = r"""\def \{{\emph{}
+
+\{
+
+\end{document}
+"""
+    expected_command = macros.LatexCommand(r"\{", r"\emph{")
+
+    parser = macros.DefParser(original_tex, 0)
+
+    result, err = parser.parse()
+    actual_command, actual_pos = result
+
+    assert actual_command == expected_command
+    assert actual_pos == 14
+    assert err is None
+
+
 def test_get_args():
     command = macros.LatexCommand(
         r"\wbalTwo",
@@ -317,5 +375,61 @@ $\bnd$
     expected_tex = r"""
 
 $\mathscr{B}un_X^{k,l}(n,d)$
+"""
+    assert macros.process(original_tex) == expected_tex
+
+
+def test_multiline():
+    original_tex = r"""
+\documentclass{article}
+
+\begin{document}
+
+\newcommand{\name}[1][\emph{
+    big
+}]{\emph{else} #1}
+
+\name
+
+\end{document}
+"""
+    expected_tex = r"""
+\documentclass{article}
+
+\begin{document}
+
+
+
+\emph{else} \emph{
+    big
+}
+
+\end{document}
+"""
+    assert macros.process(original_tex) == expected_tex
+
+
+def test_def():
+    original_tex = r"""
+\documentclass{article}
+
+\begin{document}
+
+\def \name{\emph{else}}
+
+\name
+
+\end{document}
+"""
+    expected_tex = r"""
+\documentclass{article}
+
+\begin{document}
+
+
+
+\emph{else}
+
+\end{document}
 """
     assert macros.process(original_tex) == expected_tex

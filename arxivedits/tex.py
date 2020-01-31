@@ -239,7 +239,7 @@ def main():
     """
     print(len(data.get_local_files()))
 
-    for arxivid, version in data.get_local_files():
+    for arxivid, version in [("1906.07111", 2)]:  # data.get_local_files():
         latexfilepath = data.latex_path(arxivid, version)
 
         if not os.path.isfile(latexfilepath):
@@ -249,7 +249,7 @@ def main():
         outputfilepath = data.text_path(arxivid, version)
         print(latexfilepath)
         detex.detex_file(latexfilepath, outputfilepath)
-
+        print(outputfilepath)
         # outputfilepath = data.clean_latex_path(arxivid, version)
         # with open(latexfilepath, "r") as infile:
         #     with open(outputfilepath, "w") as outfile:
