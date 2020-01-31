@@ -22,6 +22,7 @@ from structures import ArxivID  # type: ignore
 from data import connection
 import data
 
+TIMEOUT = 30
 
 INCLUDEPATTERN = re.compile(
     r"\\(?:include|includeonly|input|@input).*?[{ ](.*?)(?:\}| |\n|$)"
@@ -209,9 +210,11 @@ def extract(filepath) -> Optional[str]:
                 raise TypeError(f"{filetype} ({filepath}) not implemented yet.")
 
 
-def download_source_files(arxivid: ArxivID, version_count: int,) -> None:
+def download_source_files(
+    arxivid: ArxivID, version_count: int, download_pdf=False
+) -> None:
     """
-    Makes {version_count} network requests, one for each source file, and writes them to {output_directory}
+    Makes {version_count} network requests, one for each source file, and writes them to disk. If download_pdf is true, also downloads the .pdf file.
     """
 
     arxividpath = arxivid.replace("/", "-")
@@ -223,53 +226,65 @@ def download_source_files(arxivid: ArxivID, version_count: int,) -> None:
         if not os.path.isfile(filepath):
             try:
                 download_file(url, filepath)
+                print(f"downloaded {filepath}")
             except requests.exceptions.HTTPError as err:
                 print(err)
                 print(f"Cannot download source for {arxivid}v{version}")
 
-            time.sleep(30)  # respect the server
+            time.sleep(TIMEOUT)  # respect the server
 
-        url = f"https://arxiv.org/pdf/{arxivid}v{version}"
-        filepath = data.pdf_path(arxividpath, version)
+        if download_pdf:
+            url = f"https://arxiv.org/pdf/{arxivid}v{version}"
+            filepath = data.pdf_path(arxividpath, version)
 
-        if not os.path.isfile(filepath):
-            try:
-                download_file(url, filepath)
-            except requests.exceptions.HTTPError as err:
-                print(err)
-                print(f"Cannot download source for {arxivid}v{version}")
-            print(f"downloaded pdf for {filepath}")
-            time.sleep(5)  # respect the server
+            if not os.path.isfile(filepath):
+                try:
+                    download_file(url, filepath)
+                except requests.exceptions.HTTPError as err:
+                    print(err)
+                    print(f"Cannot download source for {arxivid}v{version}")
+                print(f"downloaded pdf for {filepath}")
+                time.sleep(TIMEOUT)  # respect the server
 
 
-def get_ids() -> List[Tuple[ArxivID, int]]:
+def get_ids(count: int = 1000, shuffled=False, ALL=False) -> List[Tuple[ArxivID, int]]:
     """
-    Gets 1000 arxiv ids from the local database with multiple versions and returns them as tuple pairs
+    Gets <count> arxiv ids from the local database with multiple versions and returns them as tuple pairs. If ALL is true, ignores count and returns every id.
     """
     query = "SELECT arxiv_id, version_count FROM papers WHERE version_count > 1"
 
     rows = connection().execute(query).fetchall()
 
-    return rows[:1000]  # return only the first 1000
+    result = list(rows)
+
+    if not ALL:
+        result = result[:count]
+
+    if shuffled:
+        random.shuffle(result)  # shuffles in place
+
+    return result
 
 
 def download_all():
     """
     Downloads all source files for all versions for all papers with 2+ versions.
     """
-    # arxiv_id_pairs = get_ids()
 
-    with open("data/sample-only-multiversion.csv") as csvfile:
-        reader = csv.reader(csvfile)
+    # These lines download all the files used by Chenhao in his sentences.
+    # with open("data/sample-only-multiversion.csv") as csvfile:
+    #     reader = csv.reader(csvfile)
+    #     for arxivid, version_count in reader:
+    #         download_source_files(arxivid, int(version_count))
 
-        for arxivid, version_count in reader:
-            download_source_files(arxivid, int(version_count))
-
+    # These 2 lines download all files that a folder exists for (tries to fill in empty folders)
     # for arxivid, version_count in data.get_local_files(maximum_only=True):
     #     download_source_files(arxivid, version_count)
 
-    # for arxiv_id, version_count in arxiv_id_pairs:
-    #     download_source_files(arxiv_id, version_count)
+    # These lines download all source files (not pdfs) on arxiv.org in random order.
+    arxiv_id_pairs = get_ids(shuffled=True, ALL=True)
+    for arxiv_id, version_count in arxiv_id_pairs:
+        download_source_files(arxiv_id, version_count, download_pdf=False)
 
 
 def extract_file(sourcefilepath: str, outfilepath: str) -> Optional[Exception]:

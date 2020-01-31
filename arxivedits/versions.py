@@ -1,28 +1,18 @@
 """
 Stores a list of all arxiv ids with multiple versions.
 """
-# built in
+import os
 from typing import Set, List, Tuple, Iterable, Union
 
-# external
 from oaipmh.client import Client  # type: ignore
 from oaipmh.metadata import MetadataRegistry, MetadataReader  # type: ignore
 
 
-# internal
-from arxivedits.data import connection
+from arxivedits import data
 from arxivedits.structures import Record, ArxivID
 
 URL = "http://export.arxiv.org/oai2"
 METADATA_PREFIX = "arXivRaw"
-
-
-def write_error(record: Record):
-    """
-    Writes the record to a file to show an error. Doesn't work, because `record` is a ref.
-    """
-    with open("errors.txt", "a") as file:
-        file.write(str(record))
 
 
 def get_ids_already_queried() -> Set[ArxivID]:
@@ -32,7 +22,7 @@ def get_ids_already_queried() -> Set[ArxivID]:
     # makes db request
     query = "SELECT arxiv_id FROM papers"
 
-    con = connection()
+    con = data.connection()
 
     # returns first valiue in tuple
     con.row_factory = lambda cursor, row: row[0]
@@ -47,13 +37,11 @@ def add_record(arxivid: ArxivID, versioncount: int):
     Stores how many versions a paper has
     """
 
-    # makes db request
-
     row = (arxivid, versioncount)
 
     query = "INSERT INTO papers(arxiv_id, version_count) VALUES (?, ?)"
 
-    con = connection()
+    con = data.connection()
     con.execute(query, row)
     con.commit()
 
@@ -63,9 +51,14 @@ def init_db():
     Initializes the database using ./schema.sql
     """
 
-    con = connection()
+    con = data.connection()
 
-    with open("schema.sql") as file:
+    if not os.path.isfile(data.SCHEMA_PATH):
+        raise AttributeError(
+            f"No schema.sql found. Please move it to {data.SCHEMA_PATH} or edit arxivedits/data.py's SCHEMA_PATH variable."
+        )
+
+    with open(data.SCHEMA_PATH) as file:
         con.executescript(file.read())
 
 

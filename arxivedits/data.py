@@ -11,7 +11,8 @@ from arxivedits.structures import Res
 
 pwd = pathlib.Path(__file__).parent.parent.absolute()  # pylint: disable=invalid-name
 DATA_DIR = pwd / "data"  # arxivedits/data, NOT arxivedits/arxivedits/data
-print(DATA_DIR)
+
+SCHEMA_PATH = pwd / "schema.sql"
 
 
 def path_asserts(arxividpath: str, version: int):

@@ -503,7 +503,7 @@ def main():
 
     tok = CoreNLPTokenizer()
 
-    for arxivid, version in [("1906.07111", 2)]:  # data.get_local_files():
+    for arxivid, version in data.get_local_files():
         textfilepath = data.text_path(arxivid, version)
 
         if not os.path.isfile(textfilepath):
