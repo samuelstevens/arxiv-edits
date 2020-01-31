@@ -56,6 +56,7 @@ def process(text: str) -> str:
         "alignat": None,  # sometimes math, but not always
         "multline": None,  # sometimes math, but not always
         "itemize": None,  # lists are mostly not full sentences.
+        "tikzpicture": None,  # picture
     }
 
     valid: List[Tuple[int, int, Optional[str]]] = []

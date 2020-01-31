@@ -23,6 +23,7 @@ BAD_TAGS = [
     r"\email",
     r"\footnote",
     r"\pacs",
+    r"\PACS",
     r"\address",
     r"\setcounter",
     r"\affiliation",
@@ -33,9 +34,13 @@ BAD_TAGS = [
     # extra environments
     r"\begin",
     r"\end",
+    r"\tikzset",
+    # bibs
+    r"bibliographystyle",
+    r"bibliography",
 ]
 
 REF_TAGS = [r"\eqref", r"\ref", r"\autoref", r"\fref"]
 
-CITE_TAGS_REPLACE = [r"\citet"]
-CITE_TAGS_REMOVE = [r"\cite", r"\citep", r"\citealt"]
+CITE_TAGS_REPLACE = [r"\cite", r"\citet"]
+CITE_TAGS_REMOVE = [r"\citep", r"\citealt"]
