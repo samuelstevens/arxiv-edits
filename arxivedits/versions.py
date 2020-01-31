@@ -174,9 +174,11 @@ def main():
 
     # initialize db
     init_db()
+    print("Initialized database succesfully.")
 
     # get papers
     get_papers_with_versions()
+    print("Recorded all paper's version counts.")
 
 
 if __name__ == "__main__":

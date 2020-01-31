@@ -8,7 +8,7 @@ import string
 from typing import Optional, Set, List, Tuple
 
 
-from arxivedits.detex.latex import find_pair
+from arxivedits.detex import latex
 from arxivedits import structures
 
 VALID_MACRO_CHARS = "@<>?"
@@ -262,7 +262,7 @@ class NewCommandParser(MacroParser):
 
         start_def = self.pos + 1
 
-        end_def, err = find_pair("{", "}", self.text, start=self.pos)
+        end_def, err = latex.find_pair("{", "}", self.text, start=self.pos)
 
         if isinstance(err, Exception):
             print("could not find end of definition.")
@@ -294,7 +294,7 @@ def get_args(
 
     if command.default_arg:
         if text[position] == "[":
-            end_of_arg, err = find_pair("[", "]", text, position)
+            end_of_arg, err = latex.find_pair("[", "]", text, position)
 
             if err:
                 print(err)
@@ -313,7 +313,7 @@ def get_args(
         position += 1
         arg_start = position
 
-        arg_end, err = find_pair("{", "}", text, position - 1)
+        arg_end, err = latex.find_pair("{", "}", text, position - 1)
 
         args.append(text[arg_start:arg_end])
 

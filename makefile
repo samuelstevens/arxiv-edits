@@ -18,10 +18,10 @@ visualize: evaluate.py.prof
 proposal: paper/proposal.md
 	pandoc --from markdown --to pdf paper/proposal.md --standalone --out paper/proposal.pdf
 
-mypy: FORCE
-	mypy arxivedits/
 
 test: FORCE
 	python -m pytest tests/
+
+
 
 FORCE:

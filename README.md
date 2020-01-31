@@ -1,5 +1,14 @@
 # Arxiv Edits
 
+## Downloading Files
+
+```bash
+# activate virtualenv
+python arxivedits/versions.py # or run versions.py however you like.
+
+python arxivedits/source.py # or run source.py however you like.
+```
+
 ## Installation
 
 ```bash
