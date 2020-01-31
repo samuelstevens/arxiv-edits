@@ -124,9 +124,18 @@ def clean(initial_tex: str, basic=False, macros_processed=False) -> str:
     exp = r"(" + re.escape(MATH_TAG) + r" *)+" + re.escape(MATH_TAG)
     text = re.sub(exp, MATH_TAG, text)
 
+    # removes blank lines before [EQUATION]
+    regexp = r"\n\n+\[EQUATION\]"
+    text = re.sub(regexp, f"\n{BLOCK_MATH_TAG}", text)
+
+    # removes blank lines after [EQUATION]
+    regexp = r"\[EQUATION\]( ?\n)( ?\n)+"
+    text = re.sub(regexp, f"{BLOCK_MATH_TAG}\n", text)
+
     # changes \section{something} to \section{# something}
     for i, pattern in enumerate(SECTION_PATTERNS):
-        text = pattern.sub(r"\\section{" + "#" * (i + 1) + r" \1}\n", text)
+        replacement_heading = r"\n\\section{" + "#" * (i + 1) + r" \1}\n"
+        text = pattern.sub(replacement_heading, text)
 
     # removes multiple spaces
     text = re.sub(r" +", " ", text, flags=re.MULTILINE)
@@ -162,14 +171,6 @@ def clean(initial_tex: str, basic=False, macros_processed=False) -> str:
 
     #     # turns multiple blank lines into one
     #     text = re.sub(r"\n(\s*\n)+", "\n\n", text)
-
-    #     # removes blank lines before [EQUATION]
-    #     regexp = r"\n\n+\[EQUATION\]"
-    #     text = re.sub(regexp, f"\n{BLOCK_MATH_TAG}", text)
-
-    #     # removes blank lines after [EQUATION]
-    #     regexp = r"\[EQUATION\]( ?\n)( ?\n)+"
-    #     text = re.sub(regexp, f"{BLOCK_MATH_TAG}\n", text)
 
     #     start_doc = text.find(r"\begin{document}")
 

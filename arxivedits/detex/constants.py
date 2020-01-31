@@ -8,7 +8,7 @@ BLOCK_MATH_PATTERN = re.compile(r"(?<!\\)\$\$.*?[^\\]\$\$", re.MULTILINE | re.DO
 
 # \section{}, \subsection{}, etc
 SECTION_PATTERNS = [
-    re.compile(r"\\" + "sub" * i + r"section\*?\{(.*?)\}") for i in range(6)
+    re.compile(r"\\" + "sub" * i + r"section\*?\{(.*?)\}", re.DOTALL) for i in range(6)
 ]
 
 # Tags
@@ -20,6 +20,8 @@ REF_TAG = "[REF]"
 BAD_TAGS = [
     r"\input",
     r"\author",
+    r"\authors",
+    r"\correspondingauthor",
     r"\email",
     r"\footnote",
     r"\pacs",
@@ -31,6 +33,8 @@ BAD_TAGS = [
     r"\label",
     r"\keywords",
     r"\newcounter",
+    r"\urladdr",
+    r"\thispagestyle",  # hep-ph-98013990-v1
     # extra environments
     r"\begin",
     r"\end",

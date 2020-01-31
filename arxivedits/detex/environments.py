@@ -57,6 +57,8 @@ def process(text: str) -> str:
         "multline": None,  # sometimes math, but not always
         "itemize": None,  # lists are mostly not full sentences.
         "tikzpicture": None,  # picture
+        "keyword": None,
+        "flushright": None,  # usually used to store keywords and equations
     }
 
     valid: List[Tuple[int, int, Optional[str]]] = []
