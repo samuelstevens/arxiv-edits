@@ -2,15 +2,16 @@
 Stores a list of all arxiv ids with multiple versions.
 """
 # built in
-from typing import Set, List, Tuple, Iterable
+from typing import Set, List, Tuple, Iterable, Union
 
 # external
-from oaipmh.client import Client
-from oaipmh.metadata import MetadataRegistry, MetadataReader
+from oaipmh.client import Client  # type: ignore
+from oaipmh.metadata import MetadataRegistry, MetadataReader  # type: ignore
+
 
 # internal
-from data import connection
-from structures import Record, ArxivID
+from arxivedits.data import connection
+from arxivedits.structures import Record, ArxivID
 
 URL = "http://export.arxiv.org/oai2"
 METADATA_PREFIX = "arXivRaw"
@@ -41,14 +42,14 @@ def get_ids_already_queried() -> Set[ArxivID]:
     return set(ids)
 
 
-def add_record(arxiv_id: ArxivID, version_count: int):
+def add_record(arxivid: ArxivID, versioncount: int):
     """
     Stores how many versions a paper has
     """
 
     # makes db request
 
-    row = (arxiv_id, version_count)
+    row = (arxivid, versioncount)
 
     query = "INSERT INTO papers(arxiv_id, version_count) VALUES (?, ?)"
 
@@ -108,7 +109,7 @@ def get_all_records() -> Iterable[Record]:
     return records
 
 
-def parse(record: Record) -> Tuple[str, int]:
+def parse(record: Record) -> Tuple[str, Union[int, bool]]:
     """
     Takes a Record and returns the identifier and its version count.
     """

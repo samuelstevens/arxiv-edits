@@ -21,7 +21,7 @@ TOKENIZER = ArxivTokenizer()
 
 DOCUMENTFREQUENCY = shelve.open(data.IDF_DB)
 
-inputfiles = map(lambda f: os.path.join(data.TEXT_DIR, f), os.listdir(data.TEXT_DIR))
+# inputfiles = map(lambda f: os.path.join(data.TEXT_DIR, f), os.listdir(data.TEXT_DIR))
 
 # TFIDFMODEL = TFIDFModel(
 #     input_files=inputfiles,

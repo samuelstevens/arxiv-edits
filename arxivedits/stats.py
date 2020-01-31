@@ -25,7 +25,6 @@ import data
 import source
 import tex
 import sections
-import tokenizer
 from structures import Section, Sentence
 
 

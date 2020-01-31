@@ -15,7 +15,7 @@ from collections import namedtuple
 import Levenshtein
 
 
-from data import SECTIONS_DIR, TEXT_DIR, is_x
+from data import SECTIONS_DIR, is_x
 import structures
 from structures import Title, Score, Content
 
@@ -25,7 +25,7 @@ Section = namedtuple("Section", "title text")
 SectionPair = Tuple[Score, Tuple[Title, Title], Tuple[Content, Content]]
 
 
-def clean_text(text: str) -> str:
+def cleant(text: str) -> str:
     """
     Strips whitespace and turns 1+ whitespace characters into a single space.
     """
@@ -57,14 +57,14 @@ def parsesections(textfilepath: str) -> List[Section]:
     # if there are no matches, then the entire file goes in a single json object.
     if not title:
         # print(f'Only one section found in {textfilepath}')
-        return [Section(title=intialtitle, text=clean_text(markdowntext))]
+        return [Section(title=intialtitle, text=cleant(markdowntext))]
 
     text = markdowntext[0 : title.span()[0]]
 
     sections: List[Section] = []
 
     if text:
-        sections.append(Section(title=intialtitle, text=clean_text(text)))
+        sections.append(Section(title=intialtitle, text=cleant(text)))
 
     # if you have a match, you need to find another further match and pick the text out.
     while title:
@@ -72,11 +72,11 @@ def parsesections(textfilepath: str) -> List[Section]:
         if not nexttitle:
             # reached end of file. Put the rest of the text in the section and call it a day
             text = markdowntext[title.span()[1] :]
-            sections.append(Section(title=title[1], text=clean_text(text)))
+            sections.append(Section(title=title[1], text=cleant(text)))
             break
 
         text = markdowntext[title.span()[1] : nexttitle.span()[0]]
-        sections.append(Section(title=title[1], text=clean_text(text)))
+        sections.append(Section(title=title[1], text=cleant(text)))
         title = nexttitle
 
     return sections

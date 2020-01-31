@@ -1,0 +1,8 @@
+\def\b{\beta}
+
+\begin -> \betagin
+
+I see \b, replace with \beta, check if the next letter is . or , (it is not, because it is e) and consume it.
+
+This means that every environment is ruined.
+

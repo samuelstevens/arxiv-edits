@@ -406,9 +406,9 @@ class CoreNLPTokenizer(Tokenizer):
             return Tokens(data, self.annotators)
 
         # Minor cleanup before tokenizing.
-        clean_text = self._process(text)
+        cleant = self._process(text)
 
-        self.corenlp.sendline(clean_text.encode("utf-8"))
+        self.corenlp.sendline(cleant.encode("utf-8"))
         self.corenlp.expect_exact("NLP>", searchwindowsize=100)
 
         # Skip to start of output (may have been stderr logging messages)
@@ -430,7 +430,7 @@ class CoreNLPTokenizer(Tokenizer):
             data.append(
                 (
                     self._convert(tokens[i]["word"]),
-                    clean_text[start_ws:end_ws],
+                    cleant[start_ws:end_ws],
                     (
                         tokens[i]["characterOffsetBegin"],
                         tokens[i]["characterOffsetEnd"],
@@ -493,7 +493,7 @@ class ArxivTokenizer:
 
 
 def is_sentenced(arxividpath: str, version: int) -> bool:
-    return os.path.isfile(data.sentences_path(arxividpath, version))
+    return os.path.isfile(data.sentence_path(arxividpath, version))
 
 
 def main():
@@ -507,7 +507,7 @@ def main():
         textfilepath = data.text_path(arxivid, version)
 
         if not os.path.isfile(textfilepath):
-            print(f"{arxivid}-v{version} was not converted to text.")
+            # print(f"{arxivid}-v{version} was not converted to text.")
             continue
 
         with open(textfilepath, "r") as textfile:
@@ -516,7 +516,7 @@ def main():
         paragraphs = [" ".join(p.split("\n")).strip() for p in paragraphs]
         paragraphs = [p for p in paragraphs if p]
 
-        sentencefilepath = data.sentences_path(arxivid, version)
+        sentencefilepath = data.sentence_path(arxivid, version)
         with open(sentencefilepath, "w") as sentencefile:
             for p in paragraphs:
                 try:
@@ -528,7 +528,9 @@ def main():
 
                 except AttributeError as err:
                     print(f"Error on {textfilepath}: {err}")
-                    # print(p)
+
+            print(sentencefilepath)
+            print(data.latex_path(arxivid, version))
 
     total = len(data.get_local_files())
     sentenced = len(

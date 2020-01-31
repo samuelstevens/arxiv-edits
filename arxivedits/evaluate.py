@@ -7,6 +7,8 @@ import pathlib
 import json
 import time
 import re
+import random
+import csv
 from typing import Tuple, Callable, List, Dict
 
 import requests
@@ -336,7 +338,7 @@ def evaluate_detex() -> None:
         outputfilepath = os.path.join(data.TEXT_DIR, sourcefile, "clean-tex.tex")
         with open(sourcefilepath, "r") as infile:
             with open(outputfilepath, "w") as outfile:
-                outfile.write(tex.clean_tex(infile.read()))
+                outfile.write(tex.clean(infile.read()))
 
         # original-tex.tex
         outputfilepath = os.path.join(data.TEXT_DIR, sourcefile, "original-tex.tex")
@@ -355,6 +357,47 @@ def evaluate_detex() -> None:
                 pass
 
 
+def random_sample_comparison(length=10):
+    if os.path.isdir("scripts"):
+        return
+
+    ids = data.get_local_files(maximum_only=True)
+
+    random.shuffle(ids)
+
+    with open("data/sample-only-multiversion.csv") as csvfile:
+        reader = csv.reader(csvfile)
+        validids = set([tuple(pair) for pair in reader])
+
+    ids = [
+        (arxivid, versionmax)
+        for arxivid, versionmax in validids
+        if os.path.isfile(data.sentence_path(arxivid, 1))
+        and os.path.isfile(data.sentence_path(arxivid, 2))
+    ]
+
+    ids = ids[0:100]
+
+    os.makedirs("scripts", exist_ok=True)
+
+    for current_batch in range(len(ids) // length):
+        filepath = (
+            f"scripts/open-{current_batch * length}-{(current_batch + 1) * length}.sh"
+        )
+        with open(filepath, "w") as scriptfile:
+
+            scriptfile.write("#!/usr/bin/env bash\n")
+
+            for i in range(current_batch * length, (current_batch + 1) * length):
+                arxivid, _ = ids[i]
+                scriptfile.write(
+                    f"code --diff {data.sentence_path(arxivid, 1)} {data.sentence_path(arxivid, 2)}\n"
+                )
+
+        os.chmod(filepath, 0o777)
+
+
 if __name__ == "__main__":
     # main()
-    evaluate_detex()
+    # evaluate_detex()
+    random_sample_comparison()

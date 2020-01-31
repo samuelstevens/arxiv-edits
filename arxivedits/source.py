@@ -11,6 +11,7 @@ import time
 import re
 import random
 import pathlib
+import csv
 
 # External
 import requests
@@ -54,11 +55,11 @@ def get_filetype(file) -> str:
     return magic.from_buffer(buffer, mime=False)
 
 
-def is_downloaded(arxivid: str, versioncount: int) -> bool:
+def is_downloaded(arxivid: str, version: int) -> bool:
     """
     Check if a document is downloaded.
     """
-    return os.path.isfile(data.source_path(arxivid, versioncount))
+    return os.path.isfile(data.source_path(arxivid, version))
 
 
 def is_extracted(arxivid, version: int) -> bool:
@@ -256,16 +257,22 @@ def download_all():
     """
     Downloads all source files for all versions for all papers with 2+ versions.
     """
-    arxiv_id_pairs = get_ids()
+    # arxiv_id_pairs = get_ids()
 
-    for arxivid, version_count in data.get_local_files(maximum_only=True):
-        download_source_files(arxivid, version_count)
+    with open("data/sample-only-multiversion.csv") as csvfile:
+        reader = csv.reader(csvfile)
+
+        for arxivid, version_count in reader:
+            download_source_files(arxivid, int(version_count))
+
+    # for arxivid, version_count in data.get_local_files(maximum_only=True):
+    #     download_source_files(arxivid, version_count)
 
     # for arxiv_id, version_count in arxiv_id_pairs:
     #     download_source_files(arxiv_id, version_count)
 
 
-def extract_file(sourcefilepath: str, outfilepath) -> Optional[Exception]:
+def extract_file(sourcefilepath: str, outfilepath: str) -> Optional[Exception]:
     content: Optional[str] = None
 
     try:
@@ -310,4 +317,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # extract_file(data.source_path("1410.3634", 2), data.latex_path("1410.3634", 2))
 

@@ -3,10 +3,10 @@
 #include <string.h>
 
 /*
-gcc arxivedits/lcs.c -O3 -o arxivedits/lcs
+gcc arxivedits/lcs/lcs.c -O3 -o arxivedits/lcs/lcs
 
-gcc -c -Wall -Werror -fpic arxivedits/lcsmodule.c -o arxivedits/lcsmodule.o
- gcc -shared -o arxivedits/lcsmodule.so arxivedits/lcsmodule.o
+gcc -c -Wall -Werror -fpic arxivedits/lcs/lcs.c -o arxivedits/lcs/lcs.o
+ gcc -shared -o arxivedits/lcs/lcs.so arxivedits/lcs/lcs.o
 */
 
 struct Sequence

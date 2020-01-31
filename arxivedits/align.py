@@ -7,8 +7,7 @@ from collections import namedtuple
 
 import massalign.core as massalign
 
-import lcs
-import idf
+import arxivedits.lcs
 from tokenizer import ArxivTokenizer
 
 TOKENIZER = ArxivTokenizer()

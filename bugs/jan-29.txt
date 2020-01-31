@@ -1,0 +1,1 @@
+Trying to replace with "[EQUATION] " (includes a space) so that sentence splitting works, but I can't seem to get it to insert a space. Not sure why, and I can't debug because I need to look at data. Inside tex.py, in clean()

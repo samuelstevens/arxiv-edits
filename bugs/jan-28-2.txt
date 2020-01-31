@@ -1,0 +1,18 @@
+bad splits:
+
+fig. & .). 
+resp.[
+
+
+[MATH] <capital letter> does not split. it should.
+Fig. <capital letter> does not split. should it?
+Sec. <capital letter> does not split. should it?
+
+[EQUATION] # Section Title does not split. it should.
+
+\autoref causes problems
+\fref causes problems
+
+\begin{gather(*)} is a bad environment. consider removing \begin{proof} as well.
+
+remove_tag('bibliographystyle')

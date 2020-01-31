@@ -1,0 +1,11 @@
+\begin{IEEEkeywords}
+some keywords here
+\end{IEEEkeywords}
+
+\begin{quote}
+  \noindent
+  {\sl Keywords}: $\alpha$-mixing; Autocorrelation; Cross-correlation; Dimension reduction; Eigenanalysis;
+  High-dimensional time series; Weak stationarity.
+\end{quote}
+
+not a bad environment, not removed.

@@ -6,17 +6,18 @@ import sqlite3
 import os
 
 from typing import Tuple, List
-from structures import Res
+from arxivedits.structures import Res
 
-
-DATA_DIR = "data"
+DATA_DIR = (
+    "/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/arxivedits/data"
+)
 
 
 def path_asserts(arxividpath: str, version: int):
     """
     Asserts that paths and folders are correctly formed.
     """
-    assert "\\" not in arxividpath
+    assert "\\" not in arxividpath and "/" not in arxividpath
     path = os.path.join(DATA_DIR, arxividpath, f"v{version}", "extra")
     os.makedirs(path, exist_ok=True)
 
@@ -67,7 +68,7 @@ def text_path(arxividpath: str, version: int) -> str:
     )
 
 
-def sentences_path(arxividpath: str, version: int) -> str:
+def sentence_path(arxividpath: str, version: int) -> str:
     """
     Returns the path for the sentence-split file for a given arxivid and version.
     """
@@ -123,7 +124,7 @@ def pdf_path(arxividpath: str, version: int) -> str:
     )
 
 
-def get_local_files(maximum_only=False) -> List[Tuple[str, int]]:
+def get_local_files(maximum_only: bool = False) -> List[Tuple[str, int]]:
     idlist = []
 
     for arxivid in os.listdir(DATA_DIR):
@@ -144,7 +145,7 @@ def get_local_files(maximum_only=False) -> List[Tuple[str, int]]:
 
         idlist.extend([(arxivid, v) for v in versionlist])
 
-    return idlist
+    return sorted(idlist)
 
 
 SECTIONS_DIR = os.path.join(DATA_DIR, "sections")
