@@ -5,7 +5,7 @@ Tries to process commands described in https://en.wikibooks.org/wiki/LaTeX/Macro
 import string
 
 
-from typing import Optional, Set, List, Tuple
+from typing import Optional, List, Tuple
 
 
 from arxivedits.detex import latex
@@ -32,6 +32,13 @@ class LatexCommand:
         self.name = name
 
         assert isinstance(definition, str)
+
+        deflines = [
+            line[: line.index("%")] if "%" in line else line
+            for line in definition.split("\n")
+        ]
+        definition = "\n".join(deflines)
+
         self.definition = definition.strip()
 
         assert isinstance(arg_num, int)
@@ -53,11 +60,10 @@ class LatexCommand:
             if self.default_arg:
                 args = [self.default_arg, *args]
             else:
-                return "", ValueError(f"Missing argument #{len(args)}")
+                return "", ValueError(f"Missing argument #{len(args) + 1}")
 
         for i, a in enumerate(args):
-            result = result.replace(f"{{#{i + 1}}}", a)  # replaces {#1}
-            result = result.replace(f"#{i + 1}", a)  # replaces #1
+            result = result.replace(f"#{i + 1}", a)  # replaces #1, and leaves in in {}
 
         return result, None
 
@@ -90,9 +96,13 @@ class MacroParser:
     Class to parse a variety of LaTeX macros, such as \newcommand or \def.
     """
 
-    def __init__(self, text, pos):
+    def __init__(self, text: str, pos: int, command: str = ""):
         self.text = text
         self.pos = pos
+        self.command = command
+
+        assert command
+        assert text.startswith(command, pos), self.context()
 
     def parse(self) -> structures.Go[Tuple[LatexCommand, int]]:
         raise NotImplementedError("Needs to be implemented")
@@ -113,10 +123,7 @@ class DefParser(MacroParser):
     """
 
     def __init__(self, text, pos):
-        super().__init__(text, pos)
-
-        self.command = r"\def"
-        assert text.startswith(self.command, self.pos)
+        super().__init__(text, pos, r"\def")
 
     def parse(self) -> structures.Go[Tuple[LatexCommand, int]]:
         r"""
@@ -173,12 +180,8 @@ class NewCommandParser(MacroParser):
     Parses \\newcommand and \\newcommand*
     """
 
-    def __init__(self, text, pos):
-        super().__init__(text, pos)
-
-        self.command = r"\newcommand"
-
-        assert text.startswith(self.command, pos), self.context()
+    def __init__(self, text, pos, command=r"\newcommand"):
+        super().__init__(text, pos, command)
 
     def parse(self) -> structures.Go[Tuple[LatexCommand, int]]:
         r"""
@@ -203,11 +206,11 @@ class NewCommandParser(MacroParser):
             closing_brace = ""
         else:
             return self.Error(
-                r"invalid \newcommand because of missing '{', '\', or ' '."
+                r"invalid " + self.command + r" because of missing '{', '\', or ' '."
             )
 
         if self.text[self.pos] != "\\":
-            return self.Error(r"invalid \newcommand.")
+            return self.Error(r"invalid " + self.command)
 
         # find command name
         self.pos += 1
@@ -256,8 +259,8 @@ class NewCommandParser(MacroParser):
 
         # looking for opening brace now.
         if self.text[self.pos] != "{":
-            print(
-                f"invalid definition at {self.pos}: {self.text[self.pos]} \ncontext: {self.text[self.pos -10: self.pos + 10]}\ncommand name: {command_name}"
+            return self.Error(
+                f"invalid definition at {self.pos}: {self.text[self.pos]}"
             )
 
         start_def = self.pos + 1
@@ -265,7 +268,7 @@ class NewCommandParser(MacroParser):
         end_def, err = latex.find_pair("{", "}", self.text, start=self.pos)
 
         if isinstance(err, Exception):
-            print("could not find end of definition.")
+            return self.Error("Cound't find end of definition.")
 
         definition = self.text[start_def:end_def]
 
@@ -274,6 +277,11 @@ class NewCommandParser(MacroParser):
         command = LatexCommand(command_name, definition, arg_count, default_arg)
 
         return (command, self.pos), None
+
+
+class RobustCommandParser(NewCommandParser):
+    def __init__(self, text, pos, command=r"\DeclareRobustCommand"):
+        super().__init__(text, pos, command)
 
 
 def skip_whitespace(text: str, position: int) -> int:
@@ -306,8 +314,9 @@ def get_args(
     while command.required_arg_count() > len(args) and position < len(text):
         if text[position] != "{":
             print(
-                f"Command requires {command.required_arg_count()} arguments. Found {len(args)}."
+                f"Command {command.name} requires {command.required_arg_count()} arguments. Found {len(args)}: {', '.join(args)}"
             )
+
             return position, args
 
         position += 1
@@ -331,19 +340,24 @@ def process(initial_tex: str) -> str:
     Processes `\\newcommand` and similar commands in LaTeX.
     """
 
-    commands: Set[LatexCommand] = set()
+    commands: List[LatexCommand] = []  # order is very important
     string_builder = []
     start_valid = 0
     position = 0
 
     while position < len(initial_tex):
-        parser = MacroParser("", 0)
+        parser: MacroParser
 
         if initial_tex[position] == "\\":  # potentially at a new command definition
             if initial_tex.startswith("newcommand", position + 1):
                 parser = NewCommandParser(initial_tex, position)
+
             elif initial_tex.startswith("def", position + 1):
                 parser = DefParser(initial_tex, position)
+
+            elif initial_tex.startswith("DeclareRobustCommand", position + 1):
+                parser = RobustCommandParser(initial_tex, position)
+
             else:
                 position += 1
                 continue
@@ -354,7 +368,7 @@ def process(initial_tex: str) -> str:
 
                 if not err:
                     command, position = result
-                    commands.add(command)
+                    commands.append(command)
             except AssertionError:
                 pass
 
@@ -414,8 +428,8 @@ def process(initial_tex: str) -> str:
 
             if err:
                 print(err)
-
-            string_builder.append(command_result)
+            else:
+                string_builder.append(command_result)
 
             pos = end_command
 

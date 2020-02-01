@@ -79,20 +79,25 @@ def clean(initial_tex: str) -> str:
 
     text = environments.process(text)
 
+    # removes additional macros and stuff
     start_doc = text.find(r"\begin{document}")
-
     if start_doc >= 0:
         text = text[start_doc + len(r"\begin{document}") :]
 
+    # chops off end of document
     end_doc = text.find(r"\end{document}")
-
     if end_doc >= 0:
         text = text[:end_doc]
 
+    # chop off bibliography
     start_bib = text.find(r"\thebibliography")
-
     if start_bib >= 0:
         text = text[:start_bib]
+
+    # chops off everything before the abstract
+    start_abstract = text.find(r"\begin{abstract}")
+    if start_abstract >= 0:
+        text = text[start_abstract + len(r"\begin{abstract}") :]
 
     text = removeBadMath(text)
 
@@ -117,8 +122,10 @@ def clean(initial_tex: str) -> str:
 
     # change [MATH] [MATH]  [MATH] to [MATH]
     # (\[MATH\] *)+\[MATH\]
-    exp = r"(" + re.escape(MATH_TAG) + r" *)+" + re.escape(MATH_TAG)
-    text = re.sub(exp, MATH_TAG, text)
+    regexp = r"(?:" + re.escape(MATH_TAG) + r" *)+" + re.escape(MATH_TAG)
+    # print("before:", re.findall(regexp, text))
+    text = re.sub(regexp, MATH_TAG, text)
+    # print("after:", re.findall(regexp, text))
 
     # removes blank lines before [EQUATION]
     regexp = r"\n\n+\[EQUATION\]"

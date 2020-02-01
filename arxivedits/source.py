@@ -26,7 +26,7 @@ TIMEOUT = 30
 INCLUDEPATTERN = re.compile(
     r"\\(?:include|includeonly|input|@input).*?[{ ](.*?)(?:\}| |\n|$)"
 )
-tmpdir = "tmp"
+TMP_DIR = "tmp"
 
 
 def download_file(url: str, local_filename: str) -> str:
@@ -113,7 +113,7 @@ def get_lines(filename, openfiles, closedfiles):
     for line in lines:
         m = INCLUDEPATTERN.match(line)
         if m:
-            includepath = os.path.join(tmpdir, m.group(1))
+            includepath = os.path.join(TMP_DIR, m.group(1))
 
             # normalizes paths like ./sub/something.txt
             includepath = str(pathlib.Path(includepath)).lower()
@@ -145,15 +145,15 @@ def tex_from_tar(tar: tarfile.TarFile) -> Optional[str]:
     Removes all comments.
     """
 
-    shutil.rmtree(tmpdir)
-    os.makedirs(tmpdir, exist_ok=True)
+    shutil.rmtree(TMP_DIR)
+    os.makedirs(TMP_DIR, exist_ok=True)
 
-    tar.extractall(tmpdir)
+    tar.extractall(TMP_DIR)
 
     openfiles: Dict[str, List[str]] = {}
     closedfiles: Dict[str, List[str]] = {}
 
-    add_folder_to_dict(tmpdir, openfiles)
+    add_folder_to_dict(TMP_DIR, openfiles)
 
     # do the imports.
     while openfiles:
@@ -309,6 +309,9 @@ def extract_all(extract_again: bool = True):
     """
 
     for arxivid, version in data.get_local_files():
+        if not is_downloaded(arxivid, version):
+            continue
+
         sourcefilepath = data.source_path(arxivid, version)
         latexpath = data.latex_path(arxivid, version)
         sourcecopypath = data.source_path(arxivid, version)

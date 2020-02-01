@@ -26,6 +26,13 @@ cd massalign
 pip install -r requirements.txt
 python setup.py install
 
+# install oaipmh
+cd ..
+git clone https://github.com/infrae/pyoai.git
+cd pyoai
+pip install -r requirements.txt
+pip install .
+
 # install other dependencies
 cd ../arxivedits # or however you get back to this project
 pip install -r requirements.txt

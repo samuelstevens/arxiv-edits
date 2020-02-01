@@ -18,6 +18,12 @@ Go = Tuple[T, Optional[Exception]]
 Record = Tuple[Header, Metadata, None]
 ArxivID = NewType("ArxivID", str)
 
+
+# class ArxivID:
+#     def __init__(self, arxivid: str):
+#         self.arxivid = arxivid
+
+
 Title = NewType("Title", str)
 Sentence = NewType("Sentence", str)
 Content = List[Sentence]

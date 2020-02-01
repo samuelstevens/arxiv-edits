@@ -27,20 +27,35 @@ import data
 
 FALSE_SPLIT_SUFFIXES = set(
     [
+        # figures
         "Fig.",
-        "Sec.",
-        "Ref.",
         "Figs.",
+        "fig.",
+        "figs.",
+        # sections
+        "Sec.",
         "Secs.",
+        "sec.",
+        "secs.",
+        # references
+        "Ref.",
         "Refs.",
+        "ref.",
+        "refs.",
+        # equations
         "Eq.",
         "Eqs.",
+        "eq.",
+        "eqs.",
         "Eqn.",
         "Eqns.",
+        "eqn.",
+        "eqns.",
+        # misc.
         "et al.",
     ]
 )
-FALSE_SPLIT_PUNC = set([".", "("])
+FALSE_SPLIT_PUNC = set([".", "(", "["])
 
 
 class Tokens:
@@ -93,6 +108,8 @@ class Tokens:
             )
 
         def join_sentences(sentences: List[str], newsentence: str) -> List[str]:
+            newsentence = " ".join(newsentence.split())
+
             if newsentence == ".":
                 return sentences
 
@@ -554,6 +571,7 @@ def demo():
         r"There are two collapsed halos (shown in Fig.(5)), A and B, of mass [MATH] and [MATH] respectively, at [MATH] in our simulation as shown in the right panel of Fig.(5).",
         r"Given a Hamiltonian [MATH], one can evolve the wave function through (23). It is simply a unitary transformation of the system, [EQUATION] We use the pseudo-spectral method to solve the Schrodinger equation in the comoving box. Let [MATH] be the kinetic energy operator ([MATH] in Fourier space) and [MATH] the potential operator([MATH] in real space). The evolution is then split into [EQUATION] On the other hand, we need to consider the non-commutative relation between [MATH] and [MATH], where [EQUATION] [EQUATION] It follows that we obtain, to the second order accuracy, [EQUATION] which will be adopted to advance the time steps.",
         r"It is simply a unitary transformation of the system, [EQUATION] We use the pseudo-spectral method to solve the Schrodinger equation in the comoving box.",
+        r"In ref.[CITATION] the masses and decay constants of the lightest octet of pseudoscalar mesons are worked out at to [MATH] .",
     ]
 
     for ex in examples:

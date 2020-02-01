@@ -151,7 +151,6 @@ def get_local_files(maximum_only: bool = False) -> List[Tuple[str, int]]:
 
 
 SECTIONS_DIR = os.path.join(DATA_DIR, "sections")
-UNZIPPED_DIR = os.path.join(DATA_DIR, "unzipped")
 ALIGNMENTS_DIR = os.path.join(DATA_DIR, "alignments")
 
 DB_FILE_NAME = os.path.join(DATA_DIR, "arxivedits.sqlite3")
@@ -160,7 +159,6 @@ IDF_DB = os.path.join(DATA_DIR, "idf")
 # if not os.path.isdir(DATA_DIR):
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(SECTIONS_DIR, exist_ok=True)
-os.makedirs(UNZIPPED_DIR, exist_ok=True)
 os.makedirs(ALIGNMENTS_DIR, exist_ok=True)
 
 

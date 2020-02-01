@@ -52,7 +52,7 @@ def test_command_with_default_with_braces():
     )
 
     assert command.result(["John Doe"]) == (
-        r"This is the Wikibook about LaTeX supported by Wikimedia and John Doe",
+        r"This is the Wikibook about LaTeX supported by {Wikimedia} and {John Doe}",
         None,
     )
 
@@ -286,11 +286,11 @@ def test_args_with_braces():
 % in the document body:
 \begin{itemize}
 \item This is the Wikibook about LaTeX
-  supported by Wikimedia
+  supported by {Wikimedia}
 \item This is the Wikibook about LaTeX
-  supported by lots of users!
+  supported by {lots of users!}
 \item This is the Wikibook about LaTeX
-  supported by John Doe and Anthea Smith
+  supported by {John Doe} and {Anthea Smith}
 \end{itemize}
 """
 
@@ -301,7 +301,7 @@ def test_default():
     original_tex = r"""
 \newcommand{\wbalTwo}[2][Wikimedia]{
   This is the Wikibook about LaTeX
-  supported by {#1} and {#2}!}
+  supported by #1 and #2!}
 % in the document body:
 \begin{itemize}
 \item \wbalTwo{John Doe}
@@ -333,7 +333,7 @@ def test_with_space():
     expected_tex = r"""
 
 
-|hello\rangle
+|{hello}\rangle
 """
     assert macros.process(original_tex) == expected_tex
 
@@ -449,6 +449,42 @@ def test_commented_command():
 
 Hi there! hello there \mbox{M$_{\odot}$ yr$^{-1}$}
 \\mdot
+"""
+
+    assert macros.process(original_tex) == expected_tex
+
+
+def test_robust_command():
+    original_tex = r"""
+\DeclareRobustCommand{\pder}[1]{%
+  \@ifnextchar\bgroup{\@pder{#1}}{\@pder{}{#1}}}
+
+\pder{hello}
+"""
+
+    expected_tex = r"""
+
+
+\@ifnextchar\bgroup{\@pder{hello}}{\@pder{}{hello}}
+"""
+
+    assert macros.process(original_tex) == expected_tex
+
+
+def test_chained_command():
+    original_tex = r"""
+\DeclareRobustCommand{\pder}[1]{%
+  \@ifnextchar\bgroup{\@pder{#1}{#1}}}
+\newcommand{\@pder}[2]{\frac{\partial #1}{\partial #2}}
+
+\pder{hello}
+"""
+
+    expected_tex = r"""
+
+
+
+\@ifnextchar\bgroup{\frac{\partial hello}{\partial hello}}
 """
 
     assert macros.process(original_tex) == expected_tex

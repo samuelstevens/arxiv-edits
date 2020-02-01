@@ -19,22 +19,27 @@ REF_TAG = "[REF]"
 
 BAD_TAGS = [
     r"\input",
+    # authors
     r"\author",
     r"\authors",
     r"\correspondingauthor",
+    r"authorrunning",
     r"\email",
+    r"\offprints",
     r"\footnote",
     r"\pacs",
     r"\PACS",
     r"\address",
     r"\setcounter",
     r"\affiliation",
+    r"\institute",
     r"\date",
     r"\label",
     r"\keywords",
     r"\newcounter",
     r"\urladdr",
     r"\thispagestyle",  # hep-ph-98013990-v1
+    r"\footnotetext",
     # extra environments
     r"\begin",
     r"\end",
@@ -47,4 +52,4 @@ BAD_TAGS = [
 REF_TAGS = [r"\eqref", r"\ref", r"\autoref", r"\fref"]
 
 CITE_TAGS_REPLACE = [r"\cite", r"\citet"]
-CITE_TAGS_REMOVE = [r"\citep", r"\citealt"]
+CITE_TAGS_REMOVE = [r"\citep", r"\citealt", r"\nocite"]

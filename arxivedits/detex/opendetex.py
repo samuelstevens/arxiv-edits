@@ -2,10 +2,56 @@
 Exports detex_file(), which extracts text using `opendetex` and extensive preprocessing.
 """
 
-import subprocess
+import subprocess, re
 
 from arxivedits.detex import latex
+from arxivedits.detex.constants import MATH_TAG
 from arxivedits import structures
+
+
+TMP_NOUN_TAG = "[TMPNOUN]"
+TMP_VERB_TAG = "[TMPVERB]"
+
+
+def preprocess(text: str) -> str:
+    """
+    Preprocesses text for `opendetex`.
+    """
+
+    text = latex.clean(text)
+
+    # replaces noun and verb with some temp tags that are unlikely to show up in a latex document.
+    text = text.replace("noun", TMP_NOUN_TAG)
+    text = text.replace("verbs", TMP_VERB_TAG)
+
+    return text
+
+
+def postprocess(text: str) -> str:
+    """
+    Does some minor post processing on `opendetex`'s output.
+    """
+    # replaces any occurence of noun, verb with [MATH]. The only occurences of noun and verb will be from opendetex.
+    text = text.replace("noun", MATH_TAG)
+    text = text.replace("verbs", MATH_TAG)
+
+    # now we can put noun and verb back into the text.
+    text = text.replace(TMP_NOUN_TAG, "noun")
+    text = text.replace(TMP_VERB_TAG, "verbs")
+
+    # (?:\[MATH\](?:\s|\d|\.|=|\(|\))+)+\[MATH\]
+    regexp = (
+        r"(?:" + re.escape(MATH_TAG) + r"(?:\s|\d|\.|=|\(|\))+)+" + re.escape(MATH_TAG)
+    )
+    text = re.sub(regexp, MATH_TAG, text)
+
+    # turns multiple blank lines into one
+    text = re.sub(r"\n(\s*\n)+", "\n\n", text)
+
+    # removes multiple spaces
+    text = re.sub(r" +", " ", text, flags=re.MULTILINE)
+
+    return text
 
 
 def detex(text: str) -> structures.Go[str]:
@@ -13,27 +59,14 @@ def detex(text: str) -> structures.Go[str]:
     opendetex (https://github.com/pkubowicz/opendetex), installed via homebrew (brew install detex)
     """
 
-    mathtag = "[MATH]"
-    verbtag = "[DOES]"
-
-    tmp_nountag = "[TMPNOUN]"
-    tmp_verbtag = "[TMPVERB]"
-
-    text = latex.clean(text)
-
-    text = text.replace("noun", tmp_nountag)
-    text = text.replace("verbs", tmp_verbtag)
-
     try:
+        text = preprocess(text)
+
         text = subprocess.run(
             ["detex", "-r"], text=True, input=text, capture_output=True
         ).stdout
 
-        text = text.replace("noun", mathtag)
-        text = text.replace("verbs", verbtag)
-
-        text = text.replace(tmp_verbtag, "noun")
-        text = text.replace(tmp_nountag, "verbs")
+        text = postprocess(text)
 
         return text, None
     except AttributeError:
@@ -45,7 +78,7 @@ def detex(text: str) -> structures.Go[str]:
         )
 
 
-def detex_file(inputfile, outputfile, clean=True):
+def detex_file(inputfile, outputfile):
     """
     Takes a .tex file (inputfile) and extracts text, writes it to outputfile.
     """

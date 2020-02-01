@@ -29,8 +29,6 @@ def main():
         detex.detex_file(latexfilepath, outputfilepath)
         print(outputfilepath)
 
-        # Commented the below code out because it was producing extra files that took up too much space in Dropbox
-
         # outputfilepath = data.clean_latex_path(arxivid, version)
         # with open(latexfilepath, "r") as infile:
         #     with open(outputfilepath, "w") as outfile:
@@ -47,6 +45,38 @@ def main():
         # )
         # if not os.path.isfile(outputfilepath):
         #     pandoc_file(latexfilepath, outputfilepath)
+
+    total = len(data.get_local_files())
+
+    downloaded = len(
+        [
+            1
+            for arxivid, version in data.get_local_files()
+            if source.is_downloaded(arxivid, version)
+        ]
+    )
+
+    print(f"{downloaded/total*100:.2f}% downloaded.")
+
+    extracted = len(
+        [
+            1
+            for arxivid, version in data.get_local_files()
+            if source.is_extracted(arxivid, version)
+        ]
+    )
+
+    print(f"{extracted/total*100:.2f}% extracted.")
+
+    detexed = len(
+        [
+            1
+            for arxivid, version in data.get_local_files()
+            if is_detexed(arxivid, version)
+        ]
+    )
+
+    print(f"{detexed/total*100:.2f}% detexed.")
 
 
 def demo():
