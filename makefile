@@ -16,7 +16,7 @@ visualize: evaluate.py.prof
 	snakeviz evaluate.py.prof
 
 proposal: paper/proposal.md
-	pandoc --from markdown --to pdf paper/proposal.md --standalone --out paper/proposal.pdf
+	pandoc --from markdown+citations --bibliography=paper/proposal.bib --to pdf --filter pandoc-citeproc --standalone --number-sections --shift-heading-level-by=-1 --out paper/proposal.pdf paper/proposal.md
 
 
 test: FORCE
