@@ -41,6 +41,16 @@ def sample_info():
 
     print(f"{detexed/total*100:.2f}% detexed.")
 
+    sentenced = len(
+        [
+            1
+            for arxivid, version in data.get_sample_files()
+            if is_sentenced(arxivid, version)
+        ]
+    )
+
+    print(f"{sentenced/total*100:.2f}% converted to sentences.")
+
 
 def is_detexed(arxivid: ArxivID, version: int) -> bool:
     return os.path.isfile(data.text_path(arxivid, version))

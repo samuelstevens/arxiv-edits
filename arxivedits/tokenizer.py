@@ -23,7 +23,8 @@ from nltk import word_tokenize
 import nltk.data
 
 from arxivedits.detex.constants import BLOCK_MATH_TAG
-import data
+from arxivedits import data
+from arxivedits.structures import ArxivID
 
 FALSE_SPLIT_SUFFIXES = set(
     [
@@ -53,6 +54,7 @@ FALSE_SPLIT_SUFFIXES = set(
         "eqns.",
         # misc.
         "et al.",
+        "resp.",
     ]
 )
 FALSE_SPLIT_PUNC = set([".", "(", "["])
@@ -509,8 +511,28 @@ class ArxivTokenizer:
         raise ValueError("group must be either 'sentence' or 'word'.")
 
 
-def is_sentenced(arxividpath: str, version: int) -> bool:
+def is_sentenced(arxividpath: ArxivID, version: int) -> bool:
     return os.path.isfile(data.sentence_path(arxividpath, version))
+
+
+def tokenize_file(inputfilepath: str, outputfilepath: str, tok=CoreNLPTokenizer()):
+    with open(inputfilepath, "r") as textfile:
+        paragraphs = textfile.read().split("\n\n")
+
+    paragraphs = [" ".join(p.split("\n")).strip() for p in paragraphs]
+    paragraphs = [p for p in paragraphs if p]
+
+    with open(outputfilepath, "w") as sentencefile:
+        for p in paragraphs:
+            try:
+                sentences = tok.tokenize(p).ssplit()
+
+                for s in sentences:
+                    sentencefile.write(s + "\n")
+                sentencefile.write("\n")
+
+            except AttributeError as err:
+                print(f"Error on {textfilepath}: {err}")
 
 
 def main():
@@ -520,45 +542,20 @@ def main():
 
     tok = CoreNLPTokenizer()
 
-    for arxivid, version in data.get_local_files():
+    for arxivid, version in [("0705.2267", 5)]:  # data.get_sample_files():
         textfilepath = data.text_path(arxivid, version)
+        sentencefilepath = data.sentence_path(arxivid, version)
 
         if not os.path.isfile(textfilepath):
             # print(f"{arxivid}-v{version} was not converted to text.")
             continue
 
-        with open(textfilepath, "r") as textfile:
-            paragraphs = textfile.read().split("\n\n")
-
-        paragraphs = [" ".join(p.split("\n")).strip() for p in paragraphs]
-        paragraphs = [p for p in paragraphs if p]
-
-        sentencefilepath = data.sentence_path(arxivid, version)
-        with open(sentencefilepath, "w") as sentencefile:
-            for p in paragraphs:
-                try:
-                    sentences = tok.tokenize(p).ssplit()
-
-                    for s in sentences:
-                        sentencefile.write(s + "\n")
-                    sentencefile.write("\n")
-
-                except AttributeError as err:
-                    print(f"Error on {textfilepath}: {err}")
-
-            print(sentencefilepath)
-            print(data.latex_path(arxivid, version))
-
-    total = len(data.get_local_files())
-    sentenced = len(
-        [
-            1
-            for arxivid, version in data.get_local_files()
-            if is_sentenced(arxivid, version)
-        ]
-    )
-
-    print(f"{sentenced/total*100:.2f}% converted to sentences.")
+        # if os.path.isfile(sentencefilepath):
+        #     continue
+        print(textfilepath)
+        tokenize_file(textfilepath, sentencefilepath, tok)
+        print(sentencefilepath)
+        print(data.latex_path(arxivid, version))
 
 
 def demo():
