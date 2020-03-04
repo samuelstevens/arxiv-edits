@@ -5,53 +5,16 @@ import os
 import arxivedits.data as data
 import arxivedits.source as source
 import arxivedits.detex as detex
+from arxivedits.structures import ArxivID
 
 
-def is_detexed(arxivid: str, version: int) -> bool:
-    return os.path.isfile(data.text_path(arxivid, version))
-
-
-def main():
-    """
-    Takes .tex files and converts them to text.
-    """
-    print(len(data.get_local_files()))
-
-    for arxivid, version in data.get_local_files():
-        latexfilepath = data.latex_path(arxivid, version)
-
-        if not os.path.isfile(latexfilepath):
-            # print(f"{arxivid}-v{version} was not extracted to .tex")
-            continue
-
-        outputfilepath = data.text_path(arxivid, version)
-        print(latexfilepath)
-        detex.detex_file(latexfilepath, outputfilepath)
-        print(outputfilepath)
-
-        # outputfilepath = data.clean_latex_path(arxivid, version)
-        # with open(latexfilepath, "r") as infile:
-        #     with open(outputfilepath, "w") as outfile:
-        #         outfile.write(clean(infile.read()))
-
-        # outputfilepath = os.path.join(
-        #     data.extrafiles_path(arxivid, version), f"{arxivid}-v{version}-chenhao.txt"
-        # )
-        # if not os.path.isfile(outputfilepath):
-        #     simpleLatexToText(latexfilepath, outputfilepath, sectioned=True)
-
-        # outputfilepath = os.path.join(
-        #     data.extrafiles_path(arxivid, version), f"{arxivid}-v{version}-pandoc.md"
-        # )
-        # if not os.path.isfile(outputfilepath):
-        #     pandoc_file(latexfilepath, outputfilepath)
-
-    total = len(data.get_local_files())
+def sample_info():
+    total = len(data.get_sample_files())
 
     downloaded = len(
         [
             1
-            for arxivid, version in data.get_local_files()
+            for arxivid, version in data.get_sample_files()
             if source.is_downloaded(arxivid, version)
         ]
     )
@@ -61,7 +24,7 @@ def main():
     extracted = len(
         [
             1
-            for arxivid, version in data.get_local_files()
+            for arxivid, version in data.get_sample_files()
             if source.is_extracted(arxivid, version)
         ]
     )
@@ -71,12 +34,38 @@ def main():
     detexed = len(
         [
             1
-            for arxivid, version in data.get_local_files()
+            for arxivid, version in data.get_sample_files()
             if is_detexed(arxivid, version)
         ]
     )
 
     print(f"{detexed/total*100:.2f}% detexed.")
+
+
+def is_detexed(arxivid: ArxivID, version: int) -> bool:
+    return os.path.isfile(data.text_path(arxivid, version))
+
+
+def main():
+    """
+    Takes .tex files and converts them to text.
+    """
+
+    for arxivid, version in [("0705.2267", 5)]:  # data.get_sample_files():
+        latexfilepath = data.latex_path(arxivid, version)
+
+        if not os.path.isfile(latexfilepath):
+            print(f"{arxivid}-v{version} was not extracted to .tex")
+            continue
+
+        outputfilepath = data.text_path(arxivid, version)
+
+        # if os.path.isfile(outputfilepath):
+        #     continue  # already detexed
+
+        print(latexfilepath)
+        detex.detex_file(latexfilepath, outputfilepath)
+        print(outputfilepath)
 
 
 def demo():

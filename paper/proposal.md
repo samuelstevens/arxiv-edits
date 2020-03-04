@@ -55,7 +55,7 @@ We propose looking at all papers on arXiv with two or more revisions to create a
 <!-- discuss importances of research project -->
 Given that Wikipedia edit data has been useful in many applications including sentence compression [@yamangil], spelling correction [@zesch], Split and Rephrase [@wikisplit] and generating insertion phrases [@wikiatomicedits], arXiv could also be a valuable source of edit data with many similar applications. By introducing a dataset of academic writing, we will be able to perform similar tasks in more formal genres, such as writing and editing scientific papers.
 
-Due the to this data's relative novelty, part of this project's significance is discoving novel qualities and features that can be utilized by future work. 
+Due to this data's relative novelty, part of this project's significance is discoving novel qualities and features that can be utilized by future work. 
 
 
 ## Research Goals
