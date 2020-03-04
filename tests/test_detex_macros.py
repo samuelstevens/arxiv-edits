@@ -2,7 +2,7 @@ from arxivedits.detex import macros
 
 
 def test_command_with_args():
-    command = macros.LatexCommand(
+    command = macros.LatexMacro(
         r"\wbalTwo",
         r"""This is the Wikibook about LaTeX supported by #1 and #2""",
         arg_num=2,
@@ -16,7 +16,7 @@ def test_command_with_args():
 
 
 def test_command_with_default_args():
-    command = macros.LatexCommand(
+    command = macros.LatexMacro(
         r"\wbalTwo",
         r"This is the Wikibook about LaTeX supported by #1 and #2",
         arg_num=2,
@@ -30,7 +30,7 @@ def test_command_with_default_args():
 
 
 def test_command_with_default_overrriden():
-    command = macros.LatexCommand(
+    command = macros.LatexMacro(
         r"\wbalTwo",
         r"""This is the Wikibook about LaTeX supported by #1 and #2""",
         arg_num=2,
@@ -44,7 +44,7 @@ def test_command_with_default_overrriden():
 
 
 def test_command_with_default_with_braces():
-    command = macros.LatexCommand(
+    command = macros.LatexMacro(
         r"\wbalTwo",
         r"""This is the Wikibook about LaTeX supported by {#1} and {#2}""",
         arg_num=2,
@@ -65,7 +65,7 @@ def test_parse_command():
 \item \wbalsup{lots of users!}
 \end{itemize}
 """
-    expected_command = macros.LatexCommand(r"\wbal", r"The Wikibook about \LaTeX")
+    expected_command = macros.LatexMacro(r"\wbal", r"The Wikibook about \LaTeX")
 
     parser = macros.NewCommandParser(original_tex, 0)
 
@@ -84,7 +84,7 @@ def test_parse_def():
 
 \end{document}
 """
-    expected_command = macros.LatexCommand(r"\name", r"\emph{sam}")
+    expected_command = macros.LatexMacro(r"\name", r"\emph{sam}")
 
     parser = macros.DefParser(original_tex, 0)
 
@@ -103,7 +103,7 @@ def test_parse_def_with_symbol():
 
 \end{document}
 """
-    expected_command = macros.LatexCommand(r"\{", r"\emph{")
+    expected_command = macros.LatexMacro(r"\{", r"\emph{")
 
     parser = macros.DefParser(original_tex, 0)
 
@@ -116,7 +116,7 @@ def test_parse_def_with_symbol():
 
 
 def test_get_args():
-    command = macros.LatexCommand(
+    command = macros.LatexMacro(
         r"\wbalTwo",
         r"""This is the Wikibook about LaTeX supported by {#1} and {#2}""",
         arg_num=2,
@@ -132,7 +132,7 @@ def test_get_args():
 
 
 def test_get_args_with_overriden_default():
-    command = macros.LatexCommand(
+    command = macros.LatexMacro(
         r"\wbalTwo",
         r"""This is the Wikibook about LaTeX supported by {#1} and {#2}""",
         arg_num=2,
@@ -148,7 +148,7 @@ def test_get_args_with_overriden_default():
 
 
 def test_get_args_with_default():
-    command = macros.LatexCommand(
+    command = macros.LatexMacro(
         r"\wbalTwo",
         r"This is the Wikibook about LaTeX supported by {#1} and {#2}",
         arg_num=2,
