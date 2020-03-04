@@ -1,10 +1,10 @@
 import string
 import re
 from typing import List
-
+import logging
 
 from arxivedits import structures
-from arxivedits.detex import macros, environments
+from arxivedits.detex import macros, environments, commands
 from arxivedits.detex.constants import (
     BLOCK_MATH_PATTERN,
     BLOCK_MATH_TAG,
@@ -79,6 +79,8 @@ def clean(initial_tex: str) -> str:
 
     text = environments.process(text)
 
+    text = commands.process(text)
+
     # removes additional macros and stuff
     start_doc = text.find(r"\begin{document}")
     if start_doc >= 0:
@@ -94,10 +96,7 @@ def clean(initial_tex: str) -> str:
     if start_bib >= 0:
         text = text[:start_bib]
 
-    # chops off everything before the abstract
-    start_abstract = text.find(r"\begin{abstract}")
-    if start_abstract >= 0:
-        text = text[start_abstract + len(r"\begin{abstract}") :]
+    text = strip_abstract(text)
 
     text = removeBadMath(text)
 
@@ -233,16 +232,16 @@ def remove_tag(tag: str, text: str, braces=None, replace="") -> str:
         end_of_tag, err = find_pair(braces[0], braces[1], text, start_pos)
 
         if isinstance(end_of_tag, Exception):
-            print(f"Error in remove tag.")
-            print(end_of_tag)
+            logging.warning("Error in remove tag.")
+            logging.warning(end_of_tag)
             break
 
         if tag in tags_with_extra_braces:
             end_of_tag, err = find_pair(braces[0], braces[1], text, end_of_tag + 1)
 
         if isinstance(err, Exception):
-            print(f"Error in remove tag.")
-            print(err)
+            logging.warning("Error in remove tag.")
+            logging.warning(err)
             break
 
         end_pos = end_of_tag + 1  # +1 is for getting past }

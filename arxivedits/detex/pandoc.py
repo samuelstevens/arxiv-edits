@@ -3,6 +3,7 @@ Exports `pandoc_file()`, which uses `pandoc` and post processing (TODO) to extra
 """
 
 import subprocess
+import logging
 from typing import Optional
 
 from arxivedits.detex import latex
@@ -15,7 +16,7 @@ def pandoc_file(
         content = file.read()
 
     if clean:
-        content = latex.clean(content, basic=True)
+        content = latex.clean(content)
 
     try:
         result = subprocess.run(
@@ -39,6 +40,6 @@ def pandoc_file(
         return Exception(f"Timed out on {inputfile}")
     else:
         if result and result.returncode != 0:
-            print(result.stderr)
+            logging.error(result.stderr)
             return Exception(f"Error with {inputfile}")
         return None

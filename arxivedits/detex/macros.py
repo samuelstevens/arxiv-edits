@@ -3,7 +3,7 @@ Tries to process commands described in https://en.wikibooks.org/wiki/LaTeX/Macro
 """
 
 import string
-
+import logging
 
 from typing import Optional, List, Tuple
 
@@ -14,7 +14,7 @@ from arxivedits import structures
 VALID_MACRO_CHARS = "@<>?"
 
 
-class LatexCommand:
+class LatexMacro:
     """
     Represents a LaTeX command from `\\newcommand` or `\\def`, etc.
     """
@@ -77,7 +77,7 @@ class LatexCommand:
         return self.arg_num
 
     def __eq__(self, other):
-        if not isinstance(other, LatexCommand):
+        if not isinstance(other, LatexMacro):
             return False
 
         return (
@@ -104,15 +104,15 @@ class MacroParser:
         assert command
         assert text.startswith(command, pos), self.context()
 
-    def parse(self) -> structures.Go[Tuple[LatexCommand, int]]:
+    def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
         raise NotImplementedError("Needs to be implemented")
 
     def context(self):
         return self.text[self.pos - 30 : self.pos + 30]
 
-    def Error(self, msg) -> Tuple[Tuple[LatexCommand, int], Exception]:
+    def Error(self, msg) -> Tuple[Tuple[LatexMacro, int], Exception]:
         return (
-            (LatexCommand("", ""), self.pos),
+            (LatexMacro("", ""), self.pos),
             RuntimeError(f"{self.context()}\n{msg}"),
         )
 
@@ -125,7 +125,7 @@ class DefParser(MacroParser):
     def __init__(self, text, pos):
         super().__init__(text, pos, r"\def")
 
-    def parse(self) -> structures.Go[Tuple[LatexCommand, int]]:
+    def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
         r"""
         \def \name{\emph{else}}
         """
@@ -170,7 +170,7 @@ class DefParser(MacroParser):
 
         self.pos = end_def  # gets past }
 
-        command = LatexCommand(command_name, definition, 0, None)
+        command = LatexMacro(command_name, definition, 0, None)
 
         return (command, self.pos), None
 
@@ -183,7 +183,7 @@ class NewCommandParser(MacroParser):
     def __init__(self, text, pos, command=r"\newcommand"):
         super().__init__(text, pos, command)
 
-    def parse(self) -> structures.Go[Tuple[LatexCommand, int]]:
+    def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
         r"""
         \newcommand{\name}[2][default]{my other stuff #1 here and #2}
 
@@ -233,7 +233,7 @@ class NewCommandParser(MacroParser):
             self.pos += 1
 
             if self.text[self.pos] != "]":
-                print("invalid arguments.")
+                logging.warning("invalid arguments.")
 
             self.pos += 1
 
@@ -251,7 +251,7 @@ class NewCommandParser(MacroParser):
             default_arg = self.text[start_default:end_default]
 
             if self.text[self.pos] != "]":
-                print("invalid default arg.")
+                logging.warning("invalid default arg.")
 
             self.pos += 1
 
@@ -274,7 +274,7 @@ class NewCommandParser(MacroParser):
 
         self.pos = end_def  # gets past }
 
-        command = LatexCommand(command_name, definition, arg_count, default_arg)
+        command = LatexMacro(command_name, definition, arg_count, default_arg)
 
         return (command, self.pos), None
 
@@ -294,7 +294,7 @@ def skip_whitespace(text: str, position: int) -> int:
 
 
 def get_args(
-    text: str, starting_position: int, command: LatexCommand
+    text: str, starting_position: int, command: LatexMacro
 ) -> Tuple[int, List[str]]:
     position = starting_position
     args: List[str] = []
@@ -305,7 +305,7 @@ def get_args(
             end_of_arg, err = latex.find_pair("[", "]", text, position)
 
             if err:
-                print(err)
+                logging.warning(err)
 
             default_arg = text[position + 1 : end_of_arg]
 
@@ -313,8 +313,12 @@ def get_args(
 
     while command.required_arg_count() > len(args) and position < len(text):
         if text[position] != "{":
-            print(
-                f"Command {command.name} requires {command.required_arg_count()} arguments. Found {len(args)}: {', '.join(args)}"
+            logging.warning(
+                "Command %s requires %d arguments. Found %d: %s",
+                command.name,
+                command.required_arg_count(),
+                len(args),
+                ", ".join(args),
             )
 
             return position, args
@@ -340,7 +344,7 @@ def process(initial_tex: str) -> str:
     Processes `\\newcommand` and similar commands in LaTeX.
     """
 
-    commands: List[LatexCommand] = []  # order is very important
+    commands: List[LatexMacro] = []  # order is very important
     string_builder = []
     start_valid = 0
     position = 0
@@ -414,10 +418,14 @@ def process(initial_tex: str) -> str:
             end_command = start_command + len(command.name)
 
             if end_command >= len(text):
-                print("UH OH")
-                # break
+                logging.warning(f"Couldn't find the end of the word '{command}''.")
+                break
 
             end_command, arguments = get_args(text, end_command, command)
+
+            if end_command >= len(text):
+                logging.warning(f"Couldn't find the end of {command}.")
+                break
 
             if text[end_command] in ["\\"]:
                 end_command += 1
@@ -427,7 +435,7 @@ def process(initial_tex: str) -> str:
             command_result, err = command.result(arguments)
 
             if err:
-                print(err)
+                logging.error(err)
             else:
                 string_builder.append(command_result)
 

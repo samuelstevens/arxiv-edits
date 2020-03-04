@@ -43,6 +43,7 @@ def process(text: str) -> str:
         "equation": BLOCK_MATH_TAG,
         "subequation": BLOCK_MATH_TAG,
         "eqnarray": BLOCK_MATH_TAG,
+        "prop": None,
         "array": None,
         "figure": None,
         "align": BLOCK_MATH_TAG,  # same thing as eqnarray
@@ -108,3 +109,4 @@ def process(text: str) -> str:
             final.append(replacement)
 
     return "".join(final)
+

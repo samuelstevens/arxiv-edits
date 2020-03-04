@@ -3,6 +3,7 @@ Exports detex_file(), which extracts text using `opendetex` and extensive prepro
 """
 
 import subprocess, re
+import logging
 
 from arxivedits.detex import latex
 from arxivedits.detex.constants import MATH_TAG
@@ -44,6 +45,11 @@ def postprocess(text: str) -> str:
         r"(?:" + re.escape(MATH_TAG) + r"(?:\s|\d|\.|=|\(|\))+)+" + re.escape(MATH_TAG)
     )
     text = re.sub(regexp, MATH_TAG, text)
+
+    # chops off everything before the abstract
+    start_abstract = text.find("Abstract")
+    if start_abstract >= 0:
+        text = text[start_abstract + len("Abstract") :]
 
     # turns multiple blank lines into one
     text = re.sub(r"\n(\s*\n)+", "\n\n", text)
@@ -89,6 +95,7 @@ def detex_file(inputfile, outputfile):
             detexed, err = detex(content)
 
             if err:
-                print(err)
+                logging.warning(err)
 
             fout.write(detexed)
+
