@@ -115,6 +115,26 @@ def test_parse_def_with_symbol():
     assert err is None
 
 
+def test_parse_def_with_args():
+    original_tex = r"""\def\UTV#1#2#3{\text{UTV}^{#3}\!\rbr{#1,#2}}
+"""
+    expected_command = macros.LatexMacro(
+        r"\UTV#1#2#3", r"\text{UTV}^{#3}\!\rbr{#1,#2}", arg_num=3
+    )
+
+    parser = macros.DefParser(original_tex, 0)
+
+    result, err = parser.parse()
+    actual_command, actual_pos = result
+
+    assert actual_command == expected_command
+    assert actual_pos == 43
+    assert err is None
+
+
+# \global\long\def\UTV#1#2#3{\text{UTV}^{#3}\!\rbr{#1,#2}}
+
+
 def test_get_args():
     command = macros.LatexMacro(
         r"\wbalTwo",

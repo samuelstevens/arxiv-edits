@@ -5,23 +5,67 @@ Provides a central location to store all data locations
 import sqlite3
 import os
 import pathlib
+import csv
 
-from typing import Tuple, List
-from arxivedits.structures import Res
+from typing import Tuple, List, Union
+from arxivedits.structures import Res, ArxivID, ArxivIDPath
+
+UnsafeArxivID = Union[ArxivID, ArxivIDPath, str]
 
 pwd = pathlib.Path(__file__).parent.parent.absolute()  # pylint: disable=invalid-name
+
 DATA_DIR = pwd / "data"  # arxivedits/data, NOT arxivedits/arxivedits/data
+ALIGNMENT_DIR = DATA_DIR / "alignments"
+MODEL_DIR = ALIGNMENT_DIR / "models"
+CSV_DIR = ALIGNMENT_DIR / "alignments"
+ANNOTATION_DIR = ALIGNMENT_DIR / "need-annotation"
+FINISHED_DIR = ALIGNMENT_DIR / "finished-annotations"
 
 SCHEMA_PATH = pwd / "schema.sql"
 
 
-def path_asserts(arxividpath: str, version: int):
+DB_FILE_NAME = os.path.join(DATA_DIR, "arxivedits.sqlite3")
+IDF_DB = os.path.join(DATA_DIR, "idf")
+
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(ALIGNMENT_DIR, exist_ok=True)
+os.makedirs(MODEL_DIR, exist_ok=True)
+os.makedirs(CSV_DIR, exist_ok=True)
+os.makedirs(ANNOTATION_DIR, exist_ok=True)
+os.makedirs(FINISHED_DIR, exist_ok=True)
+
+
+def id_to_path(arxivid: UnsafeArxivID) -> ArxivIDPath:
+    """
+    Replaces the / from an id with a -
+    - also used for type conversion to satistfy mypy.
+    """
+    return ArxivIDPath(arxivid.replace("/", "-"))
+
+
+def path_asserts(arxivid: UnsafeArxivID, version: int) -> ArxivIDPath:
     """
     Asserts that paths and folders are correctly formed.
     """
-    assert "\\" not in arxividpath and "/" not in arxividpath
+    arxividpath = id_to_path(arxivid)
+
     path = os.path.join(DATA_DIR, arxividpath, f"v{version}", "extra")
     os.makedirs(path, exist_ok=True)
+
+    return arxividpath
+
+
+def alignment_path_asserts(
+    arxivid: UnsafeArxivID, version1: int, version2: int
+) -> ArxivIDPath:
+    """
+    Asserts that paths and folders are correctly formed for alignment.
+    """
+    arxividpath = id_to_path(arxivid)
+
+    assert version1 < version2, f"v{version1} must be less than v{version2}"
+
+    return arxividpath
 
 
 def parse_filename(filename: str) -> Res[Tuple[str, int]]:
@@ -41,53 +85,61 @@ def parse_filename(filename: str) -> Res[Tuple[str, int]]:
     return arxividpath, version
 
 
-def extrafiles_path(arxividpath: str, version: int) -> str:
-    path_asserts(arxividpath, version)
+def extrafiles_path(arxivid: UnsafeArxivID, version: int) -> str:
+    """
+    The folder for all extra files for an arxivid and version.
+    """
+    arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(DATA_DIR, arxividpath, f"v{version}", "extra")
 
 
-def source_path(arxividpath: str, version: int) -> str:
+def source_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
     Returns the path for the .gz file for a given arxivid and version.
     """
-    path_asserts(arxividpath, version)
+
+    arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
         DATA_DIR, arxividpath, f"v{version}", "extra", f"{arxividpath}-v{version}.gz"
     )
 
 
-def text_path(arxividpath: str, version: int) -> str:
+def text_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
     Returns the path for the detexed file for a given arxivid and version.
     """
 
-    path_asserts(arxividpath, version)
+    arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
         DATA_DIR, arxividpath, f"v{version}", "extra", f"{arxividpath}-v{version}.txt"
     )
 
 
-def sentence_path(arxividpath: str, version: int) -> str:
+def is_detexed(arxivid: UnsafeArxivID, version: int) -> bool:
+    return os.path.isfile(text_path(arxivid, version))
+
+
+def sentence_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
     Returns the path for the sentence-split file for a given arxivid and version.
     """
 
-    path_asserts(arxividpath, version)
+    arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
         DATA_DIR, arxividpath, f"v{version}", f"{arxividpath}-v{version}-sentences.txt"
     )
 
 
-def latex_path(arxividpath: str, version: int) -> str:
+def latex_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
     Returns the path for the constructed .tex file for a given arxivid and version.
     """
 
-    path_asserts(arxividpath, version)
+    arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
         DATA_DIR,
@@ -98,12 +150,12 @@ def latex_path(arxividpath: str, version: int) -> str:
     )
 
 
-def clean_latex_path(arxividpath: str, version: int) -> str:
+def clean_latex_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
     Returns the path for the cleaned .tex file for a given arxivid and version.
     """
 
-    path_asserts(arxividpath, version)
+    arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
         DATA_DIR,
@@ -114,20 +166,64 @@ def clean_latex_path(arxividpath: str, version: int) -> str:
     )
 
 
-def pdf_path(arxividpath: str, version: int) -> str:
+def pdf_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
     Returns the path for the original pdf file for a given arxivid and version.
     """
 
-    path_asserts(arxividpath, version)
+    arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
         DATA_DIR, arxividpath, f"v{version}", f"{arxividpath}-v{version}.pdf",
     )
 
 
-def get_local_files(maximum_only: bool = False) -> List[Tuple[str, int]]:
-    idlist = []
+def alignment_model_path(arxivid: UnsafeArxivID, version1: int, version2: int) -> str:
+    """
+    Returns the path for the Alignment() .pckl file for a given version pair.
+    """
+
+    arxividpath = alignment_path_asserts(arxivid, version1, version2)
+
+    return os.path.join(MODEL_DIR, f"{arxividpath}-v{version1}-v{version2}.pckl")
+
+
+def alignment_csv_path(arxivid: UnsafeArxivID, version1: int, version2: int) -> str:
+    """
+    Returns the path for the alignment .csv file for a given version pair.
+    """
+
+    arxividpath = alignment_path_asserts(arxivid, version1, version2)
+
+    return os.path.join(CSV_DIR, f"{arxividpath}-v{version1}-v{version2}.csv")
+
+
+def alignment_annotation_path(
+    arxivid: UnsafeArxivID, version1: int, version2: int
+) -> str:
+    """
+    Returns the path for the manual annotation .csv file for a given version pair.
+    """
+
+    arxividpath = alignment_path_asserts(arxivid, version1, version2)
+
+    return os.path.join(ANNOTATION_DIR, f"{arxividpath}-v{version1}-v{version2}.csv")
+
+
+def alignment_finished_path(
+    arxivid: UnsafeArxivID, version1: int, version2: int
+) -> str:
+    """
+    Returns the path for the finisehd annotation .csv file for a given version pair.
+    """
+
+    arxividpath = alignment_path_asserts(arxivid, version1, version2)
+
+    return os.path.join(FINISHED_DIR, f"{arxividpath}-v{version1}-v{version2}.csv")
+
+
+def get_local_files(maximum_only: bool = False) -> List[Tuple[ArxivIDPath, int]]:
+    idlist: List[Tuple[ArxivIDPath, int]] = []
 
     for arxivid in os.listdir(DATA_DIR):
         versionlist = []
@@ -145,31 +241,78 @@ def get_local_files(maximum_only: bool = False) -> List[Tuple[str, int]]:
         if maximum_only and versionlist:
             versionlist = [max(versionlist)]
 
-        idlist.extend([(arxivid, v) for v in versionlist])
+        idlist.extend([(ArxivIDPath(arxivid), v) for v in versionlist])
 
     return sorted(idlist)
 
 
-SECTIONS_DIR = os.path.join(DATA_DIR, "sections")
-ALIGNMENTS_DIR = os.path.join(DATA_DIR, "alignments")
+def get_sample_files(maximum_only: bool = False) -> List[Tuple[ArxivID, int]]:
+    with open(os.path.join(DATA_DIR, "sample-only-multiversion.csv")) as csvfile:
+        reader = csv.reader(csvfile)
+        pairs = [(i, int(versioncount)) for i, versioncount in reader]
 
-DB_FILE_NAME = os.path.join(DATA_DIR, "arxivedits.sqlite3")
-IDF_DB = os.path.join(DATA_DIR, "idf")
+    idlist = []
 
-# if not os.path.isdir(DATA_DIR):
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(SECTIONS_DIR, exist_ok=True)
-os.makedirs(ALIGNMENTS_DIR, exist_ok=True)
+    for arxivid, versioncount in pairs:
+        versionlist = list(range(1, versioncount + 1))
+
+        arxvidpath = id_to_path(ArxivID(arxivid))
+
+        if not os.path.isdir(os.path.join(DATA_DIR, arxvidpath)):
+            continue
+
+        if maximum_only and versionlist:
+            versionlist = [max(versionlist)]
+
+        idlist.extend([(ArxivID(arxivid), v) for v in versionlist])
+
+    return idlist
 
 
-def connection():
+def get_paragraphs(arxivid: UnsafeArxivID, version: int) -> Res[List[List[str]]]:
+    """
+    Gets a list of lists of sentences representing document paragraphs.
+    """
+    arxividpath = path_asserts(arxivid, version)
+
+    try:
+        with open(sentence_path(arxividpath, version)) as file:
+            contents = file.read()
+    except FileNotFoundError as err:
+        return err
+
+    paragraph_texts = contents.split("\n\n")
+
+    paragraphs = [
+        [sent for sent in paragraph.split("\n") if sent]
+        for paragraph in paragraph_texts
+    ]
+
+    paragraphs = [p for p in paragraphs if p]
+
+    return paragraphs
+
+
+def compare_command(arxivid: UnsafeArxivID, v1: int, v2: int) -> str:
+    arxividpath_v1 = path_asserts(arxivid, v1)
+    arxividpath_v2 = path_asserts(arxivid, v2)
+
+    sent_path_v1 = sentence_path(arxividpath_v1, v1)
+    sent_path_v2 = sentence_path(arxividpath_v2, v2)
+
+    return f"code --diff {sent_path_v1} {sent_path_v2}"
+
+
+def connection() -> sqlite3.Connection:
     """
     Creates and returns a new connection to a persistent database
     """
     return sqlite3.connect(DB_FILE_NAME, detect_types=sqlite3.PARSE_DECLTYPES)
 
 
-def is_x(arxivid, versioncount, directory, extension="") -> bool:
+def is_x(
+    arxivid: UnsafeArxivID, versioncount: int, directory: str, extension: str = ""
+) -> bool:
     """
     Checks if all versions of an arxiv id are in a directory. Useful to see what % were successfully 'detexed' or extracted.
     """

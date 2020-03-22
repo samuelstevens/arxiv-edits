@@ -1,1 +1,1 @@
-from arxivedits import tokenizer, util, data, diff, structures
+from arxivedits import tokenizer, util, data, diff, structures, alignment

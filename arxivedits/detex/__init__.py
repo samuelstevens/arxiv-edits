@@ -4,7 +4,7 @@ Exports 3 methods of extracting text from a file: `opendetex` + preprocessing, `
 
 from arxivedits.detex.opendetex import detex_file
 from arxivedits.detex.pandoc import pandoc_file
-from arxivedits.detex.chenhao import simpleLatexToText as chenhao_file
+from arxivedits.detex.chenhao import simpleLatexToText as chenhao_file  # type: ignore
 
 # public methods
 # detex_file

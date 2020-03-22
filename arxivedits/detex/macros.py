@@ -5,7 +5,7 @@ Tries to process commands described in https://en.wikibooks.org/wiki/LaTeX/Macro
 import string
 import logging
 
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any
 
 
 from arxivedits.detex import latex
@@ -25,7 +25,7 @@ class LatexMacro:
         definition: str,
         arg_num: int = 0,
         default_arg: Optional[str] = None,
-    ):
+    ) -> None:
         assert isinstance(name, str)
         assert name  # checks if len > 0
         assert name[0] == "\\"
@@ -47,7 +47,7 @@ class LatexMacro:
         assert isinstance(default_arg, str) or default_arg is None
         self.default_arg = default_arg
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Command: {self.name}, def: {self.definition}"
 
     def result(self, args: List[str]) -> structures.Go[str]:
@@ -67,7 +67,7 @@ class LatexMacro:
 
         return result, None
 
-    def required_arg_count(self):
+    def required_arg_count(self) -> int:
         """
         The required number of arguments. Takes whether the command has a default arg into account.
         """
@@ -76,7 +76,7 @@ class LatexMacro:
 
         return self.arg_num
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, LatexMacro):
             return False
 
@@ -87,7 +87,7 @@ class LatexMacro:
             and other.default_arg == self.default_arg
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(repr(self))
 
 
@@ -107,10 +107,10 @@ class MacroParser:
     def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
         raise NotImplementedError("Needs to be implemented")
 
-    def context(self):
+    def context(self) -> str:
         return self.text[self.pos - 30 : self.pos + 30]
 
-    def Error(self, msg) -> Tuple[Tuple[LatexMacro, int], Exception]:
+    def Error(self, msg: str) -> Tuple[Tuple[LatexMacro, int], Exception]:
         return (
             (LatexMacro("", ""), self.pos),
             RuntimeError(f"{self.context()}\n{msg}"),
@@ -122,7 +122,7 @@ class DefParser(MacroParser):
     Parses \\def
     """
 
-    def __init__(self, text, pos):
+    def __init__(self, text: str, pos: int) -> None:
         super().__init__(text, pos, r"\def")
 
     def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
@@ -153,6 +153,13 @@ class DefParser(MacroParser):
             while self.text[self.pos] in string.ascii_letters:
                 self.pos += 1
 
+        # args start with #1#2#3, etc
+
+        argcount = 0
+        while self.text[self.pos] == "#" and self.text[self.pos + 1] in string.digits:
+            self.pos += 2
+            argcount += 1
+
         command_end = self.pos
         command_name = "\\" + self.text[command_start:command_end]
 
@@ -170,7 +177,7 @@ class DefParser(MacroParser):
 
         self.pos = end_def  # gets past }
 
-        command = LatexMacro(command_name, definition, 0, None)
+        command = LatexMacro(command_name, definition, argcount, None)
 
         return (command, self.pos), None
 
@@ -180,7 +187,7 @@ class NewCommandParser(MacroParser):
     Parses \\newcommand and \\newcommand*
     """
 
-    def __init__(self, text, pos, command=r"\newcommand"):
+    def __init__(self, text: str, pos: int, command: str = r"\newcommand") -> None:
         super().__init__(text, pos, command)
 
     def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
@@ -280,7 +287,9 @@ class NewCommandParser(MacroParser):
 
 
 class RobustCommandParser(NewCommandParser):
-    def __init__(self, text, pos, command=r"\DeclareRobustCommand"):
+    def __init__(
+        self, text: str, pos: int, command: str = r"\DeclareRobustCommand"
+    ) -> None:
         super().__init__(text, pos, command)
 
 

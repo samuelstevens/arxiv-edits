@@ -1,71 +1,22 @@
 import csv
 import os
+import logging
+
+from tqdm import tqdm
+
+from arxivedits import data, source, detex
 
 
-import arxivedits.data as data
-import arxivedits.source as source
-import arxivedits.detex as detex
-from arxivedits.structures import ArxivID
-
-
-def sample_info():
-    total = len(data.get_sample_files())
-
-    downloaded = len(
-        [
-            1
-            for arxivid, version in data.get_sample_files()
-            if source.is_downloaded(arxivid, version)
-        ]
-    )
-
-    print(f"{downloaded/total*100:.2f}% downloaded.")
-
-    extracted = len(
-        [
-            1
-            for arxivid, version in data.get_sample_files()
-            if source.is_extracted(arxivid, version)
-        ]
-    )
-
-    print(f"{extracted/total*100:.2f}% extracted.")
-
-    detexed = len(
-        [
-            1
-            for arxivid, version in data.get_sample_files()
-            if is_detexed(arxivid, version)
-        ]
-    )
-
-    print(f"{detexed/total*100:.2f}% detexed.")
-
-    sentenced = len(
-        [
-            1
-            for arxivid, version in data.get_sample_files()
-            if is_sentenced(arxivid, version)
-        ]
-    )
-
-    print(f"{sentenced/total*100:.2f}% converted to sentences.")
-
-
-def is_detexed(arxivid: ArxivID, version: int) -> bool:
-    return os.path.isfile(data.text_path(arxivid, version))
-
-
-def main():
+def main() -> None:
     """
     Takes .tex files and converts them to text.
     """
-
-    for arxivid, version in [("0705.2267", 5)]:  # data.get_sample_files():
+    logging.disable(logging.FATAL)
+    for arxivid, version in tqdm(data.get_sample_files()):
         latexfilepath = data.latex_path(arxivid, version)
 
         if not os.path.isfile(latexfilepath):
-            print(f"{arxivid}-v{version} was not extracted to .tex")
+            # print(f"{arxivid}-v{version} was not extracted to .tex")
             continue
 
         outputfilepath = data.text_path(arxivid, version)
@@ -73,12 +24,14 @@ def main():
         # if os.path.isfile(outputfilepath):
         #     continue  # already detexed
 
-        print(latexfilepath)
+        # print(latexfilepath)
         detex.detex_file(latexfilepath, outputfilepath)
-        print(outputfilepath)
+        # print(outputfilepath)
+
+    logging.disable(logging.NOTSET)
 
 
-def demo():
+def demo() -> None:
     teststrings = [
         r"""
         \begin{document}
@@ -137,7 +90,7 @@ def demo():
         print(detex.latex.clean(s))
 
 
-def script():
+def script() -> None:
     with open(f"{data.DATA_DIR}/matched_sentences.csv") as csvfile:
         reader = csv.reader(csvfile)
 
@@ -166,7 +119,7 @@ def script():
                 data.source_path(arxivid, 1), data.latex_path(arxivid, 1)
             )
 
-        if not is_detexed(arxivid, 1):
+        if not data.is_detexed(arxivid, 1):
             detex.detex_file(data.latex_path(arxivid, 1), data.text_path(arxivid, 1))
 
         if not source.is_downloaded(arxivid, 2):
@@ -177,7 +130,7 @@ def script():
                 data.source_path(arxivid, 2), data.latex_path(arxivid, 2)
             )
 
-        if not is_detexed(arxivid, 2):
+        if not data.is_detexed(arxivid, 2):
             detex.detex_file(data.latex_path(arxivid, 2), data.text_path(arxivid, 2))
 
         print(data.text_path(arxivid, 1))

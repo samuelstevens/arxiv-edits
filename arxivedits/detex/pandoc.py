@@ -10,7 +10,7 @@ from arxivedits.detex import latex
 
 
 def pandoc_file(
-    inputfile, outputfile, to="markdown", clean=True
+    inputfile: str, outputfile: str, to: str = "markdown", clean: bool = True
 ) -> Optional[Exception]:
     with open(inputfile, "r") as file:
         content = file.read()

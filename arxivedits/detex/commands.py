@@ -1,4 +1,3 @@
-from collections import namedtuple
 import logging
 
 from arxivedits.detex import latex
@@ -22,6 +21,83 @@ class LatexCommand:
         return self.parse(inital_tex, position, command_name)
 
 
+def NewTheoremParse(
+    initial_tex: str, position: int, name: str = "newtheorem"
+) -> structures.Go[Tuple[str, int]]:
+    r"""
+    expects some .tex that looks like:
+    1. \newtheorem{some}{thing}
+    2. \newtheorem{some}{thing}[count]
+    3. \newtheorem{some}[count]{thing}
+    4. \newtheorem*{some}{thing}
+
+    Replaces it with "" because we hope no one sets really complicated environments (theorems)
+    """
+
+    if initial_tex[position] != "\\":
+        return ("", position), ValueError(f"Command needs to start with \\{name}")
+
+    if not initial_tex.startswith(name, position + 1):
+        return ("", position), ValueError(f"Command needs to start with \\{name}")
+
+    position += 1 + len(name)
+
+    saw_count = False
+    numbered = True
+
+    if initial_tex[position] == "*":
+        position += 1
+        numbered = False
+
+    if initial_tex[position] != "{":
+        return ("", position), ValueError("Command needs to an arg starting with {")
+
+    if initial_tex[position] == "{":
+        position, err = latex.find_pair("{", "}", initial_tex, position)
+
+        if err is not None:
+            return ("", position), err
+
+        position += 1
+    else:
+        return ("", position), ValueError("newtheorem needs one arg starting with {")
+
+    if initial_tex[position] == "[":
+        position, err = latex.find_pair("[", "]", initial_tex, position)
+
+        if err is not None:
+            return ("", position), err
+
+        saw_count = True
+
+        position += 1
+
+    if initial_tex[position] == "{":
+        position, err = latex.find_pair("{", "}", initial_tex, position)
+
+        if err is not None:
+            return ("", position), err
+
+    else:
+        return (
+            ("", position),
+            ValueError("newtheorem needs a second arg starting with {"),
+        )
+
+    if (
+        position + 1 < len(initial_tex)
+        and initial_tex[position + 1] == "["
+        and not saw_count
+        and numbered
+    ):
+        position, err = latex.find_pair("[", "]", initial_tex, position)
+
+        if err is not None:
+            return ("", position), err
+
+    return ("", position), None
+
+
 def LengthParse(
     initial_tex: str, position: int, name: str
 ) -> structures.Go[Tuple[str, int]]:
@@ -42,7 +118,7 @@ def LengthParse(
     if initial_tex[position] not in ["\\", "{"]:
         return (
             ("", position),
-            ValueError("Command needs to an arg starting with \\ or {"),
+            ValueError("Command needs an arg starting with \\ or {"),
         )
 
     if initial_tex[position] == "{":
@@ -69,6 +145,7 @@ def LengthParse(
 BAD_COMMANDS = [
     LatexCommand("setlength", LengthParse),
     LatexCommand("addtolength", LengthParse),
+    LatexCommand("newtheorem", NewTheoremParse),
 ]
 
 
@@ -101,7 +178,7 @@ def process(initial_tex: str) -> str:
     return "".join(string_builder)
 
 
-def main():
+def main() -> None:
     test_command = r"""{\setlength\arraycolsep{1pt}
     [EQUATION]}"""
 

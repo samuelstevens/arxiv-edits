@@ -1,15 +1,16 @@
+"""
+General preprocessing for detexing a .tex file.
+"""
+
 import string
 import re
-from typing import List
+from typing import List, Tuple, Optional
 import logging
 
 from arxivedits import structures
-from arxivedits.detex import macros, environments, commands
+from arxivedits.detex import macros, environments, commands, equations
 from arxivedits.detex.constants import (
-    BLOCK_MATH_PATTERN,
     BLOCK_MATH_TAG,
-    MATH_TAG,
-    INLINE_MATH_PATTERN,
     SECTION_PATTERNS,
     BAD_TAGS,
     # citations
@@ -94,11 +95,9 @@ def clean(initial_tex: str) -> str:
     # chop off bibliography
     start_bib = text.find(r"\thebibliography")
     if start_bib >= 0:
-        text = text[:start_bib]
+        text = text[: start_bib + 1]
 
     text = strip_abstract(text)
-
-    text = removeBadMath(text)
 
     for tag in BAD_TAGS:
         text = remove_tag(tag, text)
@@ -114,17 +113,12 @@ def clean(initial_tex: str) -> str:
 
     # change $$...$$ to [EQUATION]
     # needs to go first so that $$...$$ isn't turned to $[MATH]$
-    text = BLOCK_MATH_PATTERN.sub(BLOCK_MATH_TAG + " ", text)
-
-    # change $...$ to [MATH]
-    text = INLINE_MATH_PATTERN.sub(MATH_TAG + " ", text)
+    text = equations.remove_block_math(text)
+    text = equations.remove_inline_math(text)
 
     # change [MATH] [MATH]  [MATH] to [MATH]
     # (\[MATH\] *)+\[MATH\]
-    regexp = r"(?:" + re.escape(MATH_TAG) + r" *)+" + re.escape(MATH_TAG)
-    # print("before:", re.findall(regexp, text))
-    text = re.sub(regexp, MATH_TAG, text)
-    # print("after:", re.findall(regexp, text))
+    text = equations.consecutive_math(text)
 
     # removes blank lines before [EQUATION]
     regexp = r"\n\n+\[EQUATION\]"
@@ -142,51 +136,6 @@ def clean(initial_tex: str) -> str:
     # removes multiple spaces
     text = re.sub(r" +", " ", text, flags=re.MULTILINE)
 
-    #     lines = text.split("\n")
-
-    #     # joins all lines that end with <non-whitespace>%
-    #     i = 0
-    #     while i < len(lines):
-    #         if MACRO_COMMENT_PATTERN.search(lines[i]):
-    #             lines[i] = lines[i][:-1]
-    #             lines[i] += lines[i + 1]
-    #             lines[i + 1] = ""
-    #             i += 1
-
-    #         i += 1
-
-    #     # removes lines with \authorblock
-    #     lines = [line for line in lines if not line.lstrip().startswith(r"\authorblock")]
-
-    #     # changes \citet{something} to [CITATION]
-    #     text = EXTRACT_CITATION_PATTERN.sub(CITE_TAG, text)
-
-    #     text = GRAPHICS_PATTERN.sub("", text)
-
-    #
-
-    #     text = remove_tag(r"\input", text, braces=[" ", " "])
-
-    #     if not basic:
-    #         # remove \label{...}
-    #         text = remove_tag(r"\label", text)
-
-    #     # turns multiple blank lines into one
-    #     text = re.sub(r"\n(\s*\n)+", "\n\n", text)
-
-    #     start_doc = text.find(r"\begin{document}")
-
-    #     if start_doc >= 0:
-    #         text = text[start_doc:]
-
-    #     # removes multiple spaces
-    #     text = re.sub(r" +", " ", text, flags=re.MULTILINE)
-
-    #     # removes spaces at the start of a line
-    #     text = re.sub("^ ", "", text, flags=re.MULTILINE)
-
-    #     return text
-
     return text
 
 
@@ -197,13 +146,15 @@ def remove_comments(text: str) -> str:
     return re.sub(r"(?<!\\)%.*$", "", text, flags=re.MULTILINE)
 
 
-def remove_tag(tag: str, text: str, braces=None, replace="") -> str:
+def remove_tag(
+    tag: str, text: str, braces: Optional[Tuple[str, str]] = None, replace: str = ""
+) -> str:
     """
     Removes tags like `\\footnote` or `\\def` from a string by using `find_pair()` to handle nested braces. This is better than guessing if a greedy regex will work.
     """
 
     if not braces:
-        braces = ["{", "}"]
+        braces = ("{", "}")
 
     tags_with_extra_braces = [r"\setcounter"]
 
@@ -254,59 +205,3 @@ def remove_tag(tag: str, text: str, braces=None, replace="") -> str:
     text = "".join(string_builder)
 
     return text
-
-
-def removeBadMath(content: str) -> str:
-    r"""
-    Changes modern LaTeX sequences such as `\( \)` and `\[ \]` to `$ $`. 
-    
-    Written by Chenhao Tan, modified by Sam Stevens.
-    """
-    # result is a list of lines
-    result = []
-    pos = 0
-
-    while pos < len(content) - 1:
-        # if the current 2 chars are \(
-        if content[pos : pos + 2] == "\\(":
-            # if the previous character was not \ (so the entire sequence is NOT "\\(" )
-            if not (pos > 0 and content[pos - 1] == "\\"):
-                # add a $ for Latex math
-                result.append(" $ ")
-                # go past these two chars
-                pos += 2
-                # start loop again
-                continue
-
-        # if the 2 current chars are \(
-        if content[pos : pos + 2] == "\\)":
-            # making sure the slash isn't escaped
-            if not (pos > 0 and content[pos - 1] == "\\"):
-                result.append(" $ ")
-                pos += 2
-                continue
-
-        # if the 2 current chars are \[
-        if content[pos : pos + 2] == "\\[":
-            if not (pos > 0 and content[pos - 1] == "\\"):
-                result.append(" $$ ")
-                pos += 2
-                continue
-
-        # if the 2 current chars are \]
-        if content[pos : pos + 2] == "\\]":
-            if not (pos > 0 and content[pos - 1] == "\\"):
-                result.append(" $$ ")
-                pos += 2
-                continue
-
-        # if this position isn't one of those char sequences, append a single character
-        result.append(content[pos])
-        pos += 1
-
-    # sometimes you'll end up without the last char.
-    if pos < len(content):
-        result.append(content[pos])
-
-    # rejoin the string
-    return "".join(result)

@@ -5,7 +5,7 @@ from math import inf
 from typing import Optional
 
 
-from tokenizer import ArxivTokenizer
+from arxivedits.tokenizer import ArxivTokenizer
 from lcs import lcs
 from idf import idf
 

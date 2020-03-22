@@ -175,7 +175,7 @@ def manually_align(arxivid, versionpair):
     alignedsections = sections.align(v1, v2)
 
     foldername = os.path.join(
-        data.ALIGNMENTS_DIR,
+        data.ALIGNMENT_DIR,
         f"{arxividpath}-v{versionpair[0]}-v{versionpair[1]}",
         "working-set",
     )

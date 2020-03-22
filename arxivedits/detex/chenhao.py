@@ -1,9 +1,11 @@
+# type: ignore
+
 import string
 import logging
 import re
 from typing import List
 
-from arxivedits.detex import latex
+from arxivedits.detex import latex, equations
 
 logger = logging.getLogger("delatex")
 
@@ -140,7 +142,7 @@ def simpleLatexToText(inputfile: str, outputfile: str, sectioned=False):
     content = "".join(contentlist)
 
     # remove modern math
-    content = latex.removeBadMath(content)
+    content = equations._remove_bad_math(content)
     startpos = content.find("\\begin{document}")
 
     # if you don't see any \begin{document}, don't do anything (return early)

@@ -2,11 +2,12 @@
 Exports detex_file(), which extracts text using `opendetex` and extensive preprocessing.
 """
 
-import subprocess, re
+import subprocess
+import re
 import logging
 
 from arxivedits.detex import latex
-from arxivedits.detex.constants import MATH_TAG
+from arxivedits.detex.constants import INLINE_MATH_TAG, ACKNOWLEDGEMENT_PATTERN
 from arxivedits import structures
 
 
@@ -33,8 +34,8 @@ def postprocess(text: str) -> str:
     Does some minor post processing on `opendetex`'s output.
     """
     # replaces any occurence of noun, verb with [MATH]. The only occurences of noun and verb will be from opendetex.
-    text = text.replace("noun", MATH_TAG)
-    text = text.replace("verbs", MATH_TAG)
+    text = text.replace("noun", INLINE_MATH_TAG)
+    text = text.replace("verbs", INLINE_MATH_TAG)
 
     # now we can put noun and verb back into the text.
     text = text.replace(TMP_NOUN_TAG, "noun")
@@ -42,17 +43,28 @@ def postprocess(text: str) -> str:
 
     # (?:\[MATH\](?:\s|\d|\.|=|\(|\))+)+\[MATH\]
     regexp = (
-        r"(?:" + re.escape(MATH_TAG) + r"(?:\s|\d|\.|=|\(|\))+)+" + re.escape(MATH_TAG)
+        r"(?:"
+        + re.escape(INLINE_MATH_TAG)
+        + r"(?:\s|\d|\.|=|\(|\))+)+"
+        + re.escape(INLINE_MATH_TAG)
     )
-    text = re.sub(regexp, MATH_TAG, text)
+    text = re.sub(regexp, INLINE_MATH_TAG, text)
 
     # chops off everything before the abstract
     start_abstract = text.find("Abstract")
     if start_abstract >= 0:
         text = text[start_abstract + len("Abstract") :]
 
+    # chop off everything after acknowledgements
+    acknowledgement_matches = list(ACKNOWLEDGEMENT_PATTERN.finditer(text))
+    if acknowledgement_matches:
+        text = text[: acknowledgement_matches[-1].start()]
+
     # turns multiple blank lines into one
     text = re.sub(r"\n(\s*\n)+", "\n\n", text)
+
+    # removes tabs
+    text = re.sub(r"\t+", " ", text, flags=re.MULTILINE)
 
     # removes multiple spaces
     text = re.sub(r" +", " ", text, flags=re.MULTILINE)
@@ -84,7 +96,7 @@ def detex(text: str) -> structures.Go[str]:
         )
 
 
-def detex_file(inputfile, outputfile):
+def detex_file(inputfile: str, outputfile: str) -> None:
     """
     Takes a .tex file (inputfile) and extracts text, writes it to outputfile.
     """
@@ -98,4 +110,12 @@ def detex_file(inputfile, outputfile):
                 logging.warning(err)
 
             fout.write(detexed)
+
+
+if __name__ == "__main__":
+    test = r"""Let ${\cal T}\left[0,T\right]$ be the family of stopping times $\tau$ such that $0\le\tau\le T.$
+For any process $Z:\sbr{0,T}\times\Omega\ra\left[0,+\ns\right]$ we
+define"""
+    # \$.*[^.]\.\$ [A-Z]
+    print(detex(test)[0])
 

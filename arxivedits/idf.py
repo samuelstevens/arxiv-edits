@@ -17,16 +17,18 @@ from tokenizer import ArxivTokenizer
 
 TOTALDOCS = 307
 
-TOKENIZER = ArxivTokenizer()
+# TOKENIZER = ArxivTokenizer()
 
-DOCUMENTFREQUENCY = shelve.open(data.IDF_DB)
+# DOCUMENTFREQUENCY = shelve.open(data.IDF_DB)
 
-inputfiles = map(lambda f: os.path.join(data.TEXT_DIR, f), os.listdir(data.TEXT_DIR))
+# inputfiles = [data.sentence_path(arxivid, v) for arxivid, v in data.get_sample_files()]
 
-TFIDFMODEL = TFIDFModel(
-    input_files=inputfiles,
-    stop_list="https://ghpaetzold.github.io/massalign_data/stop_words.txt",
-)
+# inputfiles = [i for i in inputfiles if os.path.isfile(i)]
+
+# TFIDFMODEL = TFIDFModel(
+#     input_files=inputfiles,
+#     stop_list="https://ghpaetzold.github.io/massalign_data/stop_words.txt",
+# )
 
 
 def initialize_idf():

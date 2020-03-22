@@ -7,20 +7,17 @@
 Base tokenizer/tokens classes and utilities.
 """
 
-from functools import reduce
-from typing import List
+from typing import List, Set, Any, Optional, Callable
 import json
 import copy
 import os
 import re
 import pathlib
 import string
+import logging
 
 import pexpect
-
-# from nltk.tokenize.treebank import TreebankWordTokenizer
-from nltk import word_tokenize
-import nltk.data
+from tqdm import tqdm
 
 from arxivedits.detex.constants import BLOCK_MATH_TAG
 from arxivedits import data
@@ -38,6 +35,10 @@ FALSE_SPLIT_SUFFIXES = set(
         "Secs.",
         "sec.",
         "secs.",
+        "Sect.",
+        "Sects.",
+        "sect.",
+        "sects.",
         # references
         "Ref.",
         "Refs.",
@@ -60,6 +61,79 @@ FALSE_SPLIT_SUFFIXES = set(
 FALSE_SPLIT_PUNC = set([".", "(", "["])
 
 
+def split_on_tag(tag: str, text: str, offset: int = 0) -> List[str]:
+    """
+    If the next non-whitespace character after `tag` is a capital letter, the sentence is split.
+    """
+    if tag in text[offset:]:
+        nextsentence = text.index(tag, offset) + len(tag)
+
+        if nextsentence + 1 >= len(text):
+            return [text]
+
+        # if the next non-whitespace character after the tag is uppercase, split.
+        pos = nextsentence
+        while pos < len(text) and text[pos] in string.whitespace:
+            pos += 1
+
+        if text[pos] in string.ascii_uppercase:
+            return [
+                text[:nextsentence],
+                *split_on_tag(tag, text[pos:].lstrip()),
+            ]
+
+        # else try and split further on
+        return split_on_tag(tag, text, nextsentence + 1)
+
+    return [text]
+
+
+def join_sentences(
+    sentences: List[str],
+    newsentence: str,
+    false_suffixes: Set[str],
+    false_punc: Set[str],
+) -> List[str]:
+    """
+    Joins sentences that were incorrectly split because of false suffixes. Returns a new list of sentences (since the last sentence in `sentences` might need to be changed)
+    """
+    newsentence = " ".join(newsentence.split())
+
+    if newsentence == ".":
+        return sentences
+
+    newsentences = split_on_tag(BLOCK_MATH_TAG, newsentence)
+
+    if not sentences:
+        return newsentences
+
+    last_sentence = sentences[-1]
+
+    # handles cases like "... in Fig. 3."
+    for suf in false_suffixes:
+        if last_sentence.endswith(suf):
+            sentences[-1] = last_sentence + " " + newsentences[0]
+            return sentences + newsentences[1:]
+
+    # cases like "... in Fig.(3)." -> "... in Fig.(" + "(3)."
+    for suf in false_suffixes:
+        for punc in false_punc:
+            if last_sentence.endswith(f"{suf}{punc}") and newsentence.startswith(punc):
+                sentences[-1] = last_sentence + newsentences[0][1:]
+                return sentences + newsentences[1:]
+
+    return sentences + newsentences
+
+
+def join_sentences_wrapper(sentences: List[str]) -> List[str]:
+    final_sentence_list: List[str] = []
+    for sentence in sentences:
+        final_sentence_list = join_sentences(
+            final_sentence_list, sentence, FALSE_SPLIT_SUFFIXES, FALSE_SPLIT_PUNC
+        )
+    return final_sentence_list
+
+
 class Tokens:
     """
     A class to represent a list of tokenized text.
@@ -72,7 +146,7 @@ class Tokens:
     LEMMA = 4
     NER = 5
 
-    def __init__(self, data, annotators, opts=None, output=None):
+    def __init__(self, data, annotators, opts=None, output=None) -> None:
         self.data = data
         self.annotators = annotators
         self.opts = opts or {}
@@ -83,7 +157,7 @@ class Tokens:
         self.false_split_suffixes = FALSE_SPLIT_SUFFIXES
         self.false_split_punc = FALSE_SPLIT_PUNC
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         The number of tokens.
         """
@@ -97,7 +171,7 @@ class Tokens:
         new_tokens.data = self.data[i:j]
         return new_tokens
 
-    def ssplit(self):
+    def ssplit(self) -> List[str]:
         sentence_list = []
         original_sentence = self.untokenize()
         dict_a = self.output
@@ -109,66 +183,15 @@ class Tokens:
                 original_sentence[start_offset : end_offset + 1].strip()
             )
 
-        def join_sentences(sentences: List[str], newsentence: str) -> List[str]:
-            newsentence = " ".join(newsentence.split())
+        return join_sentences_wrapper(sentence_list)
 
-            if newsentence == ".":
-                return sentences
-
-            newsentences = split_on_tag(BLOCK_MATH_TAG, newsentence)
-
-            if not sentences:
-                return newsentences
-
-            last_sentence = sentences[-1]
-
-            # handles cases like "... in Fig. 3."
-            for suf in self.false_split_suffixes:
-                if last_sentence.endswith(suf):
-                    sentences[-1] = last_sentence + " " + newsentences[0]
-                    return sentences + newsentences[1:]
-
-            # cases like "... in Fig.(3)." -> "... in Fig.(" + "(3)."
-            for suf in self.false_split_suffixes:
-                for punc in self.false_split_punc:
-                    if last_sentence.endswith(
-                        f"{suf}{punc}"
-                    ) and newsentence.startswith(punc):
-                        sentences[-1] = last_sentence + newsentences[0][1:]
-                        return sentences + newsentences[1:]
-
-            return sentences + newsentences
-
-        def split_on_tag(tag: str, text: str, offset: int = 0) -> List[str]:
-
-            if tag in text[offset:]:
-
-                nextsentence = text.index(tag, offset) + len(tag)
-
-                if nextsentence + 1 >= len(text):
-                    return [text]
-
-                # if the next letter after the tag is uppercase, split.
-                if text[nextsentence + 1] in string.ascii_uppercase:
-                    return [
-                        text[:nextsentence],
-                        *split_on_tag(tag, text[nextsentence:].lstrip()),
-                    ]
-
-                # else try and split further on
-                return split_on_tag(tag, text, nextsentence + 1)
-
-            return [text]
-
-        return reduce(join_sentences, sentence_list, [])
-
-    def untokenize(self):
+    def untokenize(self) -> str:
         """
         Returns the original text (with whitespace reinserted).
         """
         return "".join([t[self.TEXT_WS] for t in self.data]).strip()
 
-    def words(self, uncased=False):
+    def words(self, uncased=False) -> List[str]:
         """
         Returns a list of the text of each token
 
@@ -210,22 +233,28 @@ class Tokens:
         Returns None if this annotation was not included.
         """
         if "ner" not in self.annotators:
-            return None
+            return []
         return [t[self.NER] for t in self.data]
 
-    def ngrams(self, n=1, uncased=False, filter_fn=None, as_strings=True):
+    def ngrams(
+        self,
+        n: int = 1,
+        uncased: bool = False,
+        filter_fn: Optional[Callable[[Any], bool]] = None,
+        as_strings: bool = True,
+    ):
         """
         Returns a list of all ngrams from length 1 to n.
 
         Args:
             n: upper limit of ngram length
-            uncased: lower cases text
+            uncased: lower cased text
             filter_fn: user function that takes in an ngram list and returns
               True or False to keep or not keep the ngram
             as_string: return the ngram as a string vs list
         """
 
-        def _skip(gram):
+        def _skip(gram) -> bool:
             if not filter_fn:
                 return False
             return filter_fn(gram)
@@ -275,13 +304,13 @@ class Tokenizer:
     Tokenizers implement tokenize, which should return a Tokens class.
     """
 
-    def tokenize(self, text) -> Tokens:
+    def tokenize(self, text: Any) -> Tokens:
         raise NotImplementedError
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         pass
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.shutdown()
 
 
@@ -294,7 +323,7 @@ class CoreNLPTokenizer(Tokenizer):
     Written by Chao Jiang
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """
         Args:
             annotators: set that can include pos, lemma, and ner.
@@ -314,7 +343,7 @@ class CoreNLPTokenizer(Tokenizer):
 
         self._launch()
 
-    def _launch(self):
+    def _launch(self) -> None:
         """
         Start the CoreNLP jar with pexpect.
         """
@@ -326,7 +355,7 @@ class CoreNLPTokenizer(Tokenizer):
             annotators.extend(["pos", "lemma"])
         elif "pos" in self.annotators:
             annotators.extend(["pos"])
-        annotators = ",".join(annotators)
+        annotators_str = ",".join(annotators)
         options = ",".join(["untokenizable=noneDelete", "invertible=true"])
         cmd = [
             "java",
@@ -335,7 +364,7 @@ class CoreNLPTokenizer(Tokenizer):
             f'"{self.classpath}"',
             "edu.stanford.nlp.pipeline.StanfordCoreNLP",
             "-annotators",
-            annotators,
+            annotators_str,
             "-tokenize.options",
             options,
             "-outputFormat",
@@ -356,7 +385,7 @@ class CoreNLPTokenizer(Tokenizer):
         self.corenlp.expect_exact("NLP>", searchwindowsize=100)
 
     @staticmethod
-    def _convert(token):
+    def _convert(token: str) -> str:
         if token == "-LRB-":
             return "("
         if token == "-RRB-":
@@ -462,60 +491,13 @@ class CoreNLPTokenizer(Tokenizer):
         return Tokens(data, self.annotators, output=output)
 
 
-class ArxivTokenizer:
-    """
-    A sentence and word tokenizer with several hand-coded rules specific to Arxiv/LaTeX documents.
-    """
-
-    def __init__(self, annotators=None):
-        self.detector = nltk.data.load("tokenizers/punkt/english.pickle")
-
-        # might want to use /\d+\w+\./ as a regex match for references that cause splitting as well, but only if the next letter is lowercase.
-        self.false_split_suffixes = FALSE_SPLIT_SUFFIXES
-
-        self.annotators = annotators or set()
-
-    def __split_sent(self, text: str) -> List[str]:
-        split = self.detector.tokenize(text.replace("\n", " "))
-
-        def join_sentences(sentences: List[str], newsentence: str) -> List[str]:
-            if not sentences:
-                return [newsentence]
-
-            lastsentence = sentences[-1]
-
-            for suf in self.false_split_suffixes:
-                if lastsentence.endswith(suf):
-                    sentences[-1] = lastsentence + " " + newsentence
-                    return sentences
-
-            return sentences + [newsentence]
-
-        return reduce(join_sentences, split, [])
-
-    def __split_word(self, sentence: str) -> List[str]:
-        """
-        Splits a sentence into words.
-        """
-        return word_tokenize(sentence)
-
-    def split(self, text: str, group="") -> List[str]:
-        """
-        Splits text by either 'sentence' or 'word'.
-        """
-        if group == "sentence":
-            return self.__split_sent(text)
-        if group == "word":
-            return self.__split_word(text)
-
-        raise ValueError("group must be either 'sentence' or 'word'.")
-
-
 def is_sentenced(arxividpath: ArxivID, version: int) -> bool:
     return os.path.isfile(data.sentence_path(arxividpath, version))
 
 
-def tokenize_file(inputfilepath: str, outputfilepath: str, tok=CoreNLPTokenizer()):
+def tokenize_file(
+    inputfilepath: str, outputfilepath: str, tok: CoreNLPTokenizer = CoreNLPTokenizer()
+) -> None:
     with open(inputfilepath, "r") as textfile:
         paragraphs = textfile.read().split("\n\n")
 
@@ -532,33 +514,34 @@ def tokenize_file(inputfilepath: str, outputfilepath: str, tok=CoreNLPTokenizer(
                 sentencefile.write("\n")
 
             except AttributeError as err:
-                print(f"Error on {textfilepath}: {err}")
+                print(f"Error on {inputfilepath}: {err}")
 
 
-def main():
+def main() -> None:
     """
     Converts information in detexed text to sentences.
     """
 
-    tok = CoreNLPTokenizer()
+    tok = CoreNLPTokenizer()  # typing: ignore
 
-    for arxivid, version in [("0705.2267", 5)]:  # data.get_sample_files():
+    for arxivid, version in tqdm(data.get_sample_files()):
         textfilepath = data.text_path(arxivid, version)
         sentencefilepath = data.sentence_path(arxivid, version)
 
         if not os.path.isfile(textfilepath):
-            # print(f"{arxivid}-v{version} was not converted to text.")
+            logging.info(f"{arxivid}-v{version} was not converted to text.")
             continue
 
         # if os.path.isfile(sentencefilepath):
         #     continue
-        print(textfilepath)
+
+        # print(textfilepath)
         tokenize_file(textfilepath, sentencefilepath, tok)
-        print(sentencefilepath)
-        print(data.latex_path(arxivid, version))
+        # print(sentencefilepath)
+        # print(data.latex_path(arxivid, version))
 
 
-def demo():
+def demo() -> None:
     tok = CoreNLPTokenizer()
 
     examples = [

@@ -11,7 +11,6 @@ import time
 import re
 import random
 import pathlib
-import csv
 
 # External
 import requests
@@ -21,7 +20,7 @@ import magic  # type: ignore
 from structures import ArxivID  # type: ignore
 import arxivedits.data as data
 
-TIMEOUT = 30
+TIMEOUT = 5
 
 INCLUDEPATTERN = re.compile(
     r"\\(?:include|includeonly|input|@input).*?[{ ](.*?)(?:\}| |\n|$)"
@@ -55,10 +54,11 @@ def get_filetype(file) -> str:
     return magic.from_buffer(buffer, mime=False)
 
 
-def is_downloaded(arxivid: str, version: int) -> bool:
+def is_downloaded(arxivid: ArxivID, version: int) -> bool:
     """
     Check if a document is downloaded.
     """
+
     return os.path.isfile(data.source_path(arxivid, version))
 
 
@@ -92,7 +92,9 @@ def add_folder_to_dict(dirpath, dictionary):
             add_folder_to_dict(filepath, dictionary)
 
 
-def get_lines(filename, openfiles, closedfiles):
+def get_lines(
+    filename: str, openfiles: Dict[str, List[str]], closedfiles: Dict[str, List[str]]
+) -> None:
 
     finallines = []
 
@@ -103,8 +105,8 @@ def get_lines(filename, openfiles, closedfiles):
         lines = closedfiles[filename]
         del closedfiles[filename]
     else:
-        print(openfiles.keys(), closedfiles.keys())
-        print(f"{filename} not in openfiles or closedfiles.")
+        # print(openfiles.keys(), closedfiles.keys())
+        # print(f"{filename} not in openfiles or closedfiles.")
         closedfiles[filename] = []
         return
 
@@ -192,14 +194,18 @@ def extract(filepath) -> Optional[str]:
                 # print(f'Using gunzip to unzip {filepath}.')
                 file = gzip.open(file, "rb")
 
-            elif "pdf" in filetype:
+            elif "PDF" in filetype:
                 # print('Going to ignore PDF.')
                 return None
 
             elif "tar" in filetype:
                 # print(f'Using tar to extract from {filepath}')
                 with tarfile.open(fileobj=file, mode="r") as tar:
-                    return tex_from_tar(tar)
+                    try:
+                        return tex_from_tar(tar)
+                    except EOFError:
+                        print(f"{filepath} was not downloaded correctly.")
+                        return None
 
             elif "tex" in filetype:
                 # print(f'Reading directly from {filename}')
@@ -216,11 +222,11 @@ def download_source_files(
     Makes {version_count} network requests, one for each source file, and writes them to disk. If download_pdf is true, also downloads the .pdf file.
     """
 
-    arxividpath = arxivid.replace("/", "-")
+    # arxivid = arxivid.replace("-", "/")  # make sure there are no dashes
 
     for version in range(1, version_count + 1):
         url = f"https://arxiv.org/e-print/{arxivid}v{version}"
-        filepath = data.source_path(arxividpath, version)
+        filepath = data.source_path(arxivid, version)
 
         if not os.path.isfile(filepath):
             try:
@@ -234,7 +240,7 @@ def download_source_files(
 
         if download_pdf:
             url = f"https://arxiv.org/pdf/{arxivid}v{version}"
-            filepath = data.pdf_path(arxividpath, version)
+            filepath = data.pdf_path(arxivid, version)
 
             if not os.path.isfile(filepath):
                 try:
@@ -246,7 +252,9 @@ def download_source_files(
                 time.sleep(TIMEOUT)  # respect the server
 
 
-def get_ids(count: int = 1000, shuffled=False, ALL=False) -> List[Tuple[ArxivID, int]]:
+def get_ids(
+    count: int = 1000, shuffled: bool = False, ALL: bool = False
+) -> List[Tuple[ArxivID, int]]:
     """
     Gets <count> arxiv ids from the local database with multiple versions and returns them as tuple pairs. If ALL is true, ignores count and returns every id.
     """
@@ -265,7 +273,7 @@ def get_ids(count: int = 1000, shuffled=False, ALL=False) -> List[Tuple[ArxivID,
     return result
 
 
-def download_all():
+def download_all() -> None:
     """
     Downloads all source files for all versions for all papers with 2+ versions.
     """
@@ -281,9 +289,12 @@ def download_all():
     #     download_source_files(arxivid, version_count)
 
     # These lines download all source files (not pdfs) on arxiv.org in random order.
-    arxiv_id_pairs = get_ids(shuffled=True, ALL=True)
-    for arxiv_id, version_count in arxiv_id_pairs:
-        download_source_files(arxiv_id, version_count, download_pdf=False)
+    # arxiv_id_pairs = get_ids(shuffled=True, ALL=True)
+    # for arxiv_id, version_count in arxiv_id_pairs:
+    #     download_source_files(arxiv_id, version_count, download_pdf=False)
+
+    for arxivid, version_count in data.get_sample_files(maximum_only=True):
+        download_source_files(arxivid, version_count)
 
 
 def extract_file(sourcefilepath: str, outfilepath: str) -> Optional[Exception]:
@@ -303,36 +314,62 @@ def extract_file(sourcefilepath: str, outfilepath: str) -> Optional[Exception]:
     return None
 
 
-def extract_all(extract_again: bool = True):
+def extract_all(extract_again: bool = False) -> None:
     """
     Extracts the a .tex file from every .gz file to its directory.
     """
 
-    for arxivid, version in data.get_local_files():
+    for arxivid, version in data.get_sample_files():
         if not is_downloaded(arxivid, version):
+            print(f"skipping {arxivid}-v{version}")
             continue
 
         sourcefilepath = data.source_path(arxivid, version)
         latexpath = data.latex_path(arxivid, version)
-        sourcecopypath = data.source_path(arxivid, version)
-
-        if not os.path.isfile(sourcecopypath):
-            shutil.copyfile(sourcefilepath, sourcecopypath)
 
         if os.path.isfile(latexpath) and not extract_again:
-            continue
+            # print(f"Already extracted {arxivid}-v{version}")
+            continue  # skip if already extracted
 
         err = extract_file(sourcefilepath, latexpath)
         if err:
             print(err)
 
 
-def main():
+def main() -> None:
+    download_count = 0
+    for a, v in data.get_sample_files():
+        if os.path.isfile(data.source_path(a, v)):
+            download_count += 1
+
+    print(f"{download_count/len(data.get_sample_files())*100:.2f}% downloaded.")
+
     download_all()
-    extract_all()
+
+    download_count = 0
+    for a, v in data.get_sample_files():
+        if os.path.isfile(data.source_path(a, v)):
+            download_count += 1
+
+    print(f"{download_count/len(data.get_sample_files())*100:.2f}% downloaded.")
+
+    extracted_count = 0
+    for a, v in data.get_sample_files():
+        if os.path.isfile(data.latex_path(a, v)):
+            extracted_count += 1
+
+    print(f"{extracted_count/len(data.get_sample_files())*100:.2f}% extracted.")
+
+    # extract_all()
+
+    extracted_count = 0
+    for a, v in data.get_sample_files():
+        if os.path.isfile(data.latex_path(a, v)):
+            extracted_count += 1
+
+    print(f"{extracted_count/len(data.get_sample_files())*100:.2f}% extracted.")
 
 
 if __name__ == "__main__":
-    main()
-    # extract_file(data.source_path("1410.3634", 2), data.latex_path("1410.3634", 2))
-
+    # main()
+    download_all()

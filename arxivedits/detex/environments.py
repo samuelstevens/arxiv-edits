@@ -1,7 +1,8 @@
 import re
+import logging
 from typing import List, Tuple, Optional
 
-from arxivedits.detex.constants import BLOCK_MATH_TAG, MATH_TAG
+from arxivedits.detex.constants import BLOCK_MATH_TAG, INLINE_MATH_TAG
 
 
 def line_starts_with(search: str, text: str, position: int) -> bool:
@@ -49,7 +50,7 @@ def process(text: str) -> str:
         "align": BLOCK_MATH_TAG,  # same thing as eqnarray
         "table": None,
         "tabular": None,
-        "math": MATH_TAG,  # equivalent to $...$
+        "math": INLINE_MATH_TAG,  # equivalent to $...$
         "matrix": None,
         "displaymath": BLOCK_MATH_TAG,  # equivalent to $$...$$
         "thebibliography": None,
@@ -91,7 +92,7 @@ def process(text: str) -> str:
             end_env = text.find(end_env_command, start_env + 1)
 
             if end_env < 0:
-                print("Missing \\end for %s", end_env_command)
+                logging.warning("Missing \\end for %s", end_env_command)
                 end_env = len(text)
 
             end_env += len(end_env_command)
