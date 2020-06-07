@@ -3,6 +3,7 @@ Handles math in .tex documents.
 """
 
 import re
+from typing import Pattern
 
 from arxivedits.detex.constants import (
     BLOCK_MATH_TAG,
@@ -74,7 +75,7 @@ def _remove_bad_math(content: str) -> str:
     return "".join(result)
 
 
-def _remove_math(text: str, pattern: re.Pattern, replace_tag: str) -> str:
+def _remove_math(text: str, pattern: Pattern[str], replace_tag: str) -> str:
     text = _remove_bad_math(text)
 
     pos = 0
@@ -117,3 +118,8 @@ def remove_block_math(text: str) -> str:
 def consecutive_math(text: str) -> str:
     regexp = r"(?:" + re.escape(INLINE_MATH_TAG) + r"\s*)+" + re.escape(INLINE_MATH_TAG)
     return re.sub(regexp, INLINE_MATH_TAG, text)
+
+
+def consecutive_equations(text: str) -> str:
+    regexp = r"(?:" + re.escape(BLOCK_MATH_TAG) + r"\s*)+" + re.escape(BLOCK_MATH_TAG)
+    return re.sub(regexp, BLOCK_MATH_TAG, text)

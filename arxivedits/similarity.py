@@ -1,78 +1,125 @@
-import shelve
+import functools
 
-from math import inf
+from typing import Set, Any, Iterable
 
-from typing import Optional
+from dataclasses import dataclass
 
-
-from arxivedits.tokenizer import ArxivTokenizer
-from lcs import lcs
-from idf import idf
-
-TOKENIZER = ArxivTokenizer()
-DOCUMENTFREQ: Optional[shelve.DbfilenameShelf] = None
+from arxivedits import alignment, diff, util
 
 
-def similarity(sentence1: str, sentence2: str) -> float:
-    """
-    Uses an idf-weighted longest common subsequence algorithm to find the similarity between two English sentences. Returns -Infinity if there is an error.
-    """
+@dataclass
+class Similarity:
+    jaccard_sim: float
+    diff_sim: float
+    jaccard_2_gram_sim: float
+    diff_2_gram_sim: float
+    # tfidf_sim: float
 
-    words1 = TOKENIZER.split(sentence1, group="word")
-    words2 = TOKENIZER.split(sentence2, group="word")
+    @staticmethod
+    def default() -> "Similarity":
+        return Similarity(0, 0, 0, 0)
 
-    numerator = sum([idf(word) for word in lcs(words1, words2)])
+    @staticmethod
+    def identical() -> "Similarity":
+        return Similarity(1, 1, 1, 1)
 
-    denominator = max(
-        sum([idf(word) for word in words1]), sum([idf(word) for word in words2])
+
+def get_jaccard_sim(A: Set[Any], B: Set[Any]) -> float:
+    if not A or not B:
+        return 0
+    return len(A & B) / len(A | B)
+
+
+def get_diff_sim(a: Iterable[Any], b: Iterable[Any]) -> float:
+    diff_output = diff.line_diff(list(a), list(b))
+
+    length_removed = len([1 for code, _ in diff_output if code == -1])
+    length_original = len([1 for code, _ in diff_output if code in [-1, 0]])
+    length_added = len([1 for code, _ in diff_output if code == 1])
+    length_new = len([1 for code, _ in diff_output if code in [1, 0]])
+
+    if not length_original or not length_new:
+        return 0
+
+    return 1 - (length_removed / length_original + length_added / length_new) / 2
+
+
+@functools.lru_cache(maxsize=512)
+def get_similarity(sent1: str, sent2: str) -> Similarity:
+    if not sent1 or sent1.isspace() or not sent2 or sent2.isspace():
+        return Similarity.default()
+
+    if sent1 == sent2:
+        return Similarity.identical()
+
+    try:
+        sent1 = alignment.util.preprocess_single_sent(sent1)
+        sent2 = alignment.util.preprocess_single_sent(sent2)
+    except Exception as err:
+        print(sent1, len(sent1))
+        print(sent2, len(sent2))
+        raise err
+
+    if not sent1 or sent1.isspace() or not sent2 or sent2.isspace():
+        return Similarity.default()
+
+    if sent1 == sent2:
+        return Similarity.identical()
+
+    jaccard_sim = get_jaccard_sim(
+        set(util.sent_to_words(sent1)), set(util.sent_to_words(sent2)),
     )
 
-    if denominator == 0:
-        print("Denominator was 0.")
-        return -inf
+    diff_sim = get_diff_sim(util.sent_to_words(sent1), util.sent_to_words(sent2))
 
-    return numerator / denominator
-
-
-def main():
-    """
-    Demonstrates `lcs()` and `similarity()`.
-    """
-
-    def lcs_of_sentence(sentence1, sentence2):
-        words1 = TOKENIZER.split(sentence1, group="word")
-        words2 = TOKENIZER.split(sentence2, group="word")
-        return lcs(words1, words2)
-
-    sample1 = (
-        "The long-sought Higgs boson may soon be observed at the CERN Large Hadron."
-    )
-    sample2 = "The long-sought Higgs boson particle will be observed at CERN."
-
-    sample3 = (
-        "The long-sought Higgs boson may soon be observed at the CERN Large Hadron."
-    )
-    sample4 = "It can not be determined correctly."
-
-    sample5 = "A precise theoretical understanding of the kinematic distributions for diphoton production in the standard model could provide valuable guidance in the search for the Higgs boson signal and assist in the important measurement of Higgs boson coupling strengths."
-    sample6 = (
-        "The long-sought Higgs boson may soon be observed at the CERN Large Hadron."
+    jaccard_2_gram_sim = get_jaccard_sim(
+        set(util.sent_to_n_grams(sent1, 2)), set(util.sent_to_n_grams(sent2, 2))
     )
 
-    print(sample1)
-    print(lcs_of_sentence(sample1, sample2))
-    print(similarity(sample1, sample2))
+    diff_2_gram_sim = get_diff_sim(
+        util.sent_to_n_grams(sent1, 2), util.sent_to_n_grams(sent2, 2)
+    )
 
-    print(sample3)
-    print(lcs_of_sentence(sample3, sample4))
-    print(similarity(sample3, sample4))
+    return Similarity(
+        jaccard_sim=jaccard_sim,
+        jaccard_2_gram_sim=jaccard_2_gram_sim,
+        diff_sim=diff_sim,
+        diff_2_gram_sim=diff_2_gram_sim,
+    )
 
-    print(sample5)
-    print(lcs_of_sentence(sample5, sample6))
-    print(similarity(sample5, sample6))
 
-    print(lcs_of_sentence("Introduction", "Introduction"))
-    print(similarity("Introduction", "Introduction"))
+def main() -> None:
+    sent1 = "The interference quenching is apparent in the double-slit experiment, where the elimination of interference fringes gives rise to a classical-like pattern where the classical addition rule of probabilities holds."
+    sent2 = "Here we have dealt with the problem of the damping or quenching of the interference fringes produced by decoherence in a two-slit experiment under the presence of an environment, which yields as a result a classical-like pattern."
+
+    print(sent1)
+    print(sent2)
+    print(get_similarity(sent1, sent2))
+    print()
+
+    sent1 = "Figure 2 shows the variation of the parameters [MATH] and [MATH] with time [MATH] where we observe that the values of these parameters increase with time leading to a decrease in the conductance which is found to be consistent with the experiment."
+    sent2 = "This reduces the hole carrier concentration and hence the conductance of the SWCNT, which is consistent with the experiment."
+
+    print(sent1)
+    print(sent2)
+    print(get_similarity(sent1, sent2))
+    print()
+
+    sent1 = "In order to elucidate and understand how decoherence causes this interference quenching, we have considered here the simple trajectory based models mentioned above."
+    sent2 = "In order to elucidate and understand decoherence without taking into account explicitly the dynamics of the environment degrees of freedom, we have considered some simple reduced quantum-trajectory models."
+
+    print(sent1)
+    print(sent2)
+    print(get_similarity(sent1, sent2))
+    print()
+
+    sent1 = "We investigate the role of retardation corrections to polarizability and to refractive index."
+    sent2 = "We found that the classical electromagnetic theory of dielectrics requires corresponding modifications in terms of nonlocality of the dielectric constant."
+
+    print(sent1)
+    print(sent2)
+    print(get_similarity(sent1, sent2))
+    print()
 
 
 if __name__ == "__main__":

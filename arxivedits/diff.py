@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Any
 import functools
 import re
 import string
@@ -11,14 +11,53 @@ from arxivedits.detex.constants import (
     CITE_TAG,
     REF_TAG,
 )
+from arxivedits.lcs import lcs
+from arxivedits import data, util
 
 RawDiff = List[Tuple[int, str]]
 ParagraphDiff = List[Tuple[int, List[str]]]
 LineDiff = List[Tuple[int, str]]
 
 
+def fast_diff(s1: List[str], s2: List[str]) -> List[Tuple[int, str]]:
+    common = lcs(s1, s2)
+    difference = []
+
+    idx1 = 0
+    idx2 = 0
+    i = 0
+
+    while i < len(common) and idx1 < len(s1) and idx2 < len(s2):
+        if common[i] == s1[idx1] == s2[idx2]:
+            difference.append((0, common[i]))
+            i += 1
+            idx1 += 1
+            idx2 += 1
+        elif common[i] == s1[idx1]:
+            difference.append((1, s2[idx2]))
+            idx2 += 1
+        elif common[i] == s2[idx2]:
+            difference.append((-1, s1[idx1]))
+            idx1 += 1
+        else:
+            difference.append((-1, s1[idx1]))
+            difference.append((1, s2[idx2]))
+            idx1 += 1
+            idx2 += 1
+
+    assert i == len(common), f"{i}, {len(common)}"
+
+    if idx1 < len(s1):
+        difference.extend([(-1, e) for e in s1[idx1:]])
+
+    if idx2 < len(s2):
+        difference.extend([(1, e) for e in s2[idx2:]])
+
+    return difference
+
+
 # can't cache this because the lines are unhashable
-def line_diff(lines1: List[str], lines2: List[str]) -> LineDiff:
+def line_diff(lines1: List[Any], lines2: List[Any]) -> LineDiff:
     """
     Calculates a line by line difference of two texts.
     """
@@ -27,6 +66,9 @@ def line_diff(lines1: List[str], lines2: List[str]) -> LineDiff:
         raise TypeError(
             "I changed the method signature on line_diff to accept lists of strings now. It will join them on '\\n' itself now. Sorry!"
         )
+
+    lines1 = [str(line) for line in lines1]
+    lines2 = [str(line) for line in lines2]
 
     text1 = "\n".join(lines1)
     text2 = "\n".join(lines2)
@@ -136,52 +178,73 @@ def sent_filter(sent: str) -> bool:
     """
     Returns `True` is a sentence is a good sentence, `False` if a sentence shouldn't be considered.
     """
-    j = sent
 
-    if re.match("^#+ .", j) is not None:
+    if re.match("^#+ .", sent) is not None:
         return True
 
-    len_no_punctuation = len([i for i in sent.split() if i not in string.punctuation])
+    len_no_punctuation = len(
+        [tok for tok in sent.split() if tok not in string.punctuation]
+    )
     len_no_punctuation_no_special_tokens_no_number = len(
         [
-            i
-            for i in sent.split()
-            if i not in string.punctuation
-            and i not in [INLINE_MATH_TAG, BLOCK_MATH_TAG, CITE_TAG, REF_TAG]
-            and not i.isnumeric()
+            tok
+            for tok in sent.split()
+            if tok not in string.punctuation
+            and tok not in [INLINE_MATH_TAG, BLOCK_MATH_TAG, CITE_TAG, REF_TAG]
+            and not tok.isnumeric()
         ]
     )
 
     count_special_tokens = (
-        j.count(INLINE_MATH_TAG)
-        + j.count(BLOCK_MATH_TAG)
-        + j.count(REF_TAG)
-        + j.count(CITE_TAG)
+        sent.count(INLINE_MATH_TAG)
+        + sent.count(BLOCK_MATH_TAG)
+        + sent.count(REF_TAG)
+        + sent.count(CITE_TAG)
     )
 
-    #     print(len_no_punctuation_no_special_tokens)
     if len_no_punctuation_no_special_tokens_no_number <= 3:
         return False
 
     if count_special_tokens >= 0.5 * len_no_punctuation:
         return False
 
-    j = j.replace(INLINE_MATH_TAG, " ")
-    j = j.replace(BLOCK_MATH_TAG, " ")
-    j = j.replace(REF_TAG, " ")
-    j = j.replace(CITE_TAG, " ")
+    sent = (
+        sent.replace(INLINE_MATH_TAG, " ")
+        .replace(BLOCK_MATH_TAG, " ")
+        .replace(REF_TAG, " ")
+        .replace(CITE_TAG, " ")
+    )
 
-    if [jj for jj in j if jj != " "]:
+    if [ch for ch in sent if ch != " "]:
         score = (
-            len([jj for jj in j if re.match("[a-zA-Z]", jj) is not None])
+            len([ch for ch in sent if re.match("[a-zA-Z]", ch) is not None])
             + count_special_tokens
-        ) / (len([jj for jj in j if jj != " "]) + count_special_tokens)
+        ) / (len([ch for ch in sent if ch != " "]) + count_special_tokens)
         if score <= 0.7:
             return False
     else:
         return False
 
     return True
+
+
+@functools.lru_cache(maxsize=128)
+def is_title(line: str) -> bool:
+    return re.match("^#+ .", line) is not None
+
+
+def is_title_or_newline(line: str) -> bool:
+    return line == "" or is_title(line)
+
+
+@functools.lru_cache(maxsize=512)
+def is_boring(sent: str) -> bool:
+    """
+    Checks if a sentence is boring using sent_filter(), is_title(), and is_newline()
+    """
+    if not sent:
+        return True
+    return is_title_or_newline(sent) or not sent_filter(sent)
 
 
 def doc_filter(doc: List[List[str]]) -> List[List[str]]:
@@ -197,3 +260,38 @@ def doc_filter(doc: List[List[str]]) -> List[List[str]]:
 
     return clean_doc
 
+
+def main() -> None:
+    for arxivid, v1, v2 in [("1211.4814", 3, 4)]:  # util.good_id_iter():
+        print(arxivid, v1, v2)
+        pgs1 = data.get_paragraphs(arxivid, v1)
+        pgs2 = data.get_paragraphs(arxivid, v2)
+
+        if isinstance(pgs1, Exception):
+            return
+
+        if isinstance(pgs2, Exception):
+            return
+
+        lines1 = util.paragraphs_to_lines(pgs1)
+        lines2 = util.paragraphs_to_lines(pgs2)
+
+        for i1 in range(888, len(lines1) + 1, 1):
+            for i2 in range(1178, len(lines2) + 1, 1):
+                print(i1, i2)
+                lines1_tmp = lines1[:i1]
+                lines2_tmp = lines2[100:i2]
+
+                # start = time.perf_counter()
+                fast_diff(lines1_tmp, lines2_tmp)
+                # end = time.perf_counter()
+
+        fast_diff(lines1_tmp, lines2_tmp)
+
+        # start = time.perf_counter()
+        line_diff(lines1, lines2)
+        # end = time.perf_counter()
+
+
+if __name__ == "__main__":
+    main()

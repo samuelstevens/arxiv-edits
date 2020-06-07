@@ -50,8 +50,12 @@ def find_pair(
     while pos < len(text):
         if text[pos] == opening_char:
             count += 1
+
         elif text[pos] == closing_char:
             count -= 1
+
+        elif text[pos] == "\\":
+            pos += 1  # skip next char
 
         if count == 0:
             return pos, None
@@ -119,6 +123,9 @@ def clean(initial_tex: str) -> str:
     # change [MATH] [MATH]  [MATH] to [MATH]
     # (\[MATH\] *)+\[MATH\]
     text = equations.consecutive_math(text)
+
+    # change [EQUATION] [EQUATION] [EQUATION] to [EQUATION]
+    text = equations.consecutive_equations(text)
 
     # removes blank lines before [EQUATION]
     regexp = r"\n\n+\[EQUATION\]"

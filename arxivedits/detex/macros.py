@@ -155,12 +155,13 @@ class DefParser(MacroParser):
 
         # args start with #1#2#3, etc
 
+        command_end = self.pos
+
         argcount = 0
         while self.text[self.pos] == "#" and self.text[self.pos + 1] in string.digits:
             self.pos += 2
             argcount += 1
 
-        command_end = self.pos
         command_name = "\\" + self.text[command_start:command_end]
 
         if self.text[self.pos] != "{":
@@ -453,4 +454,3 @@ def process(initial_tex: str) -> str:
         text = "".join(string_builder)
 
     return text
-

@@ -119,7 +119,7 @@ def test_parse_def_with_args():
     original_tex = r"""\def\UTV#1#2#3{\text{UTV}^{#3}\!\rbr{#1,#2}}
 """
     expected_command = macros.LatexMacro(
-        r"\UTV#1#2#3", r"\text{UTV}^{#3}\!\rbr{#1,#2}", arg_num=3
+        r"\UTV", r"\text{UTV}^{#3}\!\rbr{#1,#2}", arg_num=3
     )
 
     parser = macros.DefParser(original_tex, 0)

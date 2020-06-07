@@ -3,10 +3,10 @@
 #include <string.h>
 
 /*
-gcc arxivedits/lcs/lcs.c -O3 -o arxivedits/lcs/lcs
+gcc arxivedits/lcsmodule/lcs.c -O3 -o arxivedits/lcsmodule/lcs
 
-gcc -c -Wall -Werror -fpic arxivedits/lcs/lcs.c -o arxivedits/lcs/lcs.o
- gcc -shared -o arxivedits/lcs/lcs.so arxivedits/lcs/lcs.o
+gcc -c -Wall -Werror -fpic arxivedits/lcsmodule/lcs.c -o arxivedits/lcsmodule/lcs.o
+gcc -shared -o arxivedits/lcsmodule/lcs.so arxivedits/lcsmodule/lcs.o
 */
 
 struct Sequence
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
     // char *s1[] = {"First", ",", "we", "validate", "whether", "our", "models", "for", "segmentation", "and", "depth", "estimation", "perform", "well", "on", "the", "synthetic", "test", "set", "of", "our", "SURREAL", "dataset", "."};
     // char *s2[] = {"Segmentation", "and", "depth", "are", "tested", "on", "the", "synthetic", "and", "Human3.6M", "test", "sets", "with", "networks", "pre-trained", "on", "a", "subset", "of", "the", "synthetic", "training", "data", "."};
 
-    if (argc < 3)
+        if (argc < 3)
     {
         printf("You must provide at least 3 arguments.\n");
         return -1;

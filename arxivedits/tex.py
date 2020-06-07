@@ -138,9 +138,33 @@ def script() -> None:
         print()
 
 
+def redo() -> None:
+    """
+    Takes .tex files and converts them to text.
+    """
+    logging.disable(logging.FATAL)
+    for arxivid, v1, v2 in data.ANNOTATED_IDS:
+        latexfilepath = data.latex_path(arxivid, v1)
+
+        if os.path.isfile(latexfilepath):
+            outputfilepath = data.text_path(arxivid, v1, suffix="-new")
+            # print(latexfilepath)
+            detex.detex_file(latexfilepath, outputfilepath)
+            print(f"code --diff {data.text_path(arxivid, v1)} {outputfilepath}")
+
+        latexfilepath = data.latex_path(arxivid, v2)
+
+        if os.path.isfile(latexfilepath):
+            outputfilepath = data.text_path(arxivid, v2, suffix="-new")
+            # print(latexfilepath)
+            detex.detex_file(latexfilepath, outputfilepath)
+            print(f"code --diff {data.text_path(arxivid, v2)} {outputfilepath}")
+
+    logging.disable(logging.NOTSET)
+
+
 if __name__ == "__main__":
-    # script()
-    main()
+    # main()
+    redo()
     # demo()
     # test()
-

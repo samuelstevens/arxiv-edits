@@ -45,6 +45,9 @@ sqlite3 --version
 
 # make the lcs.so library
 make
+
+# install arxivedits
+pip install -e arxivedits/
 ```
 
 ### Java

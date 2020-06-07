@@ -3,6 +3,7 @@ Stores a list of all arxiv ids with multiple versions.
 """
 import os
 import sqlite3
+import datetime
 from typing import Set, List, Tuple, Iterable
 
 from oaipmh.client import Client  # type: ignore
@@ -72,7 +73,7 @@ def add_record(
     con.close()
 
 
-def init_db():
+def init_db() -> None:
     """
     Initializes the database using ./schema.sql
     """
@@ -285,8 +286,33 @@ def main() -> None:
     print("Recorded all paper's version counts.")
 
 
+def script() -> None:
+    def parse_to_date(id: str) -> datetime.date:
+        try:
+            year = 2000 + int(id[:2])
+            month = int(id[2:4])
+            return datetime.date(year, month, 1)
+        except ValueError:
+            return latest_id
+
+    latest_id = datetime.date(datetime.MINYEAR, 1, 1)
+
+    query = "SELECT arxiv_id, version_count FROM papers"
+
+    for row in data.connection().execute(query).fetchall():
+        date = parse_to_date(row[0])
+
+        if date > latest_id:
+            latest_id = date
+
+    print(latest_id)
+
+    print(len(data.connection().execute(query).fetchall()))
+
+
 if __name__ == "__main__":
     # get_categories_and_authors()
     # main()
     # add_record("0704.0001", 3, ["author 3", "author 4"], ["hep-ph"])
+    script()
     pass

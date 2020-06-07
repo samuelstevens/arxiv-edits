@@ -9,7 +9,7 @@ import pathlib
 import os
 import ctypes
 
-from typing import List, TypeVar, Dict, Tuple
+from typing import List, TypeVar, Dict, Tuple, cast
 
 
 T = TypeVar("T")  # pylint: disable=invalid-name
@@ -65,13 +65,17 @@ def slow_lcs(seq1: List[T], seq2: List[T]) -> List[T]:
     return [seq2[j] for j in finalsequence]
 
 
+def remove_nullbytes(s: str) -> str:
+    return "".join(s.split("\x00"))
+
+
 def list_to_SEQUENCE(strlist: List[str]) -> SEQUENCE:
     """
-    Converts a list of strings to a sequence struct
+    Converts a list of strings to a sequence struct. Removes any null bytes from a string.
     """
-    bytelist = [bytes(s, "utf-8") for s in strlist]
+    bytelist = [bytes(remove_nullbytes(s), "utf-8", "replace") for s in strlist]
     arr = (ctypes.c_char_p * len(bytelist))()
-    arr[:] = bytelist
+    arr[:] = bytelist  # type: ignore
     return SEQUENCE(arr, len(bytelist))
 
 
@@ -80,6 +84,7 @@ def lcs(s1: List[str], s2: List[str]) -> List[str]:
     Fast LCS that uses ctypes
     """
     seq1 = list_to_SEQUENCE(s1)
+
     seq2 = list_to_SEQUENCE(s2)
 
     common = lcsmodule.lcs(ctypes.byref(seq1), ctypes.byref(seq2))[0]
@@ -93,13 +98,6 @@ def lcs(s1: List[str], s2: List[str]) -> List[str]:
     return ret
 
 
-def profile():
-    cProfile.run("lcs_many()", sort="tottime")
-
-    # profile()
-    # fast_lcs(
-    #     ['First', ',', 'we', 'validate', 'whether', 'our', 'models', 'for', 'segmentation', 'and', 'depth', 'estimation',
-    #         'perform', 'well', 'on', 'the', 'synthetic', 'test', 'set', 'of', 'our', 'SURREAL', 'dataset', '.'],
-    #     ['Segmentation', 'and', 'depth', 'are', 'tested', 'on', 'the', 'synthetic', 'and', 'Human3.6M', 'test', 'sets',
-    #         'with', 'networks', 'pre-trained', 'on', 'a', 'subset', 'of', 'the', 'synthetic', 'training', 'data', '.']
-    # )
+if __name__ == "__main__":
+    # print(lcs([""], ["\x00"]))
+    pass

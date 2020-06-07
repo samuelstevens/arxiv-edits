@@ -8,6 +8,7 @@ import pathlib
 import csv
 
 from typing import Tuple, List, Union
+from arxivedits.util import flatten
 from arxivedits.structures import Res, ArxivID, ArxivIDPath
 
 UnsafeArxivID = Union[ArxivID, ArxivIDPath, str]
@@ -20,6 +21,7 @@ MODEL_DIR = ALIGNMENT_DIR / "models"
 CSV_DIR = ALIGNMENT_DIR / "alignments"
 ANNOTATION_DIR = ALIGNMENT_DIR / "need-annotation"
 FINISHED_DIR = ALIGNMENT_DIR / "finished-annotations"
+VISUAL_DIR = DATA_DIR / "visualizations"
 
 SCHEMA_PATH = pwd / "schema.sql"
 
@@ -33,6 +35,7 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(CSV_DIR, exist_ok=True)
 os.makedirs(ANNOTATION_DIR, exist_ok=True)
 os.makedirs(FINISHED_DIR, exist_ok=True)
+os.makedirs(VISUAL_DIR, exist_ok=True)
 
 
 def id_to_path(arxivid: UnsafeArxivID) -> ArxivIDPath:
@@ -106,7 +109,7 @@ def source_path(arxivid: UnsafeArxivID, version: int) -> str:
     )
 
 
-def text_path(arxivid: UnsafeArxivID, version: int) -> str:
+def text_path(arxivid: UnsafeArxivID, version: int, suffix: str = "") -> str:
     """
     Returns the path for the detexed file for a given arxivid and version.
     """
@@ -114,7 +117,11 @@ def text_path(arxivid: UnsafeArxivID, version: int) -> str:
     arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
-        DATA_DIR, arxividpath, f"v{version}", "extra", f"{arxividpath}-v{version}.txt"
+        DATA_DIR,
+        arxividpath,
+        f"v{version}",
+        "extra",
+        f"{arxividpath}-v{version}{suffix}.txt",
     )
 
 
@@ -122,7 +129,7 @@ def is_detexed(arxivid: UnsafeArxivID, version: int) -> bool:
     return os.path.isfile(text_path(arxivid, version))
 
 
-def sentence_path(arxivid: UnsafeArxivID, version: int) -> str:
+def sentence_path(arxivid: UnsafeArxivID, version: int, suffix: str = "") -> str:
     """
     Returns the path for the sentence-split file for a given arxivid and version.
     """
@@ -130,7 +137,10 @@ def sentence_path(arxivid: UnsafeArxivID, version: int) -> str:
     arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
-        DATA_DIR, arxividpath, f"v{version}", f"{arxividpath}-v{version}-sentences.txt"
+        DATA_DIR,
+        arxividpath,
+        f"v{version}",
+        f"{arxividpath}-v{version}-sentences{suffix}.txt",
     )
 
 
@@ -178,14 +188,19 @@ def pdf_path(arxivid: UnsafeArxivID, version: int) -> str:
     )
 
 
-def alignment_model_path(arxivid: UnsafeArxivID, version1: int, version2: int) -> str:
+def alignment_model_path(
+    arxivid: UnsafeArxivID, version1: int, version2: int, unaligned_sentences: int
+) -> str:
     """
     Returns the path for the Alignment() .pckl file for a given version pair.
     """
 
     arxividpath = alignment_path_asserts(arxivid, version1, version2)
 
-    return os.path.join(MODEL_DIR, f"{arxividpath}-v{version1}-v{version2}.pckl")
+    return os.path.join(
+        MODEL_DIR,
+        f"{arxividpath}-v{version1}-v{version2}-({unaligned_sentences}-unaligned-sents).pckl",
+    )
 
 
 def alignment_csv_path(arxivid: UnsafeArxivID, version1: int, version2: int) -> str:
@@ -199,7 +214,7 @@ def alignment_csv_path(arxivid: UnsafeArxivID, version1: int, version2: int) -> 
 
 
 def alignment_annotation_path(
-    arxivid: UnsafeArxivID, version1: int, version2: int
+    arxivid: UnsafeArxivID, version1: int, version2: int, unaligned_sentences: int
 ) -> str:
     """
     Returns the path for the manual annotation .csv file for a given version pair.
@@ -207,11 +222,14 @@ def alignment_annotation_path(
 
     arxividpath = alignment_path_asserts(arxivid, version1, version2)
 
-    return os.path.join(ANNOTATION_DIR, f"{arxividpath}-v{version1}-v{version2}.csv")
+    return os.path.join(
+        ANNOTATION_DIR,
+        f"{arxividpath}-v{version1}-v{version2}-({unaligned_sentences}-unaligned-sents).csv",
+    )
 
 
 def alignment_finished_path(
-    arxivid: UnsafeArxivID, version1: int, version2: int
+    arxivid: UnsafeArxivID, version1: int, version2: int, unaligned_sentences: int
 ) -> str:
     """
     Returns the path for the finisehd annotation .csv file for a given version pair.
@@ -219,7 +237,10 @@ def alignment_finished_path(
 
     arxividpath = alignment_path_asserts(arxivid, version1, version2)
 
-    return os.path.join(FINISHED_DIR, f"{arxividpath}-v{version1}-v{version2}.csv")
+    return os.path.join(
+        FINISHED_DIR,
+        f"{arxividpath}-v{version1}-v{version2}-({unaligned_sentences}-unaligned-sents).csv",
+    )
 
 
 def get_local_files(maximum_only: bool = False) -> List[Tuple[ArxivIDPath, int]]:
@@ -324,3 +345,97 @@ def is_x(
             return False
 
     return True
+
+
+SAMPLE_IDS = [
+    ("1906.06209", 1, 2),
+    ("1004.1666", 1, 2),
+    ("1902.05725", 1, 2),
+    ("1409.3945", 2, 3),
+    ("1410.4028", 1, 2),
+    ("math-0104116", 1, 2),
+    ("1602.08631", 3, 4),
+    ("1306.1389", 1, 2),
+    ("1512.05089", 1, 2),
+    ("1610.01333", 1, 2),
+    ("1305.6088", 1, 2),
+    ("1406.2192", 1, 2),
+    ("1102.5645", 1, 2),
+    ("cond-mat-0602186", 4, 5),
+    ("1412.6539", 2, 3),
+    ("1204.5014", 1, 2),
+    ("0803.2581", 1, 2),
+    ("1806.05893", 1, 2),
+    ("1811.07450", 1, 2),
+    ("hep-th-0607021", 1, 2),
+]
+
+ANNOTATED_IDS = [
+    ("1906.06209", 1, 2),
+    ("1004.1666", 1, 2),
+    ("1902.05725", 1, 2),
+    ("1409.3945", 2, 3),
+    ("1410.4028", 1, 2),
+    ("math-0104116", 1, 2),
+    ("1306.1389", 1, 2),
+    ("1512.05089", 1, 2),
+    ("1610.01333", 1, 2),
+    ("1305.6088", 1, 2),
+    ("1406.2192", 1, 2),
+    ("1102.5645", 1, 2),
+    ("cond-mat-0602186", 4, 5),
+    ("1412.6539", 2, 3),
+    ("1204.5014", 1, 2),
+    ("0803.2581", 1, 2),
+    ("1806.05893", 1, 2),
+    ("1811.07450", 1, 2),
+]
+
+
+def script():
+    with open(
+        os.path.join(arxivedits.data.DATA_DIR, "sample-only-multiversion.csv")
+    ) as csvfile:
+        reader = csv.reader(csvfile)
+        pairs = [(i, int(versioncount)) for i, versioncount in reader]
+
+    total_pairs = 0
+    idlist = []
+
+    for arxivid, versioncount in pairs:
+        versionlist = list(range(1, versioncount + 1))
+
+        idlist.extend([(arxivid, v) for v in versionlist])
+
+        total_pairs += versioncount - 1
+
+    print(len(idlist))
+
+    idlist = [
+        (arxivid, v)
+        for arxivid, v in idlist
+        if os.path.isfile(arxivedits.data.latex_path(arxivid, v))
+    ]
+
+    idset = set(idlist)
+
+    total_tex = 0
+
+    for arxivid, v in idlist:
+        if (arxivid, v - 1) in idset:
+            total_tex += 1
+        elif v > 1:
+            print(f"no pair for {arxivid}-{v}")
+
+    for arxivid, v in idset:
+        pgs = get_paragraphs(arxivid, v)
+
+        sents = util.flatten(pgs)
+
+        print(len([s for s in sents if s]))
+
+    print(total_tex, total_pairs, len(idlist))
+
+
+if __name__ == "__main__":
+    script()

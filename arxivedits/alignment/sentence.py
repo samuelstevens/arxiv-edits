@@ -79,7 +79,10 @@ class SentenceID:
 
 
 def main() -> None:
-    print(SentenceID.parse("cond-math-v1-0-0"))
+    first = SentenceID.parse("cond-math-v1-0-0")
+    second = SentenceID.parse("cond-math-v1-0-1")
+    third = SentenceID.parse("cond-math-v1-1-0")
+    assert sorted([first, second, third]) == [first, second, third]
 
 
 if __name__ == "__main__":

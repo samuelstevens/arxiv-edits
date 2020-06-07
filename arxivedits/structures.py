@@ -21,12 +21,6 @@ Record = Tuple[Header, Metadata, None]
 ArxivID = NewType("ArxivID", str)
 ArxivIDPath = NewType("ArxivIDPath", str)
 
-
-# class ArxivID:
-#     def __init__(self, arxivid: str):
-#         self.arxivid = arxivid
-
-
 Title = NewType("Title", str)
 Sentence = NewType("Sentence", str)
 Content = List[Sentence]

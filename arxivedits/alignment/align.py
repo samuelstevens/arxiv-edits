@@ -1,129 +1,31 @@
+"""
+Alignment class and helper routines
+"""
+
 import os
 import csv
 import pickle
-import functools
-import re
-import string
+import logging
 
-from typing import Dict, List, Tuple, Set, cast
-from dataclasses import dataclass
-from enum import Enum
+from typing import Dict, List, Tuple, Set, Optional, Any, cast
 
 
-from arxivedits import data, util, diff, tokenizer
+from arxivedits import data, util, diff
 from arxivedits.alignment.sentence import SentenceID
-
-
-STATUS = Enum("STATUS", ["UNKNOWN", "SOLVED", "USED", "BORING"])
-
-# Global initialization
-tok = tokenizer.CoreNLPTokenizer()
-
-with open(
-    "/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Chao_working_folder/02292020_further_clean_data/preprocess_sent_dict.pkl",
-    "rb",
-) as file:
-    preprocess_sent_dict = pickle.load(file)
-
-# data structures needed
-@dataclass
-class DiffStruct:
-    code: int
-    sentence: str
-
-
-@dataclass
-class SentenceStruct:
-    index: int
-    identifiers: List[SentenceID]  # an unchanged sentence has two identifiers
-    diff: DiffStruct
-    status: STATUS
-    aligned: Set[int]  # list of indices
-
-
-@functools.lru_cache(maxsize=128)
-def is_title(line: str) -> bool:
-    return re.match("^#+ .", line) is not None
-
-
-def is_title_or_newline(line: str) -> bool:
-    return is_title(line) or line == ""
-
-
-def sent_to_words(sent: str) -> List[str]:
-    return [word for word in sent.split() if word not in string.punctuation]
-
-
-def is_sentence_solved(sentence: SentenceStruct) -> bool:
-    return sentence.status != STATUS.UNKNOWN
-
-
-def is_paragraph_solved(paragraph: List[SentenceStruct]) -> bool:
-    """
-    Returns whether all removed sentences (OLD SENTENCES) in a paragraph have been aligned.
-    """
-    return all(
-        [
-            is_sentence_solved(sentence)
-            for sentence in paragraph
-            if sentence.diff.code == -1
-        ]
-    )
-
-
-@functools.lru_cache(maxsize=128)
-def preprocess_single_sent(sent: str) -> str:
-
-    j = " ".join(tok.tokenize(sent).words())
-
-    j = j.replace("[ MATH ]", " [MATH] ")
-    j = j.replace("[ EQUATION ]", " [EQUATION] ")
-    j = j.replace("[ REF ]", " [REF] ")
-    j = j.replace("[ CITATION ]", " [CITATION] ")
-
-    j = " ".join(j.split())
-
-    return j
-
-
-@functools.lru_cache(maxsize=512)
-def similar(sent1, sent2) -> bool:
-    if sent1 in preprocess_sent_dict:
-        sent1 = preprocess_sent_dict[sent1]
-    else:
-        sent1 = preprocess_single_sent(sent1)
-
-    if sent2 in preprocess_sent_dict:
-        sent2 = preprocess_sent_dict[sent2]
-    else:
-        sent2 = preprocess_single_sent(sent2)
-
-    diff_output = diff.line_diff(sent_to_words(sent1), sent_to_words(sent2),)
-
-    length_removed = sum([len(words) for code, words in diff_output if code == -1])
-    length_original = sum(
-        [len(words) for code, words in diff_output if code in [-1, 0]]
-    )
-    length_added = sum([len(words) for code, words in diff_output if code == 1])
-    length_new = sum([len(words) for code, words in diff_output if code in [1, 0]])
-
-    return (
-        (
-            length_original != 0
-            and length_new != 0
-            and length_removed / length_original <= 0.2
-            and length_added / length_original <= 0.4
-            # consider changing to length_new
-        )
-        or sent1 in sent2
-        or sent2 in sent1
-        # TODO: is this too loose a filter?
-    )
+from arxivedits.alignment.structures import SentenceStruct, DiffStruct, STATUS
+from arxivedits.alignment.util import (
+    similar,
+    is_paragraph_solved,
+    is_sentence_solved,
+)
 
 
 def to_diff_with_ids(
     line_diff: diff.LineDiff, arxivid: str, version1: int, version2: int
 ) -> List[Tuple[int, str, List[SentenceID]]]:
+    """
+    Converts a basic diff to a diff with the corresponding SentenceIDs
+    """
     paragraph_index_1 = 0
     sentence_index_1 = 0
 
@@ -179,6 +81,9 @@ def identical_align(
     Dict[SentenceID, Set[SentenceID]],
     Dict[SentenceID, str],
 ]:
+    """
+    Uses a simple diff algorithm to find all identical sentences for an Alignment class. Returns dictionaries for the alignments and the lookup from SentenceID to sentence string.
+    """
     assert (
         version1 < version2
     ), f"version 1 {version1} must be smaller than version 2 {version2}!"
@@ -243,6 +148,9 @@ def identical_align(
 def easy_align(
     arxivid: str, version1: int, version2: int
 ) -> List[List[SentenceStruct]]:
+    """
+    Uses a simple threshold to align sentences within the same paragraph (counted using line breaks).
+    """
     assert (
         version1 < version2
     ), f"version 1 {version1} must be smaller than version 2 {version2}!"
@@ -309,7 +217,7 @@ def easy_align(
         ]
 
         for removed_sent_idx in removed_sent_indices:
-            if is_title_or_newline(pg[removed_sent_idx].diff.sentence):
+            if diff.is_title_or_newline(pg[removed_sent_idx].diff.sentence):
                 pg[removed_sent_idx].status = STATUS.BORING  # changed from Chao's code
                 continue
 
@@ -319,7 +227,7 @@ def easy_align(
 
             for added_sent_idx in added_sent_indices:
 
-                if is_title_or_newline(pg[added_sent_idx].diff.sentence):
+                if diff.is_title_or_newline(pg[added_sent_idx].diff.sentence):
                     pg[
                         added_sent_idx
                     ].status = STATUS.BORING  # changed from Chao's code
@@ -379,14 +287,14 @@ def easy_align_outside_doc(
     aligned_sentences: List[SentenceStruct] = []
 
     for removed_sentence in removed_sentences:
-        if is_title_or_newline(removed_sentence.diff.sentence):
+        if diff.is_title_or_newline(removed_sentence.diff.sentence):
             continue
 
         if not diff.sent_filter(removed_sentence.diff.sentence):
             continue
 
         for added_sentence in added_sentences:
-            if is_title_or_newline(added_sentence.diff.sentence):
+            if diff.is_title_or_newline(added_sentence.diff.sentence):
                 continue
 
             if not diff.sent_filter(added_sentence.diff.sentence):
@@ -407,7 +315,83 @@ def easy_align_outside_doc(
     return [aligned_sentences]
 
 
+def parse_csv_row(row: List[str]) -> Tuple[SentenceID, str, SentenceID, str, int]:
+    """
+    Parses CSV rows in format `pair_ID|pair_UID|sent_0_idx|sent_0|sent_1_idx|sent_1|aligning_method` and returns the SentenceIDs and sentences
+    """
+    (
+        _,
+        _,
+        new_from_sent_id_str,
+        sent1,
+        new_to_sent_id_str,
+        sent2,
+        alignment_method_str,
+    ) = row
+
+    alignment_method = int(alignment_method_str)
+    new_from_sent_id = SentenceID.parse(new_from_sent_id_str)
+    new_to_sent_id = SentenceID.parse(new_to_sent_id_str)
+
+    return new_from_sent_id, sent1, new_to_sent_id, sent2, alignment_method
+
+
+def process_easy_align(
+    easy_alignments: List[List[SentenceStruct]], alignment: "Alignment"
+) -> None:
+    """
+    Updates an alignment with the easy alignments.
+    """
+    lookup: Dict[int, SentenceStruct] = {}
+
+    for pg in easy_alignments:
+        for sentence in pg:
+            lookup[sentence.index] = sentence
+
+    for pg in easy_alignments:
+        for sentence in pg:
+            if sentence.diff.code == 0:
+                continue  # already in alignment
+
+            if sentence.diff.code == 1:
+                # since we are only looking for sentences that are aligned, we can only look at deletions that are also aligned.
+                continue
+
+            if sentence.status in [STATUS.UNKNOWN, STATUS.BORING]:
+                continue  # don't know what it's aligned to or we don't care
+
+            assert sentence.diff.code == -1  # always an deleted sentence now
+            assert sentence.status in [
+                STATUS.SOLVED,
+                STATUS.USED,
+            ]  # always a possibly aligned sentence
+            assert len(sentence.aligned) > 0, str(
+                sentence
+            )  # always at least one alignment
+
+            assert len(sentence.identifiers) == 1, str(
+                sentence
+            )  # since deleted, only one identifier
+            identifier = sentence.identifiers[0]
+
+            assert identifier in alignment.alignments1, str(sentence)
+
+            aligned_ids = [
+                sentence_id
+                for index in lookup[sentence.index].aligned
+                for sentence_id in lookup[index].identifiers
+            ]
+
+            for sentence_id in aligned_ids:
+                alignment.alignments1[identifier].add(sentence_id)
+                alignment.alignments2[sentence_id].add(identifier)
+
+
 class Alignment:
+    """
+    Represents an alignment between two versions of a document, using SentenceID to keep track of sentences.
+    """
+
     def __init__(self, arxivid: str, version1: int, version2: int):
         assert (
             version1 < version2
@@ -431,27 +415,34 @@ class Alignment:
 
         self.new_to_old_lookup: Dict[SentenceID, SentenceID] = {}
 
+        self.write_unaligned_csv()  # populates self.new_to_old_lookup
+        self.save()
+
     def is_aligned(self, sentence_id: SentenceID) -> bool:
+        """
+        Checks whether a sentence has been aligned.
+        """
+        if sentence_id.arxivid != self.arxivid:
+            return False
+
         if sentence_id.version == self.version1:
-            return len(self.alignments1[sentence_id]) > 0
+            return bool(self.alignments1[sentence_id])
         elif sentence_id.version == self.version2:
-            return len(self.alignments2[sentence_id]) > 0
+            return bool(self.alignments2[sentence_id])
         else:
             raise ValueError(
                 f"{sentence_id} is not version {self.version1} or {self.version2}"
             )
 
     def get_unaligned(self) -> List[SentenceID]:
-        unaligned = []
-
-        for sentence_id in self.lookup:
-            if (
-                not self.is_aligned(sentence_id)
-                and diff.sent_filter(self.lookup[sentence_id])
-                # and not is_title_or_newline(self.lookup[sentence_id])
-            ):
-
-                unaligned.append(sentence_id)
+        """
+        Returns a list of all the unaligned sentence ids, both from the first and second versions.
+        """
+        unaligned = [
+            _id
+            for _id in self.lookup
+            if not self.is_aligned(_id) and not diff.is_boring(self.lookup[_id])
+        ]
 
         return unaligned
 
@@ -466,20 +457,117 @@ class Alignment:
         Saves self as a .pckl file in the appropriate folder. Creates a filename based on arxivid, version1 and version2.
         """
 
-        filepath = data.alignment_model_path(self.arxivid, self.version1, self.version2)
+        filepath = data.alignment_model_path(
+            self.arxivid, self.version1, self.version2, len(self.get_unaligned())
+        )
+
+        if os.path.isfile(filepath):  # file already exists.
+            with open(filepath, "rb") as loadfile:
+                other_alignment: Alignment = cast("Alignment", pickle.load(loadfile))
+
+            if len(other_alignment.get_unaligned()) < len(self.get_unaligned()):
+                logging.warning(
+                    "Existing .pckl file for %s has fewer (%d < %d) unaligned sentences. Not overwriting.",
+                    str(other_alignment),
+                    len(other_alignment.get_unaligned()),
+                    len(self.get_unaligned()),
+                )
+                return
 
         with open(filepath, "wb") as savefile:
             pickle.dump(self, savefile, protocol=pickle.HIGHEST_PROTOCOL)
 
     @staticmethod
-    def load(arxivid: str, version1: int, version2: int) -> "Alignment":
-        filepath = data.alignment_model_path(arxivid, version1, version2)
+    def load(
+        arxivid: str,
+        version1: int,
+        version2: int,
+        unaligned_sentences: Optional[int] = None,
+    ) -> "Alignment":
+        """
+        Loads a .pckl file from the appropriate folder and returns the Alignment instance.
+        """
+
+        if not unaligned_sentences:
+            unaligned_sentences = 0
+            possible_path = data.alignment_model_path(
+                arxivid, version1, version2, unaligned_sentences
+            )
+            while not os.path.isfile(possible_path) and unaligned_sentences < 1000:
+                unaligned_sentences += 1
+                possible_path = data.alignment_model_path(
+                    arxivid, version1, version2, unaligned_sentences
+                )
+
+            if unaligned_sentences == 1000:
+                raise ValueError(
+                    f"Could not find file at {possible_path} with any number of unaligned sentences"
+                )
+
+        filepath = data.alignment_model_path(
+            arxivid, version1, version2, unaligned_sentences
+        )
 
         with open(filepath, "rb") as loadfile:
             return cast("Alignment", pickle.load(loadfile))
 
+    @staticmethod
+    def load_csv(arxivid: str, version1: int, version2: int,) -> "Alignment":
+        """
+        Loads the .csv file for an entire alignment from the appropriate folder and returns the Alignment instance.
+        """
+
+        filepath = data.alignment_csv_path(arxivid, version1, version2)
+
+        alignment = Alignment(arxivid, version1, version2)
+
+        with open(filepath, "r") as csvfile:
+            reader = csv.reader(csvfile, delimiter="|", quoting=csv.QUOTE_MINIMAL)
+
+            next(reader)  # get past initial header row
+
+            for row in reader:
+                (
+                    from_sent_id,
+                    sent1,
+                    to_sent_id,
+                    sent2,
+                    alignment_method,
+                ) = parse_csv_row(row)
+
+                if from_sent_id in alignment.lookup:
+                    assert alignment.lookup[from_sent_id] == sent1
+                else:
+                    alignment.lookup[from_sent_id] = sent1
+
+                if to_sent_id in alignment.lookup:
+                    assert alignment.lookup[to_sent_id] == sent2
+                else:
+                    alignment.lookup[to_sent_id] = sent2
+
+                if alignment_method == 3:
+                    continue  # not aligned
+
+                elif alignment_method == 2:
+                    continue  # partial alignment; TODO
+
+                elif alignment_method == 1:
+                    # fully aligned
+                    alignment.alignments1[from_sent_id].add(to_sent_id)
+                    alignment.alignments2[to_sent_id].add(from_sent_id)
+
+                else:
+                    raise ValueError(
+                        f"alignment method '{alignment_method}' must be one of: 1, 2, 3"
+                    )
+
+        return alignment
+
     def write_csv(self) -> None:
         """
+        Writes itself as a .csv file for later user.
+
+        Format:
         pair_ID|pair_UID|sent_0_idx|sent_0|sent_1_idx|sent_1|aligning_method
         """
         filepath = data.alignment_csv_path(self.arxivid, self.version1, self.version2)
@@ -519,9 +607,15 @@ class Alignment:
                     writer.writerow(row)
 
     def write_unaligned_csv(self) -> None:
+        """
+        Writes all the unaligned sentence to a .csv for the HTML viewer/annotater tool to open. This creates the internal new_to_old lookup dictionary
+        """
         filepath = data.alignment_annotation_path(
-            self.arxivid, self.version1, self.version2
+            self.arxivid, self.version1, self.version2, len(self.get_unaligned())
         )
+
+        if os.path.isfile(filepath):
+            return
 
         unaligned = sorted(self.get_unaligned())
 
@@ -600,31 +694,22 @@ class Alignment:
 
                     writer.writerow(row)
 
+        self.save()
+
     def read_unaligned_csv(self) -> None:
         """
         Reads a csv file that has the now manually aligned sentences and adds the alignments to itself.
         """
 
         filepath = data.alignment_finished_path(
-            self.arxivid, self.version1, self.version2
+            self.arxivid, self.version1, self.version2, len(self.get_unaligned())
         )
 
-        def parse_row(row: List[str]) -> Tuple[SentenceID, SentenceID, int]:
-            (
-                _,
-                _,
-                new_from_sent_id_str,
-                _,
-                new_to_sent_id_str,
-                _,
-                alignment_method_str,
-            ) = row
-
-            alignment_method = int(alignment_method_str)
-            new_from_sent_id = SentenceID.parse(new_from_sent_id_str)
-            new_to_sent_id = SentenceID.parse(new_to_sent_id_str)
-
-            return new_from_sent_id, new_to_sent_id, alignment_method
+        if not os.path.isfile(filepath):
+            logging.warning(
+                "Couldn't find a finished annotation file for %s", str(self)
+            )
+            return
 
         with open(filepath, "r") as csvfile:
             reader = csv.reader(csvfile, delimiter="|", quoting=csv.QUOTE_MINIMAL)
@@ -632,7 +717,13 @@ class Alignment:
             next(reader)  # get past initial header row
 
             for row in reader:
-                new_from_sent_id, new_to_sent_id, alignment_method = parse_row(row)
+                (
+                    new_from_sent_id,
+                    _,
+                    new_to_sent_id,
+                    _,
+                    alignment_method,
+                ) = parse_csv_row(row)
 
                 if alignment_method == 3:
                     continue  # not aligned
@@ -670,54 +761,13 @@ class Alignment:
                         f"alignment method '{alignment_method}' must be one of: 1, 2, 3"
                     )
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Alignment):
+            return False
 
-def process_easy_align(
-    easy_alignments: List[List[SentenceStruct]], alignment: Alignment
-) -> None:
-    """
-    Updates an alignment with the easy alignments.
-    """
-    lookup: Dict[int, SentenceStruct] = {}
-
-    for pg in easy_alignments:
-        for sentence in pg:
-            lookup[sentence.index] = sentence
-
-    for pg in easy_alignments:
-        for sentence in pg:
-            if sentence.diff.code == 0:
-                continue  # already in alignment
-
-            if sentence.diff.code == 1:
-                # since we are only looking for sentences that are aligned, we can only look at deletions that are also aligned.
-                continue
-
-            if sentence.status in [STATUS.UNKNOWN, STATUS.BORING]:
-                continue  # don't know what it's aligned to or we don't care
-
-            assert sentence.diff.code == -1  # always an deleted sentence now
-            assert sentence.status in [
-                STATUS.SOLVED,
-                STATUS.USED,
-            ]  # always a possibly aligned sentence
-            assert len(sentence.aligned) > 0, str(
-                sentence
-            )  # always at least one alignment
-
-            assert len(sentence.identifiers) == 1, str(
-                sentence
-            )  # since deleted, only one identifier
-            identifier = sentence.identifiers[0]
-
-            assert identifier in alignment.alignments1, str(sentence)
-
-            aligned_ids = [
-                sentence_id
-                for index in lookup[sentence.index].aligned
-                for sentence_id in lookup[index].identifiers
-            ]
-
-            for sentence_id in aligned_ids:
-                alignment.alignments1[identifier].add(sentence_id)
-                alignment.alignments2[sentence_id].add(identifier)
-
+        return (
+            self.alignments1 == other.alignments1
+            and self.alignments2 == other.alignments2
+            and self.lookup == other.lookup
+            and self.get_unaligned() == other.get_unaligned()
+        )

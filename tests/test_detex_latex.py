@@ -16,7 +16,17 @@ def test_nested_pair():
     assert latex.find_pair("{", "}", text) == (3, None)
 
 
-def test_finding_with_spaces():
+def test_escaped_pair():
+    text = r"{\}}"
+    assert latex.find_pair("{", "}", text) == (3, None)
+
+
+def test_escaped_escaped_pair():
+    text = r"{{}\\}"
+    assert latex.find_pair("{", "}", text) == (5, None)
+
+
+def test_find_pair_with_spaces():
     text = "input hello should live"
     assert latex.find_pair(" ", " ", text) == (11, None)
 

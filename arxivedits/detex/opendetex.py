@@ -45,7 +45,7 @@ def postprocess(text: str) -> str:
     regexp = (
         r"(?:"
         + re.escape(INLINE_MATH_TAG)
-        + r"(?:\s|\d|\.|=|\(|\))+)+"
+        + r"(?:\s|\d|=|\(|\))+)+"
         + re.escape(INLINE_MATH_TAG)
     )
     text = re.sub(regexp, INLINE_MATH_TAG, text)
@@ -113,9 +113,9 @@ def detex_file(inputfile: str, outputfile: str) -> None:
 
 
 if __name__ == "__main__":
-    test = r"""Let ${\cal T}\left[0,T\right]$ be the family of stopping times $\tau$ such that $0\le\tau\le T.$
-For any process $Z:\sbr{0,T}\times\Omega\ra\left[0,+\ns\right]$ we
-define"""
-    # \$.*[^.]\.\$ [A-Z]
-    print(detex(test)[0])
+    test = r"""\newcommand{\proof}{\textcolor{black}}
 
+We revise the orbital period of K2-3d to be \proof{44.55612} $\pm$ 0.00021 days, which corrects the predicted transit times in 2019, i.e., the {\it JWST} era, by $\sim$80 minutes.
+"""
+    # \$.*[^.]\.\$ [A-Z]
+    print(detex(test))

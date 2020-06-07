@@ -1,6 +1,7 @@
 import os
 import pickle
-from typing import List, Iterator, Tuple
+import string
+from typing import List, Iterator, Tuple, Callable, Iterable, Any
 
 from arxivedits import data, structures
 
@@ -54,3 +55,71 @@ def paragraphs_to_lines(doc: List[List[str]]) -> List[str]:
 
     return lines
 
+
+def f_mean(a: float, b: float, beta: float) -> float:
+    if a + b == 0:
+        return 0
+    return ((1 + beta * beta) * a * b) / (beta * beta * a + b)
+
+
+assert f_mean(1, 1, 1) == 1
+assert f_mean(0, 0, 1) == 0
+
+
+def sent_to_words(sent: str) -> List[str]:
+    """
+    Splits a sentence and removes punctuation.
+    """
+    return [word for word in sent.split() if word not in string.punctuation]
+
+
+def sliding_window(
+    row: Iterable[structures.T], default_value: Any = None, size: int = 1
+) -> Iterator[Tuple[Any, ...]]:
+    padding: List[Any] = [default_value] * size
+
+    padded_row: List[Any] = padding + list(row) + padding
+
+    rows: List[List[Any]] = [padded_row[i:] for i in range(size * 2 + 1)]
+
+    return zip(*rows)
+
+
+def consecutive_values(
+    vector: List[structures.T], test: Callable[[structures.T], bool]
+) -> List[List[structures.T]]:
+    """
+    Given a list and a test function, returns a list of groups of consecutive values that pass the test function.
+    """
+
+    groups = []
+    current_group = []
+
+    for value in vector:
+        if test(value):
+            current_group.append(value)
+        else:
+            if current_group:
+                groups.append(current_group)
+            current_group = []
+
+    if current_group:
+        groups.append(current_group)
+
+    return groups
+
+
+def sent_to_n_grams(sent: str, n: int) -> Iterator[Tuple[str, ...]]:
+    """
+    Splits a sentence, removes punctuation, and returns a list of tuples of n-grams
+    """
+
+    words = [word for word in sent.split() if word not in string.punctuation]
+
+    rows = [words[i:] for i in range(n)]
+
+    return zip(*rows)
+
+
+if __name__ == "__main__":
+    print(sent_to_n_grams("Hello there , I'm General Kenobi .", 2))

@@ -254,7 +254,7 @@ class Tokens:
             as_string: return the ngram as a string vs list
         """
 
-        def _skip(gram) -> bool:
+        def _skip(gram: Any) -> bool:
             if not filter_fn:
                 return False
             return filter_fn(gram)
@@ -560,6 +560,33 @@ def demo() -> None:
         for s in tokens.ssplit():
             print(s)
         print()
+
+
+def redo() -> None:
+    """
+    Converts information in detexed text to sentences.
+    """
+
+    tok = CoreNLPTokenizer()  # typing: ignore
+
+    for arxivid, v1, v2 in data.ANNOTATED_IDS:
+        textfilepath = data.text_path(arxivid, v1, suffix="-new")
+        sentencefilepath = data.sentence_path(arxivid, v1, suffix="-new")
+        tokenize_file(textfilepath, sentencefilepath, tok)
+        print(f"diff {data.sentence_path(arxivid, v1)} {sentencefilepath}")
+
+        textfilepath = data.text_path(arxivid, v2, suffix="-new")
+        sentencefilepath = data.sentence_path(arxivid, v2, suffix="-new")
+        tokenize_file(textfilepath, sentencefilepath, tok)
+        print(f"diff {data.sentence_path(arxivid, v2)} {sentencefilepath}")
+
+        # if os.path.isfile(sentencefilepath):
+        #     continue
+
+        # print(textfilepath)
+
+        # print(sentencefilepath)
+        # print(data.latex_path(arxivid, version))
 
 
 if __name__ == "__main__":
