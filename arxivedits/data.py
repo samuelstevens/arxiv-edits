@@ -8,7 +8,6 @@ import pathlib
 import csv
 
 from typing import Tuple, List, Union
-from arxivedits.util import flatten
 from arxivedits.structures import Res, ArxivID, ArxivIDPath
 
 UnsafeArxivID = Union[ArxivID, ArxivIDPath, str]
@@ -23,10 +22,10 @@ ANNOTATION_DIR = ALIGNMENT_DIR / "need-annotation"
 FINISHED_DIR = ALIGNMENT_DIR / "finished-annotations"
 VISUAL_DIR = DATA_DIR / "visualizations"
 
-SCHEMA_PATH = pwd / "schema.sql"
+SCHEMA_PATH = pwd / "schema-2.sql"
 
 
-DB_FILE_NAME = os.path.join(DATA_DIR, "arxivedits.sqlite3")
+DB_FILE_NAME = os.path.join(DATA_DIR, "arxivedits-2.sqlite3")
 IDF_DB = os.path.join(DATA_DIR, "idf")
 
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -390,52 +389,3 @@ ANNOTATED_IDS = [
     ("1806.05893", 1, 2),
     ("1811.07450", 1, 2),
 ]
-
-
-def script():
-    with open(
-        os.path.join(arxivedits.data.DATA_DIR, "sample-only-multiversion.csv")
-    ) as csvfile:
-        reader = csv.reader(csvfile)
-        pairs = [(i, int(versioncount)) for i, versioncount in reader]
-
-    total_pairs = 0
-    idlist = []
-
-    for arxivid, versioncount in pairs:
-        versionlist = list(range(1, versioncount + 1))
-
-        idlist.extend([(arxivid, v) for v in versionlist])
-
-        total_pairs += versioncount - 1
-
-    print(len(idlist))
-
-    idlist = [
-        (arxivid, v)
-        for arxivid, v in idlist
-        if os.path.isfile(arxivedits.data.latex_path(arxivid, v))
-    ]
-
-    idset = set(idlist)
-
-    total_tex = 0
-
-    for arxivid, v in idlist:
-        if (arxivid, v - 1) in idset:
-            total_tex += 1
-        elif v > 1:
-            print(f"no pair for {arxivid}-{v}")
-
-    for arxivid, v in idset:
-        pgs = get_paragraphs(arxivid, v)
-
-        sents = util.flatten(pgs)
-
-        print(len([s for s in sents if s]))
-
-    print(total_tex, total_pairs, len(idlist))
-
-
-if __name__ == "__main__":
-    script()

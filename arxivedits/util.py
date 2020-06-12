@@ -1,9 +1,10 @@
 import os
 import pickle
 import string
-from typing import List, Iterator, Tuple, Callable, Iterable, Any
+from typing import List, Iterator, Tuple, Callable, Iterable, Any, Dict, Set
 
-from arxivedits import data, structures
+from arxivedits import data
+from arxivedits.structures import T, U
 
 username = os.getenv("USERNAME") or os.getenv("USER")
 
@@ -37,7 +38,7 @@ def good_id_iter() -> Iterator[Tuple[str, int, int]]:
 good_id_len = len(list(good_id_iter()))
 
 
-def flatten(nested_list: List[List[structures.T]]) -> List[structures.T]:
+def flatten(nested_list: List[List[T]]) -> List[T]:
     """
     Takes a list of lists and returns a flattened list
     """
@@ -74,7 +75,7 @@ def sent_to_words(sent: str) -> List[str]:
 
 
 def sliding_window(
-    row: Iterable[structures.T], default_value: Any = None, size: int = 1
+    row: Iterable[T], default_value: Any = None, size: int = 1
 ) -> Iterator[Tuple[Any, ...]]:
     padding: List[Any] = [default_value] * size
 
@@ -85,9 +86,7 @@ def sliding_window(
     return zip(*rows)
 
 
-def consecutive_values(
-    vector: List[structures.T], test: Callable[[structures.T], bool]
-) -> List[List[structures.T]]:
+def consecutive_values(vector: List[T], test: Callable[[T], bool]) -> List[List[T]]:
     """
     Given a list and a test function, returns a list of groups of consecutive values that pass the test function.
     """
@@ -119,6 +118,24 @@ def sent_to_n_grams(sent: str, n: int) -> Iterator[Tuple[str, ...]]:
     rows = [words[i:] for i in range(n)]
 
     return zip(*rows)
+
+
+def merge_dicts(*dict_args: Dict[T, U]) -> Dict[T, U]:
+    """
+    Given any number of dicts, shallow copy and merge into a new dict,
+    precedence goes to key value pairs in latter dicts.
+    """
+    result: Dict[T, U] = {}
+    for dictionary in dict_args:
+        result.update(dictionary)
+    return result
+
+
+def get(s: Set[T]) -> T:
+    """
+    Gets a random element from a set.
+    """
+    return next(iter(s))
 
 
 if __name__ == "__main__":

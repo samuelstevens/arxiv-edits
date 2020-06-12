@@ -6,9 +6,12 @@ Various types used in this application.
 from typing import Tuple, List, NewType, Union, TypeVar, Optional
 
 # external
-from oaipmh.common import Metadata, Header  # type: ignore
+from oaipmh.common import Metadata, Header
 
 T = TypeVar("T")
+U = TypeVar("U")
+V = TypeVar("V")
+
 
 # just like Go's value, err combinations.
 Go = Tuple[T, Optional[Exception]]
@@ -26,4 +29,3 @@ Sentence = NewType("Sentence", str)
 Content = List[Sentence]
 Score = NewType("Score", float)
 Section = Tuple[Title, Content]
-

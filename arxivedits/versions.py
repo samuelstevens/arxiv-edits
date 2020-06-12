@@ -4,17 +4,18 @@ Stores a list of all arxiv ids with multiple versions.
 import os
 import sqlite3
 import datetime
-from typing import Set, List, Tuple, Iterable
+from typing import Set, List, Tuple, Iterable, cast
 
-from oaipmh.client import Client  # type: ignore
-from oaipmh.metadata import MetadataRegistry, MetadataReader  # type: ignore
+from oaipmh.client import Client
+from oaipmh.metadata import MetadataRegistry, MetadataReader
+
+from dateutil.parser import parse
 
 
 from arxivedits import data
 from arxivedits.structures import Record, ArxivID, Res
 
 URL = "http://export.arxiv.org/oai2"
-METADATA_PREFIX = "arXivRaw"
 
 
 def get_ids_already_queried() -> Set[ArxivID]:
@@ -34,37 +35,44 @@ def get_ids_already_queried() -> Set[ArxivID]:
     return set(ids)
 
 
-def add_record(
-    arxivid: ArxivID, versioncount: int, authors: List[str], categories: List[str]
-):
+def add_paper(
+    arxivid: ArxivID,
+    versions: List[int],
+    datestamps: List[datetime.datetime],
+    authors: List[Tuple[str, str]],
+    categories: List[str],
+) -> None:
     """
     Stores how many versions a paper has
     """
     con = data.connection()
 
     try:
-        paper_query = "INSERT INTO papers(arxiv_id, version_count) VALUES (?, ?)"
-        con.execute(paper_query, (arxivid, versioncount))
+        paper_query = "INSERT INTO papers(arxiv_id) VALUES (?)"
+        con.execute(paper_query, (arxivid,))
     except sqlite3.IntegrityError:
-        pass
+        print(f"Can't insert {arxivid} into 'papers' table.")
 
-    for author in authors:
+    for first, last in authors:
         try:
-            author_query = "INSERT INTO authors VALUES (?)"
-            con.execute(author_query, (author,))
+            author_query = "INSERT INTO authors VALUES (?, ?, ?)"
+            con.execute(author_query, (arxivid, first, last))
         except sqlite3.IntegrityError:
             pass
 
     for category in categories:
         try:
-            category_query = "INSERT INTO categories VALUES (?)"
-            con.execute(category_query, (category,))
+            category_query = "INSERT INTO categories VALUES (?, ?)"
+            con.execute(category_query, (arxivid, category))
         except sqlite3.IntegrityError:
             pass
 
+    for version, date in zip(versions, datestamps):
         try:
-            category_query = "INSERT INTO categories VALUES (?)"
-            con.execute(category_query, (category,))
+            version_query = "INSERT INTO versions VALUES (?, ?, datetime(?))"
+            con.execute(
+                version_query, (arxivid, version, date.strftime(r"%Y-%m-%d %H:%M:%S"))
+            )
         except sqlite3.IntegrityError:
             pass
 
@@ -96,6 +104,10 @@ def get_all_records() -> Iterable[Tuple[Record, Record]]:
     arxivraw_reader = MetadataReader(
         fields={
             "versions": ("textList", "arXivRaw:arXivRaw/arXivRaw:version/@version"),
+            "dates": (
+                "textList",
+                "arXivRaw:arXivRaw/arXivRaw:version/arXivRaw:date/text()",
+            ),
             "id": (
                 "textList",
                 "arXivRaw:arXivRaw/arXivRaw:id/text()",
@@ -154,9 +166,14 @@ def get_all_records() -> Iterable[Tuple[Record, Record]]:
 
     client.updateGranularity()
 
+    print("Getting records...")
+
     records = client.listRecords(metadataPrefix="arXiv")
     records_raw = client.listRecords(metadataPrefix="arXivRaw")
-    return zip(records, records_raw)  # assumes that
+    return zip(records, records_raw)  # assumes that they're the same length
+
+
+# PARSE
 
 
 def parse_field(record: Record, field: str) -> Res[List[str]]:
@@ -169,14 +186,29 @@ def parse_field(record: Record, field: str) -> Res[List[str]]:
         return AttributeError("No Metadata found in record.")
 
     if field not in meta.getMap():
-        return AttributeError("No ID found in Metadata.")
+        return AttributeError(f"No {field} found in Metadata.", field)
 
-    print(meta.getField(field))
-
-    return meta[field]
+    return cast(List[str], meta[field])
 
 
-def parse_authors(record: Record) -> Res[List[str]]:
+def parse_timestamp(record: Record) -> Res[List[datetime.datetime]]:
+    if not record:
+        return ValueError("record cannot be None.")
+
+    _, meta, _ = record
+
+    if not meta:
+        return AttributeError("No Metadata found in record.")
+
+    if "dates" not in meta.getMap():
+        return AttributeError("No dates found in metadata.")
+
+    datelist = cast(List[str], meta["dates"])
+
+    return [parse(d) for d in datelist]
+
+
+def parse_authors(record: Record) -> Res[List[Tuple[str, str]]]:
     firstnames = parse_field(record, "firstnames")
     lastnames = parse_field(record, "lastnames")
 
@@ -187,32 +219,30 @@ def parse_authors(record: Record) -> Res[List[str]]:
         return lastnames
 
     try:
-        return [first + last for first, last in zip(firstnames, lastnames)]
-    except TypeError as err:
+        return list(zip(firstnames, lastnames))
+    except Exception as err:
         return err
 
 
 def parse_categories(record: Record) -> Res[List[str]]:
-    category_list = parse_field(record, "categories")
-
-    if isinstance(category_list, Exception):
-        return category_list
+    header, _, _ = record
 
     try:
-        category_string = category_list[0]
-        return category_string.split()
-    except TypeError:
-        return ValueError(f"{category_list} is not List[str].")
+        return cast(List[str], header.setSpec())
+    except Exception as err:
+        return err
 
 
-def parse_version(record: Record) -> Res[int]:
-    versions = parse_field(record, "versions")
+def parse_version(record: Record) -> Res[List[int]]:
+    version_strs = parse_field(record, "versions")
 
-    if isinstance(versions, Exception):
+    if isinstance(version_strs, Exception):
+        return version_strs
+
+    versions = [int(v[1:]) for v in version_strs]
+
+    try:
         return versions
-
-    try:
-        return len(versions)
     except TypeError:
         return ValueError(f"{versions} is not a List[str].")
 
@@ -236,42 +266,44 @@ def get_papers_with_versions() -> None:
 
     queried_ids = get_ids_already_queried()
 
+    print(f"Seen {len(queried_ids)} ids already.")
+
     for arxiv, raw in get_all_records():
+        try:
+            arxivid = parse_arxivid(arxiv)
+            if isinstance(arxivid, Exception):
+                continue
 
-        arxivid = parse_arxivid(arxiv)
+            rawid = parse_arxivid(raw)
+            if isinstance(rawid, Exception):
+                continue
 
-        if isinstance(arxivid, Exception):
-            continue
+            versions = parse_version(raw)
+            if isinstance(versions, Exception):
+                versions = []
 
-        rawid = parse_arxivid(raw)
+            authors = parse_authors(arxiv)
+            if isinstance(authors, Exception):
+                authors = []
 
-        if isinstance(rawid, Exception):
-            continue
+            categories = parse_categories(arxiv)
+            if isinstance(categories, Exception):
+                categories = []
 
-        versions = parse_version(raw)
+            datestamps = parse_timestamp(raw)
+            if isinstance(datestamps, Exception):
+                datestamps = []
 
-        if isinstance(versions, Exception):
-            versions = -1
+            if rawid != arxivid:
+                print(f"{rawid} not the same as {arxivid}. Stopping.")
+                break
 
-        authors = parse_authors(arxiv)
+            if arxivid in queried_ids:
+                continue
 
-        if isinstance(authors, Exception):
-            authors = []
-
-        categories = parse_categories(arxiv)
-        if isinstance(categories, Exception):
-            categories = []
-
-        print(arxivid, rawid, versions, authors, categories)
-
-        if rawid != arxivid:
-            print(f"{rawid} not the same as {arxivid}. Stopping.")
-            break
-
-        if arxivid in queried_ids:
-            continue
-
-        add_record(arxivid, versions, authors, categories)
+            add_paper(arxivid, versions, datestamps, authors, categories)
+        except Exception:
+            pass  # do not crash for any reason
 
 
 def main() -> None:
@@ -287,10 +319,10 @@ def main() -> None:
 
 
 def script() -> None:
-    def parse_to_date(id: str) -> datetime.date:
+    def parse_to_date(arxivid: str) -> datetime.date:
         try:
-            year = 2000 + int(id[:2])
-            month = int(id[2:4])
+            year = 2000 + int(arxivid[:2])
+            month = int(arxivid[2:4])
             return datetime.date(year, month, 1)
         except ValueError:
             return latest_id
@@ -311,8 +343,4 @@ def script() -> None:
 
 
 if __name__ == "__main__":
-    # get_categories_and_authors()
-    # main()
-    # add_record("0704.0001", 3, ["author 3", "author 4"], ["hep-ph"])
-    script()
-    pass
+    main()
