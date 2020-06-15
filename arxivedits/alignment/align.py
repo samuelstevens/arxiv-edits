@@ -512,7 +512,7 @@ class Alignment:
             return cast("Alignment", pickle.load(loadfile))
 
     @staticmethod
-    def load_csv(arxivid: str, version1: int, version2: int,) -> "Alignment":
+    def load_csv(arxivid: str, version1: int, version2: int) -> "Alignment":
         """
         Loads the .csv file for an entire alignment from the appropriate folder and returns the Alignment instance.
         """
@@ -563,15 +563,18 @@ class Alignment:
 
         return alignment
 
-    def write_csv(self) -> None:
+    def write_csv(self, group: str) -> None:
         """
         Writes itself as a .csv file for later user.
 
         Format:
         pair_ID|pair_UID|sent_0_idx|sent_0|sent_1_idx|sent_1|aligning_method
         """
-        filepath = data.alignment_csv_path(self.arxivid, self.version1, self.version2)
-
+        if group == "machine":
+            filepath = data.machine_csv_path(self.arxivid, self.version1, self.version2)
+        else:
+            filepath = data.alignment_csv_path(self.arxivid, self.version1, self.version2)
+           
         with open(filepath, "w") as csvfile:
             writer = csv.writer(csvfile, delimiter="|", quoting=csv.QUOTE_MINIMAL)
             writer.writerow(

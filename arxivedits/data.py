@@ -10,21 +10,22 @@ import csv
 from typing import Tuple, List, Union
 from arxivedits.structures import Res, ArxivID, ArxivIDPath
 
+# TYPES
+
 UnsafeArxivID = Union[ArxivID, ArxivIDPath, str]
 
-pwd = pathlib.Path(__file__).parent.parent.absolute()  # pylint: disable=invalid-name
+# PATHS
 
-DATA_DIR = pwd / "data"  # arxivedits/data, NOT arxivedits/arxivedits/data
+pwd = pathlib.Path(__file__).parent.parent.absolute()
+DATA_DIR = pwd / "data"
 ALIGNMENT_DIR = DATA_DIR / "alignments"
 MODEL_DIR = ALIGNMENT_DIR / "models"
 CSV_DIR = ALIGNMENT_DIR / "alignments"
+MACHINE_DIR = ALIGNMENT_DIR / "machine-annotations"
 ANNOTATION_DIR = ALIGNMENT_DIR / "need-annotation"
 FINISHED_DIR = ALIGNMENT_DIR / "finished-annotations"
 VISUAL_DIR = DATA_DIR / "visualizations"
-
 SCHEMA_PATH = pwd / "schema-2.sql"
-
-
 DB_FILE_NAME = os.path.join(DATA_DIR, "arxivedits-2.sqlite3")
 IDF_DB = os.path.join(DATA_DIR, "idf")
 
@@ -35,6 +36,9 @@ os.makedirs(CSV_DIR, exist_ok=True)
 os.makedirs(ANNOTATION_DIR, exist_ok=True)
 os.makedirs(FINISHED_DIR, exist_ok=True)
 os.makedirs(VISUAL_DIR, exist_ok=True)
+
+
+# TYPE FUNCTIONS
 
 
 def id_to_path(arxivid: UnsafeArxivID) -> ArxivIDPath:
@@ -68,6 +72,9 @@ def alignment_path_asserts(
     assert version1 < version2, f"v{version1} must be less than v{version2}"
 
     return arxividpath
+
+
+# PATH FUNCTIONS
 
 
 def parse_filename(filename: str) -> Res[Tuple[str, int]]:
@@ -122,10 +129,6 @@ def text_path(arxivid: UnsafeArxivID, version: int, suffix: str = "") -> str:
         "extra",
         f"{arxividpath}-v{version}{suffix}.txt",
     )
-
-
-def is_detexed(arxivid: UnsafeArxivID, version: int) -> bool:
-    return os.path.isfile(text_path(arxivid, version))
 
 
 def sentence_path(arxivid: UnsafeArxivID, version: int, suffix: str = "") -> str:
@@ -210,6 +213,16 @@ def alignment_csv_path(arxivid: UnsafeArxivID, version1: int, version2: int) -> 
     arxividpath = alignment_path_asserts(arxivid, version1, version2)
 
     return os.path.join(CSV_DIR, f"{arxividpath}-v{version1}-v{version2}.csv")
+
+
+def machine_csv_path(arxivid: UnsafeArxivID, version1: int, version2: int) -> str:
+    """
+    Returns the path for the machine aligned-pairs.
+    """
+
+    arxividpath = alignment_path_asserts(arxivid, version1, version2)
+
+    return os.path.join(MACHINE_DIR, f"{arxividpath}-v{version1}-v{version2}.csv")
 
 
 def alignment_annotation_path(
@@ -344,6 +357,10 @@ def is_x(
             return False
 
     return True
+
+
+def is_detexed(arxivid: UnsafeArxivID, version: int) -> bool:
+    return os.path.isfile(text_path(arxivid, version))
 
 
 SAMPLE_IDS = [

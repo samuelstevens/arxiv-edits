@@ -4,7 +4,9 @@ Stores a list of all arxiv ids with multiple versions.
 import os
 import sqlite3
 import datetime
-from typing import Set, List, Tuple, Iterable, cast
+import statistics
+from typing import Set, List, Tuple, Iterable, Dict, Callable, cast
+from dataclasses import dataclass
 
 from oaipmh.client import Client
 from oaipmh.metadata import MetadataRegistry, MetadataReader
@@ -318,29 +320,67 @@ def main() -> None:
     print("Recorded all paper's version counts.")
 
 
+@dataclass
+class PaperMetadata:
+    arxivid: str
+    versions: Dict[int, datetime.datetime]
+    categories: List[str]
+    authors: List[Tuple[str, str]]
+
+
+def get_paper_metadata(arxivid: str) -> PaperMetadata:
+    with data.connection() as con:
+        versions: Dict[int, datetime.datetime] = {}
+
+        for version_str, date_str in con.execute(
+            "SELECT number, time FROM versions WHERE arxiv_id = (?)", (arxivid,)
+        ).fetchall():
+            versions[int(version_str)] = parse(date_str)
+
+        categories = con.execute(
+            "SELECT spec FROM categories WHERE arxiv_id = (?)", (arxivid,)
+        ).fetchall()
+
+        authors = con.execute(
+            "SELECT first_name, last_name FROM authors WHERE arxiv_id = (?)", (arxivid,)
+        ).fetchall()
+
+    return PaperMetadata(arxivid, versions, categories, authors)
+
+
+def get_days_delta(paper: PaperMetadata, v1: int, v2: int) -> int:
+    difference = paper.versions[v1] - paper.versions[v2]
+
+    return difference.days
+
+
+def get_avg_time_deltas(
+    arxivids: Iterable[str], measure: Callable[[Iterable[int]], float]
+) -> Dict[Tuple[int, int], float]:
+
+    version_pairs: Dict[Tuple[int, int], List[int]] = {}
+
+    for arxivid in arxivids:
+        paper = get_paper_metadata(arxivid)
+
+        for i, (v1, _) in enumerate(paper.versions[:-1]):
+            v2, _ = paper.versions[i + 1]
+
+            days = get_days_delta(paper, v1, v2)
+
+            if (v1, v2) in version_pairs:
+                version_pairs[(v1, v2)].append(days)
+            else:
+                version_pairs[(v1, v2)] = [days]
+
+    return {(v1, v2): measure(version_pairs[(v1, v2)]) for v1, v2 in version_pairs}
+
+
 def script() -> None:
-    def parse_to_date(arxivid: str) -> datetime.date:
-        try:
-            year = 2000 + int(arxivid[:2])
-            month = int(arxivid[2:4])
-            return datetime.date(year, month, 1)
-        except ValueError:
-            return latest_id
+    arxivids = get_ids_already_queried()
 
-    latest_id = datetime.date(datetime.MINYEAR, 1, 1)
-
-    query = "SELECT arxiv_id, version_count FROM papers"
-
-    for row in data.connection().execute(query).fetchall():
-        date = parse_to_date(row[0])
-
-        if date > latest_id:
-            latest_id = date
-
-    print(latest_id)
-
-    print(len(data.connection().execute(query).fetchall()))
+    print(get_avg_time_deltas(arxivids, statistics.median))
 
 
 if __name__ == "__main__":
-    main()
+    script()

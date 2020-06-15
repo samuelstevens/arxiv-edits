@@ -25,15 +25,13 @@ from arxivedits.alignment.align import (
     process_easy_align,
     easy_align_outside_doc,
 )
-from arxivedits.alignment.util import preprocess_single_sent
-
 
 # ids = tqdm(util.good_id_iter(), total=util.good_id_len)
 # ids = util.good_id_iter()
 ids = list(util.good_id_iter())[:20]
 
 
-def write_unaligned():
+def write_unaligned() -> None:
     logging.info("Creating models and writing unaligned sentences to disk.")
 
     for arxivid, version1, version2 in tqdm([("hep-th-0607021", 1, 2)]):
@@ -49,20 +47,20 @@ def write_unaligned():
         alignment.save()
 
 
-def read_aligned():
-    logging.info("Updating models with manual annotations and writing to disk")
-    for arxivid, version1, version2 in ids:
-        if os.path.isfile(
-            data.alignment_finished_path(arxivid, version1, version2)
-        ) and os.path.isfile(data.alignment_model_path(arxivid, version1, version2)):
-            alignment = Alignment.load(arxivid, version1, version2)
+# def read_aligned() -> None:
+#     logging.info("Updating models with manual annotations and writing to disk")
+#     for arxivid, version1, version2 in ids:
+#         if os.path.isfile(
+#             data.alignment_finished_path(arxivid, version1, version2)
+#         ) and os.path.isfile(data.alignment_model_path(arxivid, version1, version2)):
+#             alignment = Alignment.load(arxivid, version1, version2)
 
-            alignment.read_unaligned_csv()
+#             alignment.read_unaligned_csv()
 
-            alignment.save()
+#             alignment.save()
 
 
-def write_final_aligned():
+def write_final_aligned() -> None:
     logging.info("Writing final annotations to .csv for inspection.")
     for arxivid, version1, version2 in ids:
         if os.path.isfile(
@@ -74,16 +72,16 @@ def write_final_aligned():
             alignment.write_csv()
 
 
-def test_script():
-    for arxivid, version1, version2 in tqdm(data.SAMPLE_IDS):
-        alignment = Alignment(arxivid, version1, version2)
-        alignment = Alignment.load(arxivid, version1, version2)
-        alignment.read_unaligned_csv()
-        alignment.write_unaligned_csv()
-        # alignment.write_csv()
+# def test_script() -> None:
+#     for arxivid, version1, version2 in tqdm(data.SAMPLE_IDS):
+#         alignment = Alignment(arxivid, version1, version2)
+#         alignment = Alignment.load(arxivid, version1, version2)
+#         alignment.read_unaligned_csv()
+#         alignment.write_unaligned_csv()
+#         alignment.write_csv()
 
 
-def start_of_pipeline():
+def start_of_pipeline() -> None:
     for arxivid, version1, version2 in tqdm(data.SAMPLE_IDS):
         alignment = Alignment(arxivid, version1, version2)
         easy_alignments = easy_align(arxivid, version1, version2)
@@ -95,9 +93,21 @@ def start_of_pipeline():
         alignment.save()
 
 
+def write_machine_alignments() -> None:
+    for arxivid, version1, version2 in tqdm(data.SAMPLE_IDS):
+        alignment = Alignment(arxivid, version1, version2)
+        easy_alignments = easy_align(arxivid, version1, version2)
+        process_easy_align(easy_alignments, alignment)
+
+        easy_alignments_outside = easy_align_outside_doc(easy_alignments)
+        process_easy_align(easy_alignments_outside, alignment)
+        diff._hashable_line_diff.cache_clear()  # clear it after finishing a document
+        alignment.write_csv("machine")
+
+
 if __name__ == "__main__":
     # write_unaligned()
 
-    test_script()
+    write_machine_alignments()
     # print(preprocess_single_sent.cache_info())
     # print(diff.sent_filter.cache_info())

@@ -14,10 +14,10 @@ import pathlib
 
 # External
 import requests
-import magic  # type: ignore
+import magic
 
 # internal
-from structures import ArxivID  # type: ignore
+from structures import ArxivID
 import arxivedits.data as data
 
 TIMEOUT = 5
@@ -260,9 +260,13 @@ def get_ids(
     """
     query = "SELECT arxiv_id, version_count FROM papers WHERE version_count > 1"
 
-    rows = data.connection().execute(query).fetchall()
+    con = data.connection()
+
+    rows = con.execute(query).fetchall()
 
     result = list(rows)
+
+    con.close()
 
     if not ALL:
         result = result[:count]
