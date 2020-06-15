@@ -1,6 +1,6 @@
 import os, csv
-import data, util
-import alignment.util
+from arxivedits import data, util
+from arxivedits import alignment
 import tqdm
 
 
@@ -43,6 +43,9 @@ def corpus_overview() -> None:
 
     for arxivid, v in tqdm.tqdm(idset):
         pgs = data.get_paragraphs(arxivid, v)
+
+        if isinstance(pgs, Exception):
+            continue
 
         sents = util.flatten(pgs)
 

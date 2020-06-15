@@ -5,7 +5,7 @@ import logging
 import re
 from typing import List
 
-from arxivedits.detex import latex, equations
+from arxivedits.detex import equations
 
 logger = logging.getLogger("delatex")
 
@@ -127,7 +127,7 @@ def removeDefinition(lines: List[str], content: List[str]):
         content.append("%s\n" % line.strip())
 
 
-def simpleLatexToText(inputfile: str, outputfile: str, sectioned=False):
+def simpleLatexToText(inputfile: str, outputfile: str, sectioned=False) -> None:
     """
     Chenhao's latex to text algorithm.
     """

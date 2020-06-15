@@ -90,54 +90,6 @@ def demo() -> None:
         print(detex.latex.clean(s))
 
 
-def script() -> None:
-    with open(f"{data.DATA_DIR}/matched_sentences.csv") as csvfile:
-        reader = csv.reader(csvfile)
-
-        rows = list(reader)
-
-    ids = [row[0] for row in rows]
-
-    localfiles = {
-        f"{arxivid}v{v}": (arxivid, v) for arxivid, v in data.get_local_files()
-    }
-
-    localfileids = set(localfiles.keys())
-
-    localfiles_from_chenhao = localfileids.intersection(ids)
-
-    localfiles = sorted([localfiles[key] for key in localfiles_from_chenhao])
-
-    print(f"Can inspect {len(localfiles)} localfiles.")
-
-    for arxivid, _ in localfiles:
-        if not source.is_downloaded(arxivid, 1):
-            source.download_source_files(arxivid, 1)
-
-        if not source.is_extracted(arxivid, 1):
-            source.extract_file(
-                data.source_path(arxivid, 1), data.latex_path(arxivid, 1)
-            )
-
-        if not data.is_detexed(arxivid, 1):
-            detex.detex_file(data.latex_path(arxivid, 1), data.text_path(arxivid, 1))
-
-        if not source.is_downloaded(arxivid, 2):
-            source.download_source_files(arxivid, 2)
-
-        if not source.is_extracted(arxivid, 2):
-            source.extract_file(
-                data.source_path(arxivid, 2), data.latex_path(arxivid, 2)
-            )
-
-        if not data.is_detexed(arxivid, 2):
-            detex.detex_file(data.latex_path(arxivid, 2), data.text_path(arxivid, 2))
-
-        print(data.text_path(arxivid, 1))
-        print(data.text_path(arxivid, 2))
-        print()
-
-
 def redo() -> None:
     """
     Takes .tex files and converts them to text.
@@ -164,7 +116,9 @@ def redo() -> None:
 
 
 if __name__ == "__main__":
+    print(detex.detex_file)
+    print(dir(detex))
     # main()
-    redo()
+    # redo()
     # demo()
     # test()

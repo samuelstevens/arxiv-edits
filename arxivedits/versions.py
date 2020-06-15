@@ -5,7 +5,7 @@ import os
 import sqlite3
 import datetime
 import statistics
-from typing import Set, List, Tuple, Iterable, Dict, Callable, cast
+from typing import Set, List, Tuple, Iterable, Dict, Callable, Iterator, cast, Generator
 from dataclasses import dataclass
 
 from oaipmh.client import Client
@@ -99,7 +99,7 @@ def init_db() -> None:
         con.executescript(file.read())
 
 
-def get_all_records() -> Iterable[Tuple[Record, Record]]:
+def get_all_records() -> Iterator[Tuple[Record, Record]]:
     """
     Creates a generator of all records on arxiv.org.
     """
@@ -170,9 +170,11 @@ def get_all_records() -> Iterable[Tuple[Record, Record]]:
 
     print("Getting records...")
 
-    records = client.listRecords(metadataPrefix="arXiv")
-    records_raw = client.listRecords(metadataPrefix="arXivRaw")
-    return zip(records, records_raw)  # assumes that they're the same length
+    records: Generator[Record, None, None] = client.listRecords(metadataPrefix="arXiv")
+    records_raw: Generator[Record, None, None] = client.listRecords(
+        metadataPrefix="arXivRaw"
+    )
+    return zip(records, records_raw)
 
 
 # PARSE
@@ -363,8 +365,8 @@ def get_avg_time_deltas(
     for arxivid in arxivids:
         paper = get_paper_metadata(arxivid)
 
-        for i, (v1, _) in enumerate(paper.versions[:-1]):
-            v2, _ = paper.versions[i + 1]
+        for v1 in paper.versions:
+            v2 = v1 + 1
 
             days = get_days_delta(paper, v1, v2)
 

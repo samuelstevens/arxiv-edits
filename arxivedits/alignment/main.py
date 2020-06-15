@@ -60,18 +60,6 @@ def write_unaligned() -> None:
 #             alignment.save()
 
 
-def write_final_aligned() -> None:
-    logging.info("Writing final annotations to .csv for inspection.")
-    for arxivid, version1, version2 in ids:
-        if os.path.isfile(
-            data.alignment_finished_path(arxivid, version1, version2)
-        ) and os.path.isfile(data.alignment_model_path(arxivid, version1, version2)):
-
-            alignment = Alignment.load(arxivid, version1, version2)
-
-            alignment.write_csv()
-
-
 # def test_script() -> None:
 #     for arxivid, version1, version2 in tqdm(data.SAMPLE_IDS):
 #         alignment = Alignment(arxivid, version1, version2)

@@ -8,7 +8,13 @@ from typing import Callable, Optional, Any
 
 from tqdm import tqdm
 
-import arxivedits
+from arxivedits import data, diff, util, similarity
+from arxivedits.alignment.align import (
+    Alignment,
+    easy_align,
+    easy_align_outside_doc,
+    process_easy_align,
+)
 
 ALIGN_MODE = Enum("ALIGN_MODE", ["ALL", "DIFF", "EASY", "GOLD"])
 LABEL = Enum("LABEL", ["ALIGNED", "UNKNOWN", "BORING"])
@@ -72,14 +78,10 @@ def make_table(
     """
 
     if not similarity_func:
-        similarity_func = lambda x, y: arxivedits.similarity.get_similarity(
-            x, y
-        ).diff_sim
+        similarity_func = lambda x, y: similarity.get_similarity(x, y).diff_sim
 
     filename = os.path.join(
-        arxivedits.data.ALIGNMENT_DIR,
-        "similarity",
-        f"{arxivid}-{v1}-{v2}-{mode}-table.npy",
+        data.ALIGNMENT_DIR, "similarity", f"{arxivid}-{v1}-{v2}-{mode}-table.npy",
     )
 
     if os.path.isfile(filename) and use_cache:
@@ -87,13 +89,15 @@ def make_table(
 
     print("Making table.")
 
-    lines1 = arxivedits.util.paragraphs_to_lines(
-        arxivedits.data.get_paragraphs(arxivid, v1)
-    )
+    pgs1 = data.get_paragraphs(arxivid, v1)
+    pgs2 = data.get_paragraphs(arxivid, v2)
 
-    lines2 = arxivedits.util.paragraphs_to_lines(
-        arxivedits.data.get_paragraphs(arxivid, v2)
-    )
+    if isinstance(pgs1, Exception) or isinstance(pgs2, Exception):
+        print("Failed to make table.")
+        return
+
+    lines1 = util.paragraphs_to_lines(pgs1)
+    lines2 = util.paragraphs_to_lines(pgs2)
 
     BORING_VALUE = -1.0
     ALIGNED_VALUE = 1.0
@@ -105,7 +109,7 @@ def make_table(
             for y, line2 in enumerate(lines2):
                 table[x, y] = similarity_func(line1, line2)
     elif mode == ALIGN_MODE.DIFF:
-        diff_alignment = arxivedits.alignment.Alignment(arxivid, v1, v2)
+        diff_alignment = Alignment(arxivid, v1, v2)
         for x, _id1 in enumerate(sorted(diff_alignment.alignments1.keys())):
             for y, _id2 in enumerate(sorted(diff_alignment.alignments2.keys())):
                 if (
@@ -124,17 +128,13 @@ def make_table(
                 )
 
     elif mode == ALIGN_MODE.EASY:
-        diff_alignment = arxivedits.alignment.Alignment(arxivid, v1, v2)
-        easy_alignments = arxivedits.alignment.align.easy_align(arxivid, v1, v2)
-        arxivedits.alignment.align.process_easy_align(easy_alignments, diff_alignment)
+        diff_alignment = Alignment(arxivid, v1, v2)
+        easy_alignments = easy_align(arxivid, v1, v2)
+        process_easy_align(easy_alignments, diff_alignment)
 
-        easy_alignments_outside = arxivedits.alignment.align.easy_align_outside_doc(
-            easy_alignments
-        )
-        arxivedits.alignment.align.process_easy_align(
-            easy_alignments_outside, diff_alignment
-        )
-        arxivedits.diff._hashable_line_diff.cache_clear()  # clear it after finishing a document
+        easy_alignments_outside = easy_align_outside_doc(easy_alignments)
+        process_easy_align(easy_alignments_outside, diff_alignment)
+        diff._hashable_line_diff.cache_clear()  # clear it after finishing a document
 
         for x, _id1 in enumerate(sorted(diff_alignment.alignments1.keys())):
             for y, _id2 in enumerate(sorted(diff_alignment.alignments2.keys())):
@@ -153,7 +153,7 @@ def make_table(
                     diff_alignment.lookup[_id1], diff_alignment.lookup[_id2]
                 )
     elif mode == ALIGN_MODE.GOLD:
-        gold_alignment = arxivedits.alignment.Alignment.load(arxivid, v1, v2)
+        gold_alignment = Alignment.load(arxivid, v1, v2)
         for x, _id1 in enumerate(sorted(gold_alignment.alignments1.keys())):
             for y, _id2 in enumerate(sorted(gold_alignment.alignments2.keys())):
                 if (
@@ -232,7 +232,7 @@ def write_heatmap(
     """
     if not filename:
         filename = os.path.join(
-            arxivedits.data.VISUAL_DIR, "heatmaps", f"{arxivid}-{v1}-{v2}-heatmap.html",
+            data.VISUAL_DIR, "heatmaps", f"{arxivid}-{v1}-{v2}-heatmap.html",
         )
 
     table = make_table(arxivid, v1, v2, mode, **kwargs)
@@ -254,7 +254,7 @@ def main() -> None:
     """
     Makes a heatmap for every annotated document.
     """
-    for arxivid, v1, v2 in tqdm(arxivedits.data.ANNOTATED_IDS):
+    for arxivid, v1, v2 in tqdm(data.ANNOTATED_IDS):
         write_heatmap(arxivid, v1, v2, ALIGN_MODE.DIFF)
 
 

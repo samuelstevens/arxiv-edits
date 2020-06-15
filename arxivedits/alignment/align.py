@@ -563,7 +563,7 @@ class Alignment:
 
         return alignment
 
-    def write_csv(self, group: str) -> None:
+    def write_csv(self, group: str = "") -> None:
         """
         Writes itself as a .csv file for later user.
 
@@ -573,8 +573,10 @@ class Alignment:
         if group == "machine":
             filepath = data.machine_csv_path(self.arxivid, self.version1, self.version2)
         else:
-            filepath = data.alignment_csv_path(self.arxivid, self.version1, self.version2)
-           
+            filepath = data.alignment_csv_path(
+                self.arxivid, self.version1, self.version2
+            )
+
         with open(filepath, "w") as csvfile:
             writer = csv.writer(csvfile, delimiter="|", quoting=csv.QUOTE_MINIMAL)
             writer.writerow(

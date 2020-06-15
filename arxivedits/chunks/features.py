@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from typing import List
+from typing import List, cast
 
 from arxivedits.similarity import Similarity
 from arxivedits import alignment
@@ -54,7 +54,10 @@ class FeatureVector:
 
 def get_max_field(similarity_vector: List[Similarity], field: str) -> float:
     return (
-        getattr(max(similarity_vector, key=lambda sim: getattr(sim, field)), field)
+        cast(
+            float,
+            getattr(max(similarity_vector, key=lambda sim: getattr(sim, field)), field),
+        )
         if similarity_vector
         else 0
     )

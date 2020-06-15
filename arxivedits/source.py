@@ -2,7 +2,7 @@
 Downloads source files from arxiv.org and extracts the largest .tex file.
 """
 # Builtin
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, cast, BinaryIO
 import tarfile
 import gzip
 import os
@@ -17,7 +17,7 @@ import requests
 import magic
 
 # internal
-from structures import ArxivID
+from arxivedits.structures import ArxivID
 import arxivedits.data as data
 
 TIMEOUT = 5
@@ -44,7 +44,7 @@ def download_file(url: str, local_filename: str) -> str:
     return local_filename
 
 
-def get_filetype(file) -> str:
+def get_filetype(file: BinaryIO) -> str:
     """
     returns the filetype of a file using magic (file utility on unix). Resets the file pointer to the start of the file.
     """
@@ -54,7 +54,7 @@ def get_filetype(file) -> str:
     return magic.from_buffer(buffer, mime=False)
 
 
-def is_downloaded(arxivid: ArxivID, version: int) -> bool:
+def is_downloaded(arxivid: str, version: int) -> bool:
     """
     Check if a document is downloaded.
     """
@@ -62,14 +62,14 @@ def is_downloaded(arxivid: ArxivID, version: int) -> bool:
     return os.path.isfile(data.source_path(arxivid, version))
 
 
-def is_extracted(arxivid, version: int) -> bool:
+def is_extracted(arxivid: ArxivID, version: int) -> bool:
     """
     Checks if a document was extracted.
     """
     return os.path.isfile(data.latex_path(arxivid, version))
 
 
-def add_folder_to_dict(dirpath, dictionary):
+def add_folder_to_dict(dirpath: str, dictionary: Dict[str, List[str]]) -> None:
     """
     Opens a folder and recursively adds all .tex to the dictionary.
     """
@@ -176,7 +176,7 @@ def tex_from_tar(tar: tarfile.TarFile) -> Optional[str]:
     return "\n".join(closedfiles[bestfilename])
 
 
-def extract(filepath) -> Optional[str]:
+def extract(filepath: str) -> Optional[str]:
     """
     Takes a directory and creates a .tex file and returns the contents.
     """
@@ -192,7 +192,7 @@ def extract(filepath) -> Optional[str]:
 
             if "gzip" in filetype:
                 # print(f'Using gunzip to unzip {filepath}.')
-                file = gzip.open(file, "rb")
+                file = cast(BinaryIO, gzip.open(file, "rb"))
 
             elif "PDF" in filetype:
                 # print('Going to ignore PDF.')
@@ -216,7 +216,7 @@ def extract(filepath) -> Optional[str]:
 
 
 def download_source_files(
-    arxivid: ArxivID, version_count: int, download_pdf=False
+    arxivid: str, version_count: int, download_pdf: bool = False
 ) -> None:
     """
     Makes {version_count} network requests, one for each source file, and writes them to disk. If download_pdf is true, also downloads the .pdf file.

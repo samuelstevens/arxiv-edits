@@ -7,7 +7,9 @@
 Base tokenizer/tokens classes and utilities.
 """
 
-from typing import List, Set, Any, Optional, Callable
+# mypy: ignore-errors
+
+from typing import List, Set, Any, Optional, Callable, Tuple, Union
 import json
 import copy
 import os
@@ -146,7 +148,13 @@ class Tokens:
     LEMMA = 4
     NER = 5
 
-    def __init__(self, data, annotators, opts=None, output=None) -> None:
+    def __init__(
+        self,
+        data: List[Tuple[str, str, Tuple[int, int], str, str, str]],
+        annotators,
+        opts=None,
+        output=None,
+    ) -> None:
         self.data = data
         self.annotators = annotators
         self.opts = opts or {}
@@ -163,7 +171,7 @@ class Tokens:
         """
         return len(self.data)
 
-    def slice(self, i=None, j=None):
+    def slice(self, i: int = None, j: int = None) -> "Tokens":
         """
         Return a view of the list of tokens from [i, j).
         """
@@ -191,7 +199,7 @@ class Tokens:
         """
         return "".join([t[self.TEXT_WS] for t in self.data]).strip()
 
-    def words(self, uncased=False) -> List[str]:
+    def words(self, uncased: bool = False) -> List[str]:
         """
         Returns a list of the text of each token
 
@@ -242,7 +250,7 @@ class Tokens:
         uncased: bool = False,
         filter_fn: Optional[Callable[[Any], bool]] = None,
         as_strings: bool = True,
-    ):
+    ) -> Union[List[str], List[Tuple[int, int]]]:
         """
         Returns a list of all ngrams from length 1 to n.
 
@@ -269,11 +277,11 @@ class Tokens:
 
         # Concatenate into strings
         if as_strings:
-            ngrams = ["{}".format(" ".join(words[s:e])) for (s, e) in ngrams]
+            return ["{}".format(" ".join(words[s:e])) for (s, e) in ngrams]
 
         return ngrams
 
-    def entity_groups(self):
+    def entity_groups(self) -> Optional[List]:
         """
         Group consecutive entity tokens with the same NER tag.
         """

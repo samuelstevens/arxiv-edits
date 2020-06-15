@@ -3,7 +3,7 @@ import os
 import pickle
 from typing import Iterator, Tuple
 
-import data
+from arxivedits import data
 
 USERNAME = os.getenv("USERNAME") or os.getenv("USER")
 
