@@ -6,6 +6,7 @@ __pycache__
 .vscode
 
 arxiv-downloads/
+data-old/
 *.tex
 
 # too large
