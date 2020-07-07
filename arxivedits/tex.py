@@ -9,7 +9,7 @@ def is_detexed(arxivid: str, version: int) -> bool:
     return os.path.isfile(data.text_path(arxivid, version))
 
 
-def detex_all(detex_again: bool = False) -> None:
+def detex_all(again: bool = False) -> None:
 
     detexed = 0
     total = 0
@@ -25,7 +25,7 @@ def detex_all(detex_again: bool = False) -> None:
         if not source.is_extracted(arxivid, version):
             continue
 
-        if is_detexed(arxivid, version) and not detex_again:
+        if is_detexed(arxivid, version) and not again:
             continue  # already detexed
 
         outputfilepath = data.text_path(arxivid, version)

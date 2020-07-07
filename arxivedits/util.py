@@ -150,6 +150,7 @@ def log_how_many(check_func: Callable[[str, int], bool], verb: str) -> None:
     total = 0
     done = 0
     for a, v in data.get_all_files():
+        total += 1
         if check_func(a, v):
             done += 1
 

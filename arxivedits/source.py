@@ -311,7 +311,7 @@ def extract_file(sourcefilepath: str, outfilepath: str) -> Res[None]:
     return None
 
 
-def extract_all(extract_again: bool = False) -> None:
+def extract_all(again: bool = False) -> None:
     """
     Extracts the .tex file from every .gz file to its directory.
     """
@@ -327,7 +327,7 @@ def extract_all(extract_again: bool = False) -> None:
         sourcefilepath = data.source_path(arxivid, version)
         latexpath = data.latex_path(arxivid, version)
 
-        if os.path.isfile(latexpath) and not extract_again:
+        if os.path.isfile(latexpath) and not again:
             continue  # skip if already extracted
 
         err = extract_file(sourcefilepath, latexpath)

@@ -19,7 +19,6 @@ import string
 import logging
 
 import pexpect
-from tqdm import tqdm
 
 from arxivedits.detex.constants import BLOCK_MATH_TAG
 from arxivedits import data
@@ -505,7 +504,7 @@ def is_sentenced(arxividpath: ArxivID, version: int) -> bool:
 
 
 def tokenize_file(
-    inputfilepath: str, outputfilepath: str, tok: CoreNLPTokenizer = CoreNLPTokenizer()
+    inputfilepath: str, outputfilepath: str, tok: CoreNLPTokenizer
 ) -> None:
     with open(inputfilepath, "r") as textfile:
         paragraphs = textfile.read().split("\n\n")
@@ -526,27 +525,31 @@ def tokenize_file(
                 print(f"Error on {inputfilepath}: {err}")
 
 
-def main() -> None:
+def split_all(again=False) -> None:
     """
     Converts information in detexed text to sentences.
     """
 
-    tok = CoreNLPTokenizer()  # typing: ignore
+    tok = CoreNLPTokenizer()
 
-    for arxivid, version in tqdm(data.get_sample_files()):
+    for arxivid, version in data.get_all_files():
         textfilepath = data.text_path(arxivid, version)
         sentencefilepath = data.sentence_path(arxivid, version)
 
         if not os.path.isfile(textfilepath):
-            logging.info(f"{arxivid}-v{version} was not converted to text.")
+            logging.debug(f"{arxivid}-v{version} was not converted to text.")
             continue
 
-        if os.path.isfile(sentencefilepath):
+        if os.path.isfile(sentencefilepath) and not again:
             continue
 
-        # print(textfilepath)
+        logging.debug(textfilepath)
         tokenize_file(textfilepath, sentencefilepath, tok)
-        # print(sentencefilepath)
+        logging.debug(sentencefilepath)
+
+
+def main() -> None:
+    split_all()
 
 
 def demo() -> None:
@@ -569,38 +572,6 @@ def demo() -> None:
         for s in tokens.ssplit():
             print(s)
         print()
-
-
-def redo() -> None:
-    """
-    Converts information in detexed text to sentences.
-    """
-
-    tok = CoreNLPTokenizer()
-
-    for arxivid, v1, v2 in data.ANNOTATED_IDS:
-        # textfilepath = data.text_path(arxivid, v1, suffix="-new")
-        # sentencefilepath = data.sentence_path(arxivid, v1, suffix="-new")
-        # tokenize_file(textfilepath, sentencefilepath, tok)
-        # print(f"diff {data.sentence_path(arxivid, v1)} {sentencefilepath}")
-
-        # textfilepath = data.text_path(arxivid, v2, suffix="-new")
-        # sentencefilepath = data.sentence_path(arxivid, v2, suffix="-new")
-        # tokenize_file(textfilepath, sentencefilepath, tok)
-        # print(f"diff {data.sentence_path(arxivid, v2)} {sentencefilepath}")
-
-        textfilepath = data.text_path(arxivid, v1)
-        sentencefilepath = data.sentence_path(arxivid, v2)
-
-        if os.path.isfile(sentencefilepath):
-            continue
-
-        tokenize_file(textfilepath, sentencefilepath, tok)
-
-        # print(textfilepath)
-
-        # print(sentencefilepath)
-        # print(data.latex_path(arxivid, version))
 
 
 if __name__ == "__main__":

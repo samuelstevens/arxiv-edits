@@ -51,15 +51,6 @@ def id_to_path(arxivid: UnsafeArxivID) -> ArxivIDPath:
     return ArxivIDPath(arxivid.replace("/", "-"))
 
 
-def path_asserts(arxivid: UnsafeArxivID, version: int) -> ArxivIDPath:
-    """
-    Asserts that paths and folders are correctly formed.
-    """
-    arxividpath = id_to_path(arxivid)
-
-    return arxividpath
-
-
 def alignment_path_asserts(
     arxivid: UnsafeArxivID, version1: int, version2: int
 ) -> ArxivIDPath:
@@ -97,7 +88,7 @@ def extrafiles_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
     The folder for all extra files for an arxivid and version 
     """
-    arxividpath = path_asserts(arxivid, version)
+    arxividpath = id_to_path(arxivid)
 
     return os.path.join(DOWNLOAD_DIR, arxividpath, f"v{version}", "extra")
 
@@ -107,7 +98,7 @@ def source_path(arxivid: UnsafeArxivID, version: int) -> str:
     Returns the path for the .gz file for a given arxivid and version 
     """
 
-    arxividpath = path_asserts(arxivid, version)
+    arxividpath = id_to_path(arxivid)
 
     return os.path.join(
         DOWNLOAD_DIR,
@@ -123,7 +114,7 @@ def text_path(arxivid: UnsafeArxivID, version: int) -> str:
     Returns the path for the detexed file for a given arxivid and version
     """
 
-    arxividpath = path_asserts(arxivid, version)
+    arxividpath = id_to_path(arxivid)
 
     return os.path.join(
         DOWNLOAD_DIR,
@@ -139,7 +130,7 @@ def sentence_path(arxivid: UnsafeArxivID, version: int) -> str:
     Returns the path for the sentence-split file for a given arxivid
     """
 
-    arxividpath = path_asserts(arxivid, version)
+    arxividpath = id_to_path(arxivid)
 
     return os.path.join(
         DOWNLOAD_DIR,
@@ -154,7 +145,7 @@ def latex_path(arxivid: UnsafeArxivID, version: int) -> str:
     Returns the path for the constructed .tex file for a given arxivid and version 
     """
 
-    arxividpath = path_asserts(arxivid, version)
+    arxividpath = id_to_path(arxivid)
 
     return os.path.join(
         DOWNLOAD_DIR,
@@ -170,7 +161,7 @@ def pdf_path(arxivid: UnsafeArxivID, version: int) -> str:
     Returns the path for the original pdf file for a given arxivid and version and whether it exists.
     """
 
-    arxividpath = path_asserts(arxivid, version)
+    arxividpath = id_to_path(arxivid)
 
     return os.path.join(
         DOWNLOAD_DIR, arxividpath, f"v{version}", f"{arxividpath}-v{version}.pdf",
@@ -300,7 +291,7 @@ def get_all_files(maximum_only: bool = False) -> Iterator[Tuple[ArxivID, int]]:
         """
 
         while True:
-            results = cursor.fetchmany()
+            results = cursor.fetchmany(arraysize=10)
             if not results:
                 break
             for arxivid, version_str in results:
@@ -312,7 +303,7 @@ def get_all_files(maximum_only: bool = False) -> Iterator[Tuple[ArxivID, int]]:
                     for version in range(1, versions + 1):
                         yield arxivid, version
 
-    query = "SELECT arxiv_id, MAX(number) FROM versions GROUP BY arxiv_id HAVING MAX(number) > 1;"
+    query = "SELECT arxiv_id, MAX(number) FROM versions GROUP BY arxiv_id HAVING MAX(number) > 1 LIMIT 20;"
 
     return result_iter(connection().execute(query))
 
@@ -321,7 +312,7 @@ def get_paragraphs(arxivid: UnsafeArxivID, version: int) -> Res[List[List[str]]]
     """
     Gets a list of lists of sentences representing document paragraphs.
     """
-    arxividpath = path_asserts(arxivid, version)
+    arxividpath = id_to_path(arxivid)
 
     try:
         with open(sentence_path(arxividpath, version)) as file:
@@ -342,11 +333,10 @@ def get_paragraphs(arxivid: UnsafeArxivID, version: int) -> Res[List[List[str]]]
 
 
 def compare_command(arxivid: UnsafeArxivID, v1: int, v2: int) -> str:
-    arxividpath_v1 = path_asserts(arxivid, v1)
-    arxividpath_v2 = path_asserts(arxivid, v2)
+    arxividpath = id_to_path(arxivid)
 
-    sent_path_v1 = sentence_path(arxividpath_v1, v1)
-    sent_path_v2 = sentence_path(arxividpath_v2, v2)
+    sent_path_v1 = sentence_path(arxividpath, v1)
+    sent_path_v2 = sentence_path(arxividpath, v2)
 
     return f"code --diff {sent_path_v1} {sent_path_v2}"
 
