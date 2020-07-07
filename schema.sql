@@ -1,26 +1,25 @@
 CREATE TABLE IF NOT EXISTS papers (
-    arxiv_id TEXT PRIMARY KEY,
-    version_count INTEGER NOT NULL
+  arxiv_id TEXT PRIMARY KEY
 );
 
-CREATE TABLE IF NOT EXISTS authors (
-    name TEXT PRIMARY KEY
+CREATE TABLE IF NOT EXISTS versions (
+  arxiv_id TEXT NOT NULL,
+  number INTEGER NOT NULL,
+  time DATETIME,
+  FOREIGN KEY (arxiv_id) REFERENCES papers(arxiv_id)
 );
 
 CREATE TABLE IF NOT EXISTS categories (
-    name TEXT PRIMARY KEY
+  arxiv_id TEXT NOT NULL,
+  spec TEXT NOT NULL,
+  PRIMARY KEY (arxiv_id, spec),
+  FOREIGN KEY (arxiv_id) REFERENCES papers(arxiv_id)
 );
 
-CREATE TABLE IF NOT EXISTS paperauthor (
-    arxiv_id TEXT NOT NULL,
-    author TEXT NOT NULL,
-    FOREIGN KEY(arxiv_id) REFERENCES papers(arxiv_id),
-    FOREIGN KEY(author) REFERENCES authors(name)
-);
-
-CREATE TABLE IF NOT EXISTS papercategory (
-    arxiv_id TEXT NOT NULL,
-    category TEXT NOT NULL,
-    FOREIGN KEY(arxiv_id) REFERENCES papers(arxiv_id),
-    FOREIGN KEY(category) REFERENCES authors(name)
+CREATE TABLE IF NOT EXISTS authors (
+  arxiv_id TEXT NOT NULL,
+  first_name TEXT,
+  last_name TEXT NOT NULL,
+  PRIMARY KEY (arxiv_id, first_name, last_name),
+  FOREIGN KEY (arxiv_id) REFERENCES papers(arxiv_id)
 );

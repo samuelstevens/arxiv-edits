@@ -18,6 +18,8 @@ RawDiff = List[Tuple[int, str]]
 ParagraphDiff = List[Tuple[int, List[str]]]
 LineDiff = List[Tuple[int, str]]
 
+LETTER_PATTERN = re.compile("")
+
 
 def fast_diff(s1: List[str], s2: List[str]) -> List[Tuple[int, str]]:
     common = lcs(s1, s2)
@@ -83,7 +85,7 @@ def line_diff(lines1: List[Any], lines2: List[Any]) -> LineDiff:
     return sent_diff
 
 
-@functools.lru_cache(maxsize=4096)  # YOU MUST CLEAR THIS CACHE
+@functools.lru_cache(maxsize=4096)  # YOU SHOULD CLEAR THIS CACHE
 def _hashable_line_diff(text1: str, text2: str) -> RawDiff:
     dmp = diff_match_patch()
     line_text1, line_text2, line_arr = dmp.diff_linesToChars(text1, text2)
@@ -216,10 +218,9 @@ def sent_filter(sent: str) -> bool:
     )
 
     if [ch for ch in sent if ch != " "]:
-        score = (
-            len([ch for ch in sent if re.match("[a-zA-Z]", ch) is not None])
-            + count_special_tokens
-        ) / (len([ch for ch in sent if ch != " "]) + count_special_tokens)
+        score = (len([ch for ch in sent if ch.isalpha()]) + count_special_tokens) / (
+            len([ch for ch in sent if ch != " "]) + count_special_tokens
+        )
         if score <= 0.7:
             return False
     else:

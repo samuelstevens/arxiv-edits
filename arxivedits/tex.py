@@ -1,34 +1,51 @@
-import csv
 import os
 import logging
 
-from tqdm import tqdm
 
-from arxivedits import data, source, detex
+from arxivedits import data, detex, source
+
+
+def is_detexed(arxivid: str, version: int) -> bool:
+    return os.path.isfile(data.text_path(arxivid, version))
+
+
+def detex_all(detex_again: bool = False) -> None:
+
+    detexed = 0
+    total = 0
+    for a, v in data.get_all_files():
+        total += 1
+        if is_detexed(a, v):
+            detexed += 1
+
+    logging.info(f"{detexed/total*100:.2f}% detexed.")
+
+    for arxivid, version in data.get_all_files():
+
+        if not source.is_extracted(arxivid, version):
+            continue
+
+        if is_detexed(arxivid, version) and not detex_again:
+            continue  # already detexed
+
+        outputfilepath = data.text_path(arxivid, version)
+        latexfilepath = data.latex_path(arxivid, version)
+
+        detex.detex_file(latexfilepath, outputfilepath)
+
+    detexed = 0
+    for a, v in data.get_all_files():
+        if is_detexed(a, v):
+            detexed += 1
+
+    logging.info(f"{detexed/total*100:.2f}% detexed.")
 
 
 def main() -> None:
     """
     Takes .tex files and converts them to text.
     """
-    logging.disable(logging.FATAL)
-    for arxivid, version in tqdm(data.get_sample_files()):
-        latexfilepath = data.latex_path(arxivid, version)
-
-        if not os.path.isfile(latexfilepath):
-            # print(f"{arxivid}-v{version} was not extracted to .tex")
-            continue
-
-        outputfilepath = data.text_path(arxivid, version)
-
-        # if os.path.isfile(outputfilepath):
-        #     continue  # already detexed
-
-        # print(latexfilepath)
-        detex.detex_file(latexfilepath, outputfilepath)
-        # print(outputfilepath)
-
-    logging.disable(logging.NOTSET)
+    detex_all()
 
 
 def demo() -> None:
@@ -83,42 +100,23 @@ def demo() -> None:
         at $z=1000$.  We choose this initial condition because only a few low-$k$ modes can grow for our choice of Jean's length and the details of initial power spectrum are irrelevant at the late time.
         """,
         r"Therefore, despite its overall similarity with the Anderson transition (see also Ref.\ \cite{suppl}), it remains to be seen if this transition can be classified as such.",
+        r"""So, $\hat x_{j_1 \cdots j_N} = \hat x_{2-j_1 \cdots 2-j_N}$.
+Thus, we can assume that $x_{i_1i_2\cdots i_n}=x_{(2-i_1)(2-i_2)\cdots (2-i_N)}$.
+\qed
+
+By the above proposition and the discussion  in Section 2, we see that
+the system $A_\alpha^{\otimes N} \bx =  0$ has a nontrivial nonnegative
+solution if and only if the system $C_{\alpha,N}\mathbf{y}=0$
+has a nontrivial nonnegative solution $\by$.""",
     ]
 
-    for s in teststrings[-1:]:
+    for s in teststrings:
         print(s)
-        print(detex.latex.clean(s))
-
-
-def redo() -> None:
-    """
-    Takes .tex files and converts them to text.
-    """
-    logging.disable(logging.FATAL)
-    for arxivid, v1, v2 in data.ANNOTATED_IDS:
-        latexfilepath = data.latex_path(arxivid, v1)
-
-        if os.path.isfile(latexfilepath):
-            outputfilepath = data.text_path(arxivid, v1, suffix="-new")
-            # print(latexfilepath)
-            detex.detex_file(latexfilepath, outputfilepath)
-            print(f"code --diff {data.text_path(arxivid, v1)} {outputfilepath}")
-
-        latexfilepath = data.latex_path(arxivid, v2)
-
-        if os.path.isfile(latexfilepath):
-            outputfilepath = data.text_path(arxivid, v2, suffix="-new")
-            # print(latexfilepath)
-            detex.detex_file(latexfilepath, outputfilepath)
-            print(f"code --diff {data.text_path(arxivid, v2)} {outputfilepath}")
-
-    logging.disable(logging.NOTSET)
+        print()
+        print(detex.opendetex.detex(s)[0])
+        print("---")
 
 
 if __name__ == "__main__":
-    print(detex.detex_file)
-    print(dir(detex))
     # main()
-    # redo()
-    # demo()
-    # test()
+    demo()

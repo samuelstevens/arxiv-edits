@@ -12,7 +12,6 @@ For each document pair, perform the following steps:
 9. profit
 """
 
-import os
 import logging
 
 from tqdm import tqdm
@@ -82,7 +81,7 @@ def start_of_pipeline() -> None:
 
 
 def write_machine_alignments() -> None:
-    for arxivid, version1, version2 in tqdm(data.SAMPLE_IDS):
+    for arxivid, version1, version2 in tqdm(data.SAMPLE_IDS + [("1501.05084", 1, 2)]):
         alignment = Alignment(arxivid, version1, version2)
         easy_alignments = easy_align(arxivid, version1, version2)
         process_easy_align(easy_alignments, alignment)

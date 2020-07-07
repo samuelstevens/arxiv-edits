@@ -5,9 +5,11 @@ __pycache__
 *.pyc
 .vscode
 
-/data
+arxiv-downloads/
 *.tex
-*.db
+
+# too large
+arxivedits.sqlite3 
 
 .coverage
 *.swp

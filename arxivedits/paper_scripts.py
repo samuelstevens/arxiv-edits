@@ -5,7 +5,6 @@ import tqdm
 
 
 def corpus_overview() -> None:
-
     with open(os.path.join(data.DATA_DIR, "sample-only-multiversion.csv")) as csvfile:
         reader = csv.reader(csvfile)
         sampled_ids = [(i, int(versioncount)) for i, versioncount in reader]
@@ -22,11 +21,7 @@ def corpus_overview() -> None:
 
     print(len(idlist))
 
-    idlist = [
-        (arxivid, v)
-        for arxivid, v in idlist
-        if os.path.isfile(data.latex_path(arxivid, v))
-    ]
+    idlist = [(arxivid, v) for arxivid, v in idlist if data.latex_path(arxivid, v)[1]]
 
     idset = set(idlist)
 

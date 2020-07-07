@@ -1,6 +1,7 @@
 import os
 import pickle
 import string
+import logging
 from typing import List, Iterator, Tuple, Callable, Iterable, Any, Dict, Set
 
 from arxivedits import data
@@ -123,7 +124,7 @@ def sent_to_n_grams(sent: str, n: int) -> Iterator[Tuple[str, ...]]:
 def merge_dicts(*dict_args: Dict[T, U]) -> Dict[T, U]:
     """
     Given any number of dicts, shallow copy and merge into a new dict,
-    precedence goes to key value pairs in latter dicts.
+    precedence goes to key value pairs in later dicts.
     """
     result: Dict[T, U] = {}
     for dictionary in dict_args:
@@ -136,6 +137,23 @@ def get(s: Set[T]) -> T:
     Gets a random element from a set.
     """
     return next(iter(s))
+
+
+def transpose(a: List[List[T]]) -> List[List[T]]:
+    """
+    Tranposes a list of lists
+    """
+    return list(map(list, zip(*a)))
+
+
+def log_how_many(check_func: Callable[[str, int], bool], verb: str) -> None:
+    total = 0
+    done = 0
+    for a, v in data.get_all_files():
+        if check_func(a, v):
+            done += 1
+
+    logging.info(f"{done/total*100:.2f}% {verb}.")
 
 
 if __name__ == "__main__":

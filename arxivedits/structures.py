@@ -2,8 +2,9 @@
 Various types used in this application.
 """
 
-# built in
-from typing import Tuple, List, NewType, Union, TypeVar, Optional
+import datetime
+from dataclasses import dataclass
+from typing import Tuple, List, NewType, Union, TypeVar, Optional, Dict, Set, Iterator
 
 # external
 from oaipmh.common import Metadata, Header
@@ -29,3 +30,23 @@ Sentence = NewType("Sentence", str)
 Content = List[Sentence]
 Score = NewType("Score", float)
 Section = Tuple[Title, Content]
+
+
+@dataclass
+class PaperMetadata:
+    arxivid: str
+    versions: Dict[int, datetime.datetime]
+    categories: Set[str]
+    authors: Set[Tuple[str, str]]
+
+    def get_pairs(self) -> List[Tuple[int, int]]:
+        result = []
+        for arxivid in sorted(self.versions.keys())[:-1]:
+            result.append((arxivid, arxivid + 1))
+
+        return result
+
+    def __str__(self) -> str:
+        version_str = ", ".join([f"{v}: {self.versions[v]}" for v in self.versions])
+        return f"{self.arxivid} ({version_str})"
+

@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+</head>
+
+<body>
+  <main>
+    <h1>Understanding Different Types of Edits</h1>
+    <section>
+      <h2>Instructions</h2>
+      <p>
+        You will be given two versions of a sentence: before and after editing. It is your job to determine <strong>one
+          or more</strong>
+        categories that the sentence fits into.
+      </p>
+      <p>
+        For each version of the sentence, the red text indicates words that were removed, green text represents words
+        that were added, and black words are words that were not changed.
+      </p>
+      <p>
+        There are definitions of each category, examples of each category with an explanation, and then 6 questions to
+        answer.
+      </p>
+      <p>
+        Not knowing the answer is ok; part of this is understanding why certain categories are harder to understand than
+        others.
+      </p>
+      <blockquote>
+        <p>
+          These sentences come from PDFs. In order to make sentence more uniform, mathematical equations such as
+          \(a \ne 0\) or \( \Sigma=\{\vec v=(v_1,v_2) \in \mathbb{R}^2\} \) have been replaced with [MATH].
+        </p>
+      </blockquote>
+      <p>Good luck!</p>
+    </section>
+    <section>
+      <h2>Category Definitions</h2>
+      <h3>Edits that change meaning</h3>
+      <p>
+        <strong>Elaboration</strong>: Adds new information to a sentence such as a claim, piece of evidence, or
+        explanation.
+      </p>
+      <p>
+        <strong>Simplification</strong>: Removes information such as a claim, a piece of evidence, or an explanation
+        from the sentence.
+      </p>
+      <h3>Edits that don't change meaning</h3>
+      <p>
+        <strong>Correction</strong>: Fixes spelling, grammar or formatting without changing the meaning or specifity of
+        a sentence. This includes changing a sentence to match conventions (<em>Fig.</em> instead of <em>Figure</em>,
+        <em>one-dimensional</em> instead of <em>one dimensional</em>).
+      </p>
+      <p>
+        <strong>Reading flow</strong>: Makes or changes connections between different parts of the paper, changing the
+        order in which a reader would move through the document. This includes adding or removing a reference to a
+        figure, equation, or other section of a paper like an appendix or conclusion.
+      </p>
+      <p>
+        <strong>Word usage</strong>: Changes language, tone or style without changing the meaning of the sentence.
+      </p>
+      <h3>Edits that can't be labeled with another category</h3>
+      <p>
+        <strong>Domain knowledge</strong>: You need further understanding of the subject to know what categories best
+        fit.
+      </p>
+      <p>
+        <strong>PDF required</strong>: The original PDF contains information not shown in the sentence, which is needed
+        to pick out categories for an example.
+      </p>
+
+
+
+      <p><strong>Other</strong>: None of these labels fit.</p>
+    </section>
+    <!-- <section>
+      <h2>Simple Examples</h2>
+      <p>
+        Here are some simple examples of different edits to help you understand the intent. Reference examples with
+        explanations follow this table.
+      </p>
+      <table>
+        <thead style="border-bottom: 1px solid gray;">
+          <th>Category</th>
+          <th colspan="2">Before</th>
+          <th>After</th>
+        </thead>
+        <tr>
+          <td rowspan="5">Correction</td>
+          <td>Figure</td>
+          <td>→</td>
+          <td>Fig.</td>
+        </tr>
+        <tr>
+          <td>entangled state</td>
+          <td>→</td>
+          <td>entangled-state</td>
+        </tr>
+        <tr>
+          <td>15 minutes</td>
+          <td>→</td>
+          <td>15 min.</td>
+        </tr>
+        <tr>
+          <td>neccessary</td>
+          <td>→</td>
+          <td>necessary</td>
+        </tr>
+        <tr style="border-bottom: 1px solid gray;">
+          <td>Eq.</td>
+          <td>→</td>
+          <td>Equation</td>
+        </tr>
+
+      </table>
+    </section> -->
+    <section>
+      <h2>Reference Examples</h2>
+
+      <!-- <p>Categories: <strong>simplification</strong>, <strong>word usage</strong></p> -->
+      <div class="question answered">
+        <p>
+          <span class="diff">Now,</span> in order to <span class="diff">reproduce the behavior of the projections of
+            the
+            exact Bohmian trajectories in the system subspace ,</span> we can <span class="diff">consider the following
+            simple trajectory</span> model<span class="diff">, which gathers both decoherence and loss of empty-slit
+            information</span>.
+        </p>
+        <p>
+          In order to <span class="diff">observe such a behavior,</span> we can <span class="diff">further proceed with
+            our</span> model <span class="diff">as follows</span>.
+        </p>
+      </div>
+      <div>
+        <p><em>Choose <strong>one or more</strong> categories, and write a sentence or two explaining your
+            thoughts.</em>
+        </p>
+        <form>
+          <p>
+            Changes meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="elaboration">
+            <label for="elaboration">Elaboration</label>
+          </div>
+          <div>
+            <input checked type="checkbox" id="simplification">
+            <label for="simplification">Simplification</label>
+          </div>
+          <p>
+            Doesn't change meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="correction">
+            <label for="correction">Correction</label>
+          </div>
+          <div>
+            <input type="checkbox" id="reading flow">
+            <label for="reading flow">Reading flow</label>
+          </div>
+          <div>
+            <input checked type="checkbox" id="word usage">
+            <label for="word usage">Word usage</label>
+          </div>
+          <p>
+            Other:
+          </p>
+          <div>
+            <input type="checkbox" id="domain knowledge">
+            <label for="domain knowledge">Domain knowledge</label>
+          </div>
+          <div>
+            <input type="checkbox" id="pdf required">
+            <label for="pdf required">PDF required</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other">
+            <label for="other">Other</label>
+          </div>
+        </form>
+        <p>Explanation:</p>
+        <ul>
+          <li>
+            Removing <span class="removed">Now</span> is <strong>word usage</strong> because it doesn't change the
+            claim, evidence, or specifity
+            of the sentence. All it does is change the style/tone of the sentence.
+          </li>
+          <li>
+            The other 3 changes are all <strong>simplification</strong> because the changes remove information from the
+            sentences.
+          </li>
+        </ul>
+      </div>
+
+      <!-- <p>Categories: <strong>elaboration</strong>, <strong>word usage</strong></p> -->
+      <div class="question answered">
+        <p>
+          <span class="diff">Then</span>, we can estimate the logical error rate <span class="diff">of the error
+            rate</span> [MATH], which <span class="diff">is given by</span> [MATH] where
+          [MATH], [MATH] and [MATH].
+        </p>
+        <p>
+          <span class="diff">Given fitting parameters [MATH], [MATH], [MATH] and [MATH]</span>, we can estimate the
+          logical error rate <span class="diff">for error
+            rates</span> [MATH] <span class="diff">by replacing [MATH] with [MATH]</span>, which <span
+            class="diff">gives</span> [MATH] where
+          [MATH],
+          [MATH] and [MATH].
+        </p>
+      </div>
+      <div>
+        <p><em>Choose <strong>one or more</strong> categories, and write a sentence or two explaining your
+            thoughts.</em>
+        </p>
+        <form>
+          <p>
+            Changes meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="elaboration" checked>
+            <label for="elaboration">Elaboration</label>
+          </div>
+          <div>
+            <input type="checkbox" id="simplification">
+            <label for="simplification">Simplification</label>
+          </div>
+          <p>
+            Doesn't change meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="correction">
+            <label for="correction">Correction</label>
+          </div>
+          <div>
+            <input type="checkbox" id="reading flow">
+            <label for="reading flow">Reading flow</label>
+          </div>
+          <div>
+            <input checked type="checkbox" id="word usage">
+            <label for="word usage">Word usage</label>
+          </div>
+          <p>
+            Other:
+          </p>
+          <div>
+            <input type="checkbox" id="domain knowledge">
+            <label for="domain knowledge">Domain knowledge</label>
+          </div>
+          <div>
+            <input type="checkbox" id="pdf required">
+            <label for="pdf required">PDF required</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other">
+            <label for="other">Other</label>
+          </div>
+        </form>
+        <p>Explanation:</p>
+        <ul>
+          <li>
+            Inserting <span class="added">Given fitting parameters [MATH], [MATH], [MATH] and [MATH]</span> explains
+            what conditions are
+            necessary. This adds information to the sentence, which means this sentence is <strong>elaboration</strong>.
+          </li>
+          <li>
+            Inserting <span class="added">by replacing [MATH] with [MATH]</span> further details the process, adding
+            information to the sentence, making it <strong>elaboration</strong> as well.
+          </li>
+          <li>
+            Changing <span class="removed">is given by</span> to <span class="added">gives</span> doesn't add or remove
+            information from the sentence; rather, it changes
+            the style/tone of the sentence: <strong>word usage</strong>.
+          </li>
+        </ul>
+      </div>
+
+      <!-- <p>Categories: <strong>correction</strong>, <strong>word usage</strong>, <strong>PDF required</strong></p> -->
+      <div class="question answered">
+        <p>
+          However, due to the interference quenching, the extent of this behavior is reduced in both space and time: in
+          space because the interference effects are stronger for the innermost trajectories [which give rise to the
+          central peaks in <span class="diff">Figure</span> XX(a)] and in time because the time-of-flight of the
+          neutrons<span class="diff">, [MATH],</span> is <span class="diff">such that</span> [MATH].
+        </p>
+        <p>
+          However, due to the interference quenching, the extent of this behavior is reduced in both space and time: in
+          space because the interference effects are stronger for the innermost trajectories [which give rise to the
+          central peaks in <span class="diff">Fig.</span> XX(a)] and in time because the time-of-flight of the
+          neutrons <span class="diff">([MATH] s)</span> is <span class="diff">slightly larger than</span> [MATH].
+        </p>
+      </div>
+      <div>
+        <p><em>Choose <strong>one or more</strong> categories, and write a sentence or two explaining your
+            thoughts.</em>
+        </p>
+        <form>
+          <p>
+            Changes meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="elaboration">
+            <label for="elaboration">Elaboration</label>
+          </div>
+          <div>
+            <input type="checkbox" id="simplification">
+            <label for="simplification">Simplification</label>
+          </div>
+          <p>
+            Doesn't change meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="correction" checked>
+            <label for="correction">Correction</label>
+          </div>
+          <div>
+            <input type="checkbox" id="reading flow">
+            <label for="reading flow">Reading flow</label>
+          </div>
+          <div>
+            <input checked type="checkbox" id="word usage">
+            <label for="word usage">Word usage</label>
+          </div>
+          <p>
+            Other:
+          </p>
+          <div>
+            <input type="checkbox" id="domain knowledge">
+            <label for="domain knowledge">Domain knowledge</label>
+          </div>
+          <div>
+            <input checked type="checkbox" id="pdf required">
+            <label for="pdf required">PDF required</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other">
+            <label for="other">Other</label>
+          </div>
+        </form>
+        <p>Explanation:</p>
+        <ul>
+          <li>
+            Changing <span class="removed">Figure</span> to <span class="added">Fig.</span> is a
+            <strong>correction</strong> because it doesn't
+            change the meaning or
+            phrasing of the
+            sentence.
+          </li>
+          <li>
+            Changing <span class="removed">such that</span> to <span class="added">slightly larger than</span> is
+            <strong>word usage</strong>
+            because it's a change in the
+            sentence's phrasing, without changing meaning (note that this is because the original PDF shows that the
+            [MATH] changes.)
+          </li>
+        </ul>
+        <p>
+          This example is actually <strong>PDF required</strong> because the change from <span class="removed">such
+            that</span> to <span class="added">slightly larger than</span> is actually not a change in meaning. Since
+          the equation inside the [MATH] tags changes, there is
+          no difference in meaning between the sentences, and is simply <strong>word usage</strong>. Knowing that, this
+          label is <strong>PDF required</strong>.
+        </p>
+        <blockquote>
+          <p><em>Note</em>: <strong>PDF required</strong> is a difficult label. If you can't tell what the label
+            is, but if
+            you could
+            tell if you knew what was in [MATH] or XX, then it is <strong>PDF required</strong>.</p>
+        </blockquote>
+      </div>
+
+      <hr />
+
+      <p>Categories: <strong>reading flow</strong></p>
+      <div class="question answered">
+        <p>
+          In the case [MATH], when a [MATH] error occurs, an [MATH] error and some Pauli errors always occur
+          simultaneously (<span class="diff">Sec. XX</span>).
+        </p>
+        <p>
+          In the case [MATH], when a [MATH] error occurs, an [MATH] error and some Pauli errors always occur
+          simultaneously (<span class="diff">see Appendix XX</span>).
+        </p>
+      </div>
+      <div>
+        <p><em>Choose <strong>one or more</strong> categories, and write a sentence or two explaining your
+            thoughts.</em>
+        </p>
+        <form>
+          <p>
+            Changes meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="elaboration">
+            <label for="elaboration">Elaboration</label>
+          </div>
+          <div>
+            <input type="checkbox" id="simplification">
+            <label for="simplification">Simplification</label>
+          </div>
+          <p>
+            Doesn't change meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="correction">
+            <label for="correction">Correction</label>
+          </div>
+          <div>
+            <input checked type="checkbox" id="reading flow">
+            <label for="reading flow">Reading flow</label>
+          </div>
+          <div>
+            <input type="checkbox" id="word usage">
+            <label for="word usage">Word usage</label>
+          </div>
+          <p>
+            Other:
+          </p>
+          <div>
+            <input type="checkbox" id="domain knowledge">
+            <label for="domain knowledge">Domain knowledge</label>
+          </div>
+          <div>
+            <input type="checkbox" id="pdf required">
+            <label for="pdf required">PDF required</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other">
+            <label for="other">Other</label>
+          </div>
+        </form>
+        <p>Explanation:</p>
+        <ul>
+          <li>
+            Changing from a <span class="removed">Sec.</span> to an <span class="added">Appendix</span> changes the
+            order in which the reader would
+            read the paper, so it is
+            <strong>reading flow</strong>.
+          </li>
+        </ul>
+      </div>
+
+      <!-- <p>Categories: <strong>domain knowledge</strong></p> -->
+      <div class="question answered">
+        <p>
+          However, <span class="diff">with fermion-parity errors</span>, the outcome of the qubit-charge measurement may
+          be incorrect.
+        </p>
+        <p>
+          However, <span class="diff">when [MATH] is finite</span>, the outcome of the qubit-charge measurement may be
+          incorrect.
+        </p>
+      </div>
+      <div>
+        <p><em>Choose <strong>one or more</strong> categories, and write a sentence or two explaining your
+            thoughts.</em>
+        </p>
+        <form>
+          <p>
+            Changes meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="elaboration">
+            <label for="elaboration">Elaboration</label>
+          </div>
+          <div>
+            <input type="checkbox" id="simplification">
+            <label for="simplification">Simplification</label>
+          </div>
+          <p>
+            Doesn't change meaning:
+          </p>
+          <div>
+            <input type="checkbox" id="correction">
+            <label for="correction">Correction</label>
+          </div>
+          <div>
+            <input type="checkbox" id="reading flow">
+            <label for="reading flow">Reading flow</label>
+          </div>
+          <div>
+            <input type="checkbox" id="word usage">
+            <label for="word usage">Word usage</label>
+          </div>
+          <p>
+            Other:
+          </p>
+          <div>
+            <input checked type="checkbox" id="domain knowledge">
+            <label for="domain knowledge">Domain knowledge</label>
+          </div>
+          <div>
+            <input type="checkbox" id="pdf required">
+            <label for="pdf required">PDF required</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other">
+            <label for="other">Other</label>
+          </div>
+        </form>
+        <p>Explanation:</p>
+        <ul>
+          <li>
+            Without knowing what <span class="removed">fermion-parity errors</span> are, it's impossible to know what
+            the authors changed about the
+            sentence. Since fermion-parity isn't common knowledge, this example is <strong>domain knowledge</strong>.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>Unlabeled Examples</h2>
+      <div class="question">
+        <ul class="categories">
+          <li>easy</li>
+          <li>reading flow</li>
+          <li>correction</li>
+        </ul>
+        <p>
+          Alternatively, one can choose to repeat the distillation circuit (the entangled state generation part) for
+          once
+          if
+          a failure occurs.
+        </p>
+
+        <p>
+          Alternatively, one can choose to repeat the distillation circuit (the entangled<span
+            class="diff"><strong>-</strong></span>state
+          generation part<span class="diff">, see Fig. XX</span>) for once if a
+          failure occurs.
+        </p>
+      </div>
+      <div class="question">
+        <ul class="categories">
+          <li>easy</li>
+          <li>simplification</li>
+          <li>correction</li>
+        </ul>
+        <p>
+          Note that, in the coordinate representation and for an environment constituted by [MATH] particles, <span
+            class="diff">equation</span>
+          (XX) <span class="diff">should be obtained after integrating [MATH] over the 3[MATH] environment degrees of
+            freedom, i.e.,</span>
+          [MATH] <span class="diff">with [MATH], [MATH] being a 3-dimensional vector</span>.
+        </p>
+
+        <p>
+          Note that, in the coordinate representation and for an environment constituted by [MATH] particles, <span
+            class="diff">Eq.</span> (XX)
+          <span class="diff">becomes</span> [MATH].
+
+        </p>
+      </div>
+      <div class="question">
+        <ul class="categories">
+          <li>hard (because of length)</li>
+          <li>elaboration</li>
+        </ul>
+        <p>
+          Notice that despite <span class="diff">the fact that</span> there is no coherence <span
+            class="diff">here,</span>
+          trajectories do not cross the symmetry axis
+          <span class="diff">separating</span> the <span class="diff">regions covered by each slit</span>.
+        </p>
+
+        <p>
+          Notice that despite there is no coherence <span class="diff">(in the sense that the interference terms of
+            the reduced density matrix
+            have been damped out),</span> trajectories do not cross the symmetry axis <span class="diff">between</span>
+          the
+          <span class="diff">two slits because they obey Eq.
+            (XX), which contains information about the two slits open simultaneously</span>.
+        </p>
+      </div>
+      <div class="question">
+        <ul class="categories">
+          <li>hard</li>
+          <li>domain knowledge</li>
+        </ul>
+        <p>
+          Without <span class="diff">fermion-parity</span> errors, one can eliminate all errors by iterating
+          distillation circuits to achieve fault-tolerant quantum computing.
+        </p>
+
+        <p>
+          Without <span class="diff">charge</span> errors, one can eliminate all errors by iterating distillation
+          circuits to achieve fault-tolerant quantum computing.
+        </p>
+      </div>
+      <div class="question">
+        <ul class="categories">
+          <li>easy</li>
+          <li>word usage</li>
+        </ul>
+        <p>
+          Unlike B16, we have simultaneously fit both the Spitzer and K2 data with both transit and Spitzer's systematic
+          models, which has allowed us to reduce residual systematics <span class="diff">by which</span> the results of
+          B16 <span class="diff">were biased</span>.
+        </p>
+        <p>
+          Unlike B16, we have simultaneously fit both the Spitzer and K2 data with both <span class="diff">the</span>
+          transit model and Spitzer's
+          systematic models, which has allowed us to reduce the residual systematics <span class="diff">that
+            biased</span>
+          the results of B16.
+        </p>
+      </div>
+      <div class="question">
+        <ul class="categories">
+          <li>hard</li>
+          <li>PDF required</li>
+          <li>word usage</li>
+        </ul>
+        <p>
+          <span class="diff">When [MATH] (no distillation)</span>, [MATH] and [MATH]; when <span
+            class="diff">[MATH]</span>, [MATH] can be obtained numerically by
+          simulating the distillation circuit.
+        </p>
+        <p>
+          <span class="diff">Without the PP distillation</span>, [MATH] and [MATH]; when <span class="diff">the
+            distillation is performed</span>, [MATH] can be obtained
+          numerically by simulating the distillation circuit.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <div id="answer-template">
+    <p><em>Choose <strong>one or more</strong> categories, and write a sentence or two explaining your thoughts.</em>
+    </p>
+    <form>
+      <p>
+        Changes meaning:
+      </p>
+      <div>
+        <input type="checkbox" id="elaboration">
+        <label for="elaboration">Elaboration</label>
+      </div>
+      <div>
+        <input type="checkbox" id="simplification">
+        <label for="simplification">Simplification</label>
+      </div>
+      <p>
+        Doesn't change meaning:
+      </p>
+      <div>
+        <input type="checkbox" id="correction">
+        <label for="correction">Correction</label>
+      </div>
+      <div>
+        <input type="checkbox" id="reading flow">
+        <label for="reading flow">Reading flow</label>
+      </div>
+      <div>
+        <input type="checkbox" id="word usage">
+        <label for="word usage">Word usage</label>
+      </div>
+      <p>
+        Other:
+      </p>
+      <div>
+        <input type="checkbox" id="domain knowledge">
+        <label for="domain knowledge">Domain knowledge</label>
+      </div>
+      <div>
+        <input type="checkbox" id="pdf required">
+        <label for="pdf required">PDF required</label>
+      </div>
+      <div>
+        <input type="checkbox" id="other">
+        <label for="other">Other</label>
+      </div>
+    </form>
+    <p>Explanation:</p>
+    <hr class="writing-line" />
+    <hr class="writing-line" />
+    <hr class="writing-line" />
+  </div>
+
+
+
+  <style>
+    h2 {
+      margin-top: 2em;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: normal;
+    }
+
+    .writing-line {
+      margin-top: 2em;
+      background-color: black;
+    }
+
+    form {
+      /* font-family: Arial, Helvetica, sans-serif; */
+    }
+
+    form>div {
+      width: 32%;
+      margin-top: 5px;
+      display: inline-block;
+    }
+
+    form>p {
+      margin: 0;
+      margin-top: 25px;
+      font-style: italic;
+      /* border-bottom: 1px solid lightgray; */
+    }
+
+    main {
+      max-width: 75ch;
+      margin: auto;
+      font-size: 1.2em;
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    }
+
+    div.question>p:nth-of-type(1)>span.diff,
+    .removed {
+      color: red;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    div.question>p:nth-of-type(2)>span.diff,
+    .added {
+      color: green;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .question>p {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    blockquote {
+      border-left: 10px solid orange;
+      margin-left: 1em;
+      padding: 0.5em
+    }
+
+    blockquote>p {
+      margin: 0;
+    }
+
+    hr {
+      height: 1px;
+      background-color: black;
+      border: none;
+    }
+
+    ul.categories {
+      display: none;
+    }
+
+    .question-number {
+      font-size: 1.5em;
+      margin-top: 1.5em;
+    }
+
+    table {
+      table-layout: fixed;
+      border-collapse: collapse;
+      border-top: 1px solid gray;
+    }
+
+    th,
+    td {
+      padding: 5px 15px;
+      text-align: left;
+    }
+  </style>
+  <style>
+    /* https://philarcher.org/diary/2013/headingnumbers/ */
+    body {
+      counter-reset: h2
+    }
+
+    h2 {
+      counter-reset: h3
+    }
+
+    h3 {
+      counter-reset: h4
+    }
+
+    h4 {
+      counter-reset: h5
+    }
+
+    h5 {
+      counter-reset: h6
+    }
+
+    h2:before {
+      counter-increment: h2;
+      content: counter(h2) ". "
+    }
+
+    h3:before {
+      counter-increment: h3;
+      content: counter(h2) "."counter(h3) ". "
+    }
+
+    h4:before {
+      counter-increment: h4;
+      content: counter(h2) "."counter(h3) "."counter(h4) ". "
+    }
+
+    h5:before {
+      counter-increment: h5;
+      content: counter(h2) "."counter(h3) "."counter(h4) "."counter(h5) ". "
+    }
+
+    h6:before {
+      counter-increment: h6;
+      content: counter(h2) "."counter(h3) "."counter(h4) "."counter(h5) "."counter(h6) ". "
+    }
+
+    h2.nocount:before,
+    h3.nocount:before,
+    h4.nocount:before,
+    h5.nocount:before,
+    h6.nocount:before {
+      content: "";
+      counter-increment: none
+    }
+  </style>
+  <script>
+    const createQuestionNode = function (questionNumber) {
+      const e = document.createElement("h3");
+      e.appendChild(document.createTextNode(`Question ${questionNumber}`));
+      e.classList.add("question-number");
+      return e;
+    }
+
+    const template = document.getElementById("answer-template");
+    template.removeAttribute("id");
+
+    const questions = document.getElementsByClassName("question");
+    let answeredNumber = 1;
+    let questionNumber = 1;
+
+    for (let i = 0; i < questions.length; i++) {
+      if (questions[i].classList.contains("answered")) {
+        questions[i].parentElement.insertBefore(createQuestionNode(answeredNumber), questions[i]);
+        answeredNumber++;
+      } else {
+        questions[i].parentElement.insertBefore(createQuestionNode(questionNumber), questions[i]);
+        questionNumber++;
+        questions[i].appendChild(template.cloneNode(true));
+      }
+    }
+
+    template.remove();
+
+  </script>
+
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+</body>
+
+</html>

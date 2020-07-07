@@ -4,9 +4,19 @@ Stores a list of all arxiv ids with multiple versions.
 import os
 import sqlite3
 import datetime
-import statistics
-from typing import Set, List, Tuple, Iterable, Dict, Callable, Iterator, cast, Generator
-from dataclasses import dataclass
+import logging
+from typing import (
+    Set,
+    List,
+    Tuple,
+    Iterable,
+    Dict,
+    Callable,
+    Iterator,
+    cast,
+    Generator,
+    Collection,
+)
 
 from oaipmh.client import Client
 from oaipmh.metadata import MetadataRegistry, MetadataReader
@@ -15,7 +25,7 @@ from dateutil.parser import parse
 
 
 from arxivedits import data
-from arxivedits.structures import Record, ArxivID, Res
+from arxivedits.structures import Record, ArxivID, Res, PaperMetadata
 
 URL = "http://export.arxiv.org/oai2"
 
@@ -270,7 +280,7 @@ def get_papers_with_versions() -> None:
 
     queried_ids = get_ids_already_queried()
 
-    print(f"Seen {len(queried_ids)} ids already.")
+    logging.info(f"Seen {len(queried_ids)} ids already.")
 
     for arxiv, raw in get_all_records():
         try:
@@ -314,40 +324,56 @@ def main() -> None:
     """
     Main function
     """
-
+    logging.info("Initializing database.")
     init_db()
-    print("Initialized database succesfully.")
+    logging.info("Initialized database.")
 
+    logging.info("Getting a record of all documents on arxiv.org")
     get_papers_with_versions()
-    print("Recorded all paper's version counts.")
-
-
-@dataclass
-class PaperMetadata:
-    arxivid: str
-    versions: Dict[int, datetime.datetime]
-    categories: List[str]
-    authors: List[Tuple[str, str]]
+    logging.info("Recorded all paper's version counts.")
 
 
 def get_paper_metadata(arxivid: str) -> PaperMetadata:
     with data.connection() as con:
         versions: Dict[int, datetime.datetime] = {}
+        categories: Set[str] = set()
+        authors: Set[Tuple[str, str]] = set()
 
-        for version_str, date_str in con.execute(
-            "SELECT number, time FROM versions WHERE arxiv_id = (?)", (arxivid,)
+        for version_str, date_str, spec, first_name, last_name in con.execute(
+            "select versions.number, versions.time, categories.spec, authors.first_name, authors.last_name from versions natural join categories natural join authors where arxiv_id in (?)",
+            (arxivid,),
         ).fetchall():
             versions[int(version_str)] = parse(date_str)
-
-        categories = con.execute(
-            "SELECT spec FROM categories WHERE arxiv_id = (?)", (arxivid,)
-        ).fetchall()
-
-        authors = con.execute(
-            "SELECT first_name, last_name FROM authors WHERE arxiv_id = (?)", (arxivid,)
-        ).fetchall()
+            categories.add(spec)
+            authors.add((first_name, last_name))
 
     return PaperMetadata(arxivid, versions, categories, authors)
+
+
+def get_metadatas(ids: Collection[str]) -> List[PaperMetadata]:
+    query_str = "(" + "?, " * (len(ids) - 1) + "?)"
+
+    results: Dict[str, PaperMetadata] = {}
+
+    with data.connection() as con:
+        for arxivid, version_str, date_str, spec, first_name, last_name in con.execute(
+            "select versions.arxiv_id, versions.number, versions.time, categories.spec, authors.first_name, authors.last_name from versions natural join categories natural join authors where arxiv_id in "
+            + query_str,
+            ids,
+        ).fetchall():
+            if arxivid not in results:
+                results[arxivid] = PaperMetadata(
+                    arxivid,
+                    {int(version_str): parse(date_str)},
+                    set([spec]),
+                    set([(first_name, last_name)]),
+                )
+            else:
+                results[arxivid].versions[int(version_str)] = parse(date_str)
+                results[arxivid].categories.add(spec)
+                results[arxivid].authors.add((first_name, last_name))
+
+    return list(results.values())
 
 
 def get_days_delta(paper: PaperMetadata, v1: int, v2: int) -> int:
@@ -364,6 +390,7 @@ def get_avg_time_deltas(
 
     for arxivid in arxivids:
         paper = get_paper_metadata(arxivid)
+        print(paper)
 
         for v1 in paper.versions:
             v2 = v1 + 1
@@ -378,11 +405,5 @@ def get_avg_time_deltas(
     return {(v1, v2): measure(version_pairs[(v1, v2)]) for v1, v2 in version_pairs}
 
 
-def script() -> None:
-    arxivids = get_ids_already_queried()
-
-    print(get_avg_time_deltas(arxivids, statistics.median))
-
-
 if __name__ == "__main__":
-    script()
+    main()

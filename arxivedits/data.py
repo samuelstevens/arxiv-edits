@@ -7,7 +7,7 @@ import os
 import pathlib
 import csv
 
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Iterator
 from arxivedits.structures import Res, ArxivID, ArxivIDPath
 
 # TYPES
@@ -25,11 +25,13 @@ MACHINE_DIR = ALIGNMENT_DIR / "machine-annotations"
 ANNOTATION_DIR = ALIGNMENT_DIR / "need-annotation"
 FINISHED_DIR = ALIGNMENT_DIR / "finished-annotations"
 VISUAL_DIR = DATA_DIR / "visualizations"
-SCHEMA_PATH = pwd / "schema-2.sql"
-DB_FILE_NAME = os.path.join(DATA_DIR, "arxivedits-2.sqlite3")
-IDF_DB = os.path.join(DATA_DIR, "idf")
+SCHEMA_PATH = pwd / "schema.sql"
+DB_FILE_NAME = os.path.join(DATA_DIR, "arxivedits.sqlite3")
+
+DOWNLOAD_DIR = pwd / "arxiv-downloads"
 
 os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 os.makedirs(ALIGNMENT_DIR, exist_ok=True)
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(CSV_DIR, exist_ok=True)
@@ -54,9 +56,6 @@ def path_asserts(arxivid: UnsafeArxivID, version: int) -> ArxivIDPath:
     Asserts that paths and folders are correctly formed.
     """
     arxividpath = id_to_path(arxivid)
-
-    path = os.path.join(DATA_DIR, arxividpath, f"v{version}", "extra")
-    os.makedirs(path, exist_ok=True)
 
     return arxividpath
 
@@ -96,65 +95,69 @@ def parse_filename(filename: str) -> Res[Tuple[str, int]]:
 
 def extrafiles_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
-    The folder for all extra files for an arxivid and version.
+    The folder for all extra files for an arxivid and version 
     """
     arxividpath = path_asserts(arxivid, version)
 
-    return os.path.join(DATA_DIR, arxividpath, f"v{version}", "extra")
+    return os.path.join(DOWNLOAD_DIR, arxividpath, f"v{version}", "extra")
 
 
 def source_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
-    Returns the path for the .gz file for a given arxivid and version.
+    Returns the path for the .gz file for a given arxivid and version 
     """
 
     arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
-        DATA_DIR, arxividpath, f"v{version}", "extra", f"{arxividpath}-v{version}.gz"
-    )
-
-
-def text_path(arxivid: UnsafeArxivID, version: int, suffix: str = "") -> str:
-    """
-    Returns the path for the detexed file for a given arxivid and version.
-    """
-
-    arxividpath = path_asserts(arxivid, version)
-
-    return os.path.join(
-        DATA_DIR,
+        DOWNLOAD_DIR,
         arxividpath,
         f"v{version}",
         "extra",
-        f"{arxividpath}-v{version}{suffix}.txt",
+        f"{arxividpath}-v{version}.gz",
     )
 
 
-def sentence_path(arxivid: UnsafeArxivID, version: int, suffix: str = "") -> str:
+def text_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
-    Returns the path for the sentence-split file for a given arxivid and version.
+    Returns the path for the detexed file for a given arxivid and version
     """
 
     arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
-        DATA_DIR,
+        DOWNLOAD_DIR,
         arxividpath,
         f"v{version}",
-        f"{arxividpath}-v{version}-sentences{suffix}.txt",
+        "extra",
+        f"{arxividpath}-v{version}.txt",
+    )
+
+
+def sentence_path(arxivid: UnsafeArxivID, version: int) -> str:
+    """
+    Returns the path for the sentence-split file for a given arxivid
+    """
+
+    arxividpath = path_asserts(arxivid, version)
+
+    return os.path.join(
+        DOWNLOAD_DIR,
+        arxividpath,
+        f"v{version}",
+        f"{arxividpath}-v{version}-sentences.txt",
     )
 
 
 def latex_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
-    Returns the path for the constructed .tex file for a given arxivid and version.
+    Returns the path for the constructed .tex file for a given arxivid and version 
     """
 
     arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
-        DATA_DIR,
+        DOWNLOAD_DIR,
         arxividpath,
         f"v{version}",
         "extra",
@@ -162,31 +165,15 @@ def latex_path(arxivid: UnsafeArxivID, version: int) -> str:
     )
 
 
-def clean_latex_path(arxivid: UnsafeArxivID, version: int) -> str:
-    """
-    Returns the path for the cleaned .tex file for a given arxivid and version.
-    """
-
-    arxividpath = path_asserts(arxivid, version)
-
-    return os.path.join(
-        DATA_DIR,
-        arxividpath,
-        f"v{version}",
-        "extra",
-        f"{arxividpath}-v{version}-clean.tex",
-    )
-
-
 def pdf_path(arxivid: UnsafeArxivID, version: int) -> str:
     """
-    Returns the path for the original pdf file for a given arxivid and version.
+    Returns the path for the original pdf file for a given arxivid and version and whether it exists.
     """
 
     arxividpath = path_asserts(arxivid, version)
 
     return os.path.join(
-        DATA_DIR, arxividpath, f"v{version}", f"{arxividpath}-v{version}.pdf",
+        DOWNLOAD_DIR, arxividpath, f"v{version}", f"{arxividpath}-v{version}.pdf",
     )
 
 
@@ -258,13 +245,13 @@ def alignment_finished_path(
 def get_local_files(maximum_only: bool = False) -> List[Tuple[ArxivIDPath, int]]:
     idlist: List[Tuple[ArxivIDPath, int]] = []
 
-    for arxivid in os.listdir(DATA_DIR):
+    for arxivid in os.listdir(DOWNLOAD_DIR):
         versionlist = []
 
-        if not os.path.isdir(os.path.join(DATA_DIR, arxivid)):
+        if not os.path.isdir(os.path.join(DOWNLOAD_DIR, arxivid)):
             continue
 
-        for v in os.listdir(os.path.join(DATA_DIR, arxivid)):
+        for v in os.listdir(os.path.join(DOWNLOAD_DIR, arxivid)):
             try:
                 version = int(v[1:])
                 versionlist.append(version)
@@ -291,7 +278,7 @@ def get_sample_files(maximum_only: bool = False) -> List[Tuple[ArxivID, int]]:
 
         arxvidpath = id_to_path(ArxivID(arxivid))
 
-        if not os.path.isdir(os.path.join(DATA_DIR, arxvidpath)):
+        if not os.path.isdir(os.path.join(DOWNLOAD_DIR, arxvidpath)):
             continue
 
         if maximum_only and versionlist:
@@ -300,6 +287,34 @@ def get_sample_files(maximum_only: bool = False) -> List[Tuple[ArxivID, int]]:
         idlist.extend([(ArxivID(arxivid), v) for v in versionlist])
 
     return idlist
+
+
+def get_all_files(maximum_only: bool = False) -> Iterator[Tuple[ArxivID, int]]:
+    """
+    Gets all arxivid, version_count pairs in the .sqlite3 database where version_count > 1 (at least two versions of a paper).
+    """
+
+    def result_iter(cursor: sqlite3.Cursor) -> Iterator[Tuple[ArxivID, int]]:
+        """
+        https://code.activestate.com/recipes/137270-use-generators-for-fetching-large-db-record-sets/
+        """
+
+        while True:
+            results = cursor.fetchmany()
+            if not results:
+                break
+            for arxivid, version_str in results:
+                versions = int(version_str)
+
+                if maximum_only:
+                    yield arxivid, versions
+                else:
+                    for version in range(1, versions + 1):
+                        yield arxivid, version
+
+    query = "SELECT arxiv_id, MAX(number) FROM versions GROUP BY arxiv_id HAVING MAX(number) > 1;"
+
+    return result_iter(connection().execute(query))
 
 
 def get_paragraphs(arxivid: UnsafeArxivID, version: int) -> Res[List[List[str]]]:

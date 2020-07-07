@@ -10,6 +10,7 @@ import shutil
 import time
 import re
 import random
+import logging
 import pathlib
 
 # External
@@ -17,8 +18,8 @@ import requests
 import magic
 
 # internal
-from arxivedits.structures import ArxivID
-import arxivedits.data as data
+from arxivedits.structures import ArxivID, Res
+from arxivedits import util, data
 
 TIMEOUT = 5
 
@@ -62,7 +63,7 @@ def is_downloaded(arxivid: str, version: int) -> bool:
     return os.path.isfile(data.source_path(arxivid, version))
 
 
-def is_extracted(arxivid: ArxivID, version: int) -> bool:
+def is_extracted(arxivid: str, version: int) -> bool:
     """
     Checks if a document was extracted.
     """
@@ -80,7 +81,11 @@ def add_folder_to_dict(dirpath: str, dictionary: Dict[str, List[str]]) -> None:
             _, ext = os.path.splitext(filename)
 
             if ext != ".tex":
-                continue
+                # check if filemagic can determine type
+                with open(filepath, "rb") as file:
+                    filetype = get_filetype(file)
+                    if "tex" not in filetype:
+                        continue
 
             with open(filepath, "rb") as file:
                 contents = file.read()
@@ -184,22 +189,19 @@ def extract(filepath: str) -> Optional[str]:
     if os.path.isdir(filepath):
         raise ValueError(f"{filepath} is a directory.")
 
-    # now, filepath is not a directory
     with open(filepath, "rb") as file:
         while True:
             file.seek(0)
             filetype = get_filetype(file)
 
             if "gzip" in filetype:
-                # print(f'Using gunzip to unzip {filepath}.')
+                # print(f"Using gunzip to unzip {filepath}.")
                 file = cast(BinaryIO, gzip.open(file, "rb"))
 
             elif "PDF" in filetype:
-                # print('Going to ignore PDF.')
                 return None
 
             elif "tar" in filetype:
-                # print(f'Using tar to extract from {filepath}')
                 with tarfile.open(fileobj=file, mode="r") as tar:
                     try:
                         return tex_from_tar(tar)
@@ -282,26 +284,17 @@ def download_all() -> None:
     Downloads all source files for all versions for all papers with 2+ versions.
     """
 
-    # These lines download all the files used by Chenhao in his sentences.
-    # with open("data/sample-only-multiversion.csv") as csvfile:
-    #     reader = csv.reader(csvfile)
-    #     for arxivid, version_count in reader:
-    #         download_source_files(arxivid, int(version_count))
+    util.log_how_many(is_downloaded, "downloaded")
 
-    # These 2 lines download all files that a folder exists for (tries to fill in empty folders)
-    # for arxivid, version_count in data.get_local_files(maximum_only=True):
-    #     download_source_files(arxivid, version_count)
-
-    # These lines download all source files (not pdfs) on arxiv.org in random order.
-    # arxiv_id_pairs = get_ids(shuffled=True, ALL=True)
-    # for arxiv_id, version_count in arxiv_id_pairs:
-    #     download_source_files(arxiv_id, version_count, download_pdf=False)
-
-    for arxivid, version_count in data.get_sample_files(maximum_only=True):
+    for arxivid, version_count in data.get_all_files(
+        maximum_only=True
+    ):  # download_source_files wants the total number of versions for each id
         download_source_files(arxivid, version_count)
 
+    util.log_how_many(is_downloaded, "downloaded")
 
-def extract_file(sourcefilepath: str, outfilepath: str) -> Optional[Exception]:
+
+def extract_file(sourcefilepath: str, outfilepath: str) -> Res[None]:
     content: Optional[str] = None
 
     try:
@@ -320,60 +313,36 @@ def extract_file(sourcefilepath: str, outfilepath: str) -> Optional[Exception]:
 
 def extract_all(extract_again: bool = False) -> None:
     """
-    Extracts the a .tex file from every .gz file to its directory.
+    Extracts the .tex file from every .gz file to its directory.
     """
 
-    for arxivid, version in data.get_sample_files():
+    util.log_how_many(is_extracted, "extracted")
+
+    logging.info("Extracting files.")
+
+    for arxivid, version in data.get_all_files():
         if not is_downloaded(arxivid, version):
-            print(f"skipping {arxivid}-v{version}")
             continue
 
         sourcefilepath = data.source_path(arxivid, version)
         latexpath = data.latex_path(arxivid, version)
 
         if os.path.isfile(latexpath) and not extract_again:
-            # print(f"Already extracted {arxivid}-v{version}")
             continue  # skip if already extracted
 
         err = extract_file(sourcefilepath, latexpath)
         if err:
-            print(err)
+            logging.warning(err)
+
+    util.log_how_many(is_extracted, "extracted")
 
 
 def main() -> None:
-    download_count = 0
-    for a, v in data.get_sample_files():
-        if os.path.isfile(data.source_path(a, v)):
-            download_count += 1
-
-    print(f"{download_count/len(data.get_sample_files())*100:.2f}% downloaded.")
-
     download_all()
 
-    download_count = 0
-    for a, v in data.get_sample_files():
-        if os.path.isfile(data.source_path(a, v)):
-            download_count += 1
-
-    print(f"{download_count/len(data.get_sample_files())*100:.2f}% downloaded.")
-
-    extracted_count = 0
-    for a, v in data.get_sample_files():
-        if os.path.isfile(data.latex_path(a, v)):
-            extracted_count += 1
-
-    print(f"{extracted_count/len(data.get_sample_files())*100:.2f}% extracted.")
-
-    # extract_all()
-
-    extracted_count = 0
-    for a, v in data.get_sample_files():
-        if os.path.isfile(data.latex_path(a, v)):
-            extracted_count += 1
-
-    print(f"{extracted_count/len(data.get_sample_files())*100:.2f}% extracted.")
+    extract_all()
 
 
 if __name__ == "__main__":
-    # main()
-    download_all()
+    main()
+    # download_all()

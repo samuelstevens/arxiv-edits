@@ -58,6 +58,7 @@ FALSE_SPLIT_SUFFIXES = set(
         # misc.
         "et al.",
         "resp.",
+        "Table.",
     ]
 )
 FALSE_SPLIT_PUNC = set([".", "(", "["])
@@ -540,13 +541,12 @@ def main() -> None:
             logging.info(f"{arxivid}-v{version} was not converted to text.")
             continue
 
-        # if os.path.isfile(sentencefilepath):
-        #     continue
+        if os.path.isfile(sentencefilepath):
+            continue
 
         # print(textfilepath)
         tokenize_file(textfilepath, sentencefilepath, tok)
         # print(sentencefilepath)
-        # print(data.latex_path(arxivid, version))
 
 
 def demo() -> None:
@@ -560,6 +560,7 @@ def demo() -> None:
         r"Given a Hamiltonian [MATH], one can evolve the wave function through (23). It is simply a unitary transformation of the system, [EQUATION] We use the pseudo-spectral method to solve the Schrodinger equation in the comoving box. Let [MATH] be the kinetic energy operator ([MATH] in Fourier space) and [MATH] the potential operator([MATH] in real space). The evolution is then split into [EQUATION] On the other hand, we need to consider the non-commutative relation between [MATH] and [MATH], where [EQUATION] [EQUATION] It follows that we obtain, to the second order accuracy, [EQUATION] which will be adopted to advance the time steps.",
         r"It is simply a unitary transformation of the system, [EQUATION] We use the pseudo-spectral method to solve the Schrodinger equation in the comoving box.",
         r"In ref.[CITATION] the masses and decay constants of the lightest octet of pseudoscalar mesons are worked out at to [MATH] .",
+        r"So, [MATH]. Thus, we can assume that [MATH]. [MATH] By the above proposition and the discussion in Section 2, we see that the system [MATH] has a nontrivial nonnegative solution if and only if the system [MATH] has a nontrivial nonnegative solution [MATH]. We have the following.",
     ]
 
     for ex in examples:
@@ -575,21 +576,26 @@ def redo() -> None:
     Converts information in detexed text to sentences.
     """
 
-    tok = CoreNLPTokenizer()  # typing: ignore
+    tok = CoreNLPTokenizer()
 
     for arxivid, v1, v2 in data.ANNOTATED_IDS:
-        textfilepath = data.text_path(arxivid, v1, suffix="-new")
-        sentencefilepath = data.sentence_path(arxivid, v1, suffix="-new")
-        tokenize_file(textfilepath, sentencefilepath, tok)
-        print(f"diff {data.sentence_path(arxivid, v1)} {sentencefilepath}")
+        # textfilepath = data.text_path(arxivid, v1, suffix="-new")
+        # sentencefilepath = data.sentence_path(arxivid, v1, suffix="-new")
+        # tokenize_file(textfilepath, sentencefilepath, tok)
+        # print(f"diff {data.sentence_path(arxivid, v1)} {sentencefilepath}")
 
-        textfilepath = data.text_path(arxivid, v2, suffix="-new")
-        sentencefilepath = data.sentence_path(arxivid, v2, suffix="-new")
-        tokenize_file(textfilepath, sentencefilepath, tok)
-        print(f"diff {data.sentence_path(arxivid, v2)} {sentencefilepath}")
+        # textfilepath = data.text_path(arxivid, v2, suffix="-new")
+        # sentencefilepath = data.sentence_path(arxivid, v2, suffix="-new")
+        # tokenize_file(textfilepath, sentencefilepath, tok)
+        # print(f"diff {data.sentence_path(arxivid, v2)} {sentencefilepath}")
 
-        # if os.path.isfile(sentencefilepath):
-        #     continue
+        textfilepath = data.text_path(arxivid, v1)
+        sentencefilepath = data.sentence_path(arxivid, v2)
+
+        if os.path.isfile(sentencefilepath):
+            continue
+
+        tokenize_file(textfilepath, sentencefilepath, tok)
 
         # print(textfilepath)
 
@@ -598,5 +604,5 @@ def redo() -> None:
 
 
 if __name__ == "__main__":
-    main()
-    # demo()
+    # main()
+    demo()

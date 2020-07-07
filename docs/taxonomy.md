@@ -23,6 +23,10 @@
 
 ## Working Example
 
+We have also demonstrated that a multi-band imager like MuSCAT is useful not only **to obtain** multi-band light curves simultaneously but also **to reduce** the systematic **noises originated** from the second-order extinction effect , especially for shorter wavelengths and for observations conducted at **low altitude** observatories.',
+
+We have also demonstrated that a multi-band imager like MuSCAT is useful not only **for obtaining** multi-band light curves simultaneously but also **for reducing** the systematic **noise that originates** from the second-order extinction effect , especially for shorter wavelengths and for observations conducted at **low-altitude** observatories.
+
 ## Categories
 
 [Specify](#specify)

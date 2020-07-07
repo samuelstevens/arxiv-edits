@@ -22,6 +22,6 @@ test: FORCE
 	python -m pytest tests/ --disable-pytest-warnings
 
 types: FORCE
-	mypy --strict $(files)
+	mypy --strict -p arxivedits
 
 FORCE:
