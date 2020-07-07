@@ -14,6 +14,8 @@ For each document pair, perform the following steps:
 
 import logging
 
+from typing import Iterable, Tuple, Optional
+
 from tqdm import tqdm
 
 from arxivedits import util, data, diff
@@ -80,8 +82,13 @@ def start_of_pipeline() -> None:
         alignment.save()
 
 
-def write_machine_alignments() -> None:
-    for arxivid, version1, version2 in tqdm(data.SAMPLE_IDS + [("1501.05084", 1, 2)]):
+def write_machine_alignments(
+    pairs: Optional[Iterable[Tuple[str, int, int]]] = None
+) -> None:
+    if not pairs:
+        pairs = data.get_all_pairs()
+
+    for arxivid, version1, version2 in pairs:
         alignment = Alignment(arxivid, version1, version2)
         easy_alignments = easy_align(arxivid, version1, version2)
         process_easy_align(easy_alignments, alignment)
@@ -95,6 +102,6 @@ def write_machine_alignments() -> None:
 if __name__ == "__main__":
     # write_unaligned()
 
-    write_machine_alignments()
+    write_machine_alignments(data.ANNOTATED_IDS)
     # print(preprocess_single_sent.cache_info())
     # print(diff.sent_filter.cache_info())

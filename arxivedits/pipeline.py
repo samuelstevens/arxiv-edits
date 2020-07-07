@@ -4,7 +4,7 @@ Pipeline to run all data collection and cleaning.
 
 import logging
 
-from arxivedits import versions, source, tex, tokenizer
+from arxivedits import versions, source, tex, tokenizer, alignment
 
 
 def pipeline() -> None:
@@ -15,24 +15,26 @@ def pipeline() -> None:
         versions.main()
 
     # download all files
-    if True:
+    if False:
         source.download_all()
 
     # extract into .tex files
-    if False:
-        source.extract_all(again=True)
+    source.extract_all(again=True)
 
     # detex all files
-    if False:
-        tex.detex_all(again=True)
+    tex.detex_all(again=True)
 
     # split all files into sentences
-    if False:
-        tokenizer.split_all(again=True)
+    tokenizer.split_all(again=True)
 
     # do machine alignments (easy alignments)
+
+    ########################################
+    # NOTE: This step is very inefficient.
+    # Very, very slow.
+    ########################################
     if False:
-        pass
+        alignment.write_machine_alignments()
 
 
 if __name__ == "__main__":

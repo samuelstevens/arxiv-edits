@@ -12,14 +12,28 @@ import re
 import random
 import logging
 import pathlib
+import enum
 
 # External
 import requests
 import magic
 
 # internal
-from arxivedits.structures import ArxivID, Res
+from arxivedits.structures import ArxivID, Result
 from arxivedits import util, data
+
+
+class FileType(enum.Enum):
+    GZIP = enum.auto()
+    PDF = enum.auto()
+    TEX = enum.auto()
+    EPS = enum.auto()
+    TAR = enum.auto()
+    TEXT = enum.auto()
+    IMAGE = enum.auto()
+
+    UNKNOWN = enum.auto()
+
 
 TIMEOUT = 5
 
@@ -34,6 +48,9 @@ def download_file(url: str, local_filename: str) -> str:
     Downloads a file by streaming it. Taken from # https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests
     """
 
+    dirpath = os.path.dirname(local_filename)
+    os.makedirs(dirpath, exist_ok=True)
+
     # NOTE the stream=True parameter below
     with requests.get(url, stream=True) as req:
         req.raise_for_status()
@@ -45,14 +62,50 @@ def download_file(url: str, local_filename: str) -> str:
     return local_filename
 
 
-def get_filetype(file: BinaryIO) -> str:
+def parse_filetype(mime: str, raw: str) -> FileType:
+    # most precise
+    if mime == "application/gzip":
+        return FileType.GZIP
+    if mime == "text/x-tex":
+        return FileType.TEX
+    if mime == "text/plain":
+        return FileType.TEXT
+    if mime == "application/x-tar":
+        return FileType.TAR
+    if mime == "application/pdf":
+        return FileType.PDF
+    if "image" in mime:
+        return FileType.IMAGE
+
+    # least precise
+    if "EPS" in raw:
+        return FileType.EPS
+    if "gzip" in raw and "gz" in raw:
+        return FileType.GZIP
+
+    logging.debug(f"Unknown filetype: {mime} {raw}")
+
+    return FileType.UNKNOWN
+
+
+def get_filetype(file: BinaryIO, ext: str) -> FileType:
     """
     returns the filetype of a file using magic (file utility on unix). Resets the file pointer to the start of the file.
     """
-    file.seek(0)  # ensures that we read the first 1024 bytes
-    buffer = file.read(2048)
-    file.seek(0)  # resets the position to the start.
-    return magic.from_buffer(buffer, mime=False)
+    try:
+        file.seek(0)  # ensures that we read the first 1024 bytes
+        buffer = file.read(2048)
+        file.seek(0)  # resets the position to the start.
+        result = parse_filetype(
+            magic.from_buffer(buffer, mime=True), magic.from_buffer(buffer, mime=False),
+        )
+    except OSError:  # sometimes file.read throws an OSError if it looks like a gzip file but isn't
+        result = FileType.UNKNOWN
+    except RecursionError:
+        print(file.name, ext)
+        exit(1)
+
+    return result
 
 
 def is_downloaded(arxivid: str, version: int) -> bool:
@@ -80,14 +133,12 @@ def add_folder_to_dict(dirpath: str, dictionary: Dict[str, List[str]]) -> None:
         if os.path.isfile(filepath):
             _, ext = os.path.splitext(filename)
 
-            if ext != ".tex":
-                # check if filemagic can determine type
-                with open(filepath, "rb") as file:
-                    filetype = get_filetype(file)
-                    if "tex" not in filetype:
-                        continue
-
+            # check if filemagic can determine type
             with open(filepath, "rb") as file:
+                filetype = get_filetype(file, ext)
+                if filetype != FileType.TEX:
+                    continue
+
                 contents = file.read()
 
             lines = contents.decode("utf-8", errors="ignore").split("\n")
@@ -110,8 +161,8 @@ def get_lines(
         lines = closedfiles[filename]
         del closedfiles[filename]
     else:
-        # print(openfiles.keys(), closedfiles.keys())
-        # print(f"{filename} not in openfiles or closedfiles.")
+        logging.debug(openfiles.keys(), closedfiles.keys())
+        logging.debug(f"{filename} not in openfiles or closedfiles.")
         closedfiles[filename] = []
         return
 
@@ -189,30 +240,31 @@ def extract(filepath: str) -> Optional[str]:
     if os.path.isdir(filepath):
         raise ValueError(f"{filepath} is a directory.")
 
+    _, ext = os.path.splitext(filepath)
+
     with open(filepath, "rb") as file:
         while True:
             file.seek(0)
-            filetype = get_filetype(file)
+            filetype = get_filetype(file, ext)
 
-            if "gzip" in filetype:
+            if filetype == FileType.GZIP:
                 # print(f"Using gunzip to unzip {filepath}.")
                 file = cast(BinaryIO, gzip.open(file, "rb"))
 
-            elif "PDF" in filetype:
+            elif filetype == FileType.PDF:
                 return None
 
-            elif "tar" in filetype:
+            elif filetype == FileType.TAR:
                 with tarfile.open(fileobj=file, mode="r") as tar:
                     try:
                         return tex_from_tar(tar)
                     except EOFError:
-                        print(f"{filepath} was not downloaded correctly.")
+                        logging.warning(f"{filepath} was not downloaded correctly.")
                         return None
 
-            elif "tex" in filetype:
-                # print(f'Reading directly from {filename}')
+            elif filetype == FileType.TEX or filetype == FileType.TEXT:
+                # print(f"Reading directly from {filepath}")
                 return file.read().decode("utf-8", errors="ignore")
-
             else:
                 raise TypeError(f"{filetype} ({filepath}) not implemented yet.")
 
@@ -233,10 +285,10 @@ def download_source_files(
         if not os.path.isfile(filepath):
             try:
                 download_file(url, filepath)
-                print(f"downloaded {filepath}")
+                logging.info(f"downloaded {filepath}")
             except requests.exceptions.HTTPError as err:
-                print(err)
-                print(f"Cannot download source for {arxivid}v{version}")
+                logging.warning(err)
+                logging.warning(f"Cannot download source for {arxivid}v{version}")
 
             time.sleep(TIMEOUT)  # respect the server
 
@@ -284,7 +336,10 @@ def download_all() -> None:
     Downloads all source files for all versions for all papers with 2+ versions.
     """
 
-    util.log_how_many(is_downloaded, "downloaded")
+    done = util.log_how_many(is_downloaded, "downloaded")
+
+    if done:
+        return
 
     for arxivid, version_count in data.get_all_files(
         maximum_only=True
@@ -294,7 +349,7 @@ def download_all() -> None:
     util.log_how_many(is_downloaded, "downloaded")
 
 
-def extract_file(sourcefilepath: str, outfilepath: str) -> Res[None]:
+def extract_file(sourcefilepath: str, outfilepath: str) -> Result[None]:
     content: Optional[str] = None
 
     try:
@@ -316,7 +371,10 @@ def extract_all(again: bool = False) -> None:
     Extracts the .tex file from every .gz file to its directory.
     """
 
-    util.log_how_many(is_extracted, "extracted")
+    done = util.log_how_many(is_extracted, "extracted")
+
+    if done and not again:
+        return
 
     logging.info("Extracting files.")
 

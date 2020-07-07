@@ -2,7 +2,7 @@ import os
 import logging
 
 
-from arxivedits import data, detex, source
+from arxivedits import data, detex, source, util
 
 
 def is_detexed(arxivid: str, version: int) -> bool:
@@ -11,14 +11,12 @@ def is_detexed(arxivid: str, version: int) -> bool:
 
 def detex_all(again: bool = False) -> None:
 
-    detexed = 0
-    total = 0
-    for a, v in data.get_all_files():
-        total += 1
-        if is_detexed(a, v):
-            detexed += 1
+    done = util.log_how_many(is_detexed, "detexed")
 
-    logging.info(f"{detexed/total*100:.2f}% detexed.")
+    if done and not again:
+        return
+
+    logging.info("Detexing files.")
 
     for arxivid, version in data.get_all_files():
 
@@ -33,12 +31,7 @@ def detex_all(again: bool = False) -> None:
 
         detex.detex_file(latexfilepath, outputfilepath)
 
-    detexed = 0
-    for a, v in data.get_all_files():
-        if is_detexed(a, v):
-            detexed += 1
-
-    logging.info(f"{detexed/total*100:.2f}% detexed.")
+    util.log_how_many(is_detexed, "detexed")
 
 
 def main() -> None:
@@ -102,7 +95,7 @@ def demo() -> None:
         r"Therefore, despite its overall similarity with the Anderson transition (see also Ref.\ \cite{suppl}), it remains to be seen if this transition can be classified as such.",
         r"""So, $\hat x_{j_1 \cdots j_N} = \hat x_{2-j_1 \cdots 2-j_N}$.
 Thus, we can assume that $x_{i_1i_2\cdots i_n}=x_{(2-i_1)(2-i_2)\cdots (2-i_N)}$.
-\qed
+\hfill $\Box$\medskip
 
 By the above proposition and the discussion  in Section 2, we see that
 the system $A_\alpha^{\otimes N} \bx =  0$ has a nontrivial nonnegative
@@ -113,7 +106,7 @@ has a nontrivial nonnegative solution $\by$.""",
     for s in teststrings:
         print(s)
         print()
-        print(detex.opendetex.detex(s)[0])
+        print(detex.opendetex.detex(s))
         print("---")
 
 

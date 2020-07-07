@@ -21,7 +21,7 @@ import logging
 import pexpect
 
 from arxivedits.detex.constants import BLOCK_MATH_TAG
-from arxivedits import data
+from arxivedits import data, util
 from arxivedits.structures import ArxivID
 
 FALSE_SPLIT_SUFFIXES = set(
@@ -530,6 +530,11 @@ def split_all(again=False) -> None:
     Converts information in detexed text to sentences.
     """
 
+    done = util.log_how_many(is_sentenced, "split into sentences")
+
+    if done and not again:
+        return
+
     tok = CoreNLPTokenizer()
 
     for arxivid, version in data.get_all_files():
@@ -546,6 +551,8 @@ def split_all(again=False) -> None:
         logging.debug(textfilepath)
         tokenize_file(textfilepath, sentencefilepath, tok)
         logging.debug(sentencefilepath)
+
+    util.log_how_many(is_sentenced, "split into sentences")
 
 
 def main() -> None:

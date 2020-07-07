@@ -146,7 +146,7 @@ def transpose(a: List[List[T]]) -> List[List[T]]:
     return list(map(list, zip(*a)))
 
 
-def log_how_many(check_func: Callable[[str, int], bool], verb: str) -> None:
+def log_how_many(check_func: Callable[[str, int], bool], verb: str) -> bool:
     total = 0
     done = 0
     for a, v in data.get_all_files():
@@ -155,6 +155,8 @@ def log_how_many(check_func: Callable[[str, int], bool], verb: str) -> None:
             done += 1
 
     logging.info(f"{done/total*100:.2f}% {verb}.")
+
+    return done == total
 
 
 if __name__ == "__main__":

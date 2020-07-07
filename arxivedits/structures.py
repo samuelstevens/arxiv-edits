@@ -4,7 +4,7 @@ Various types used in this application.
 
 import datetime
 from dataclasses import dataclass
-from typing import Tuple, List, NewType, Union, TypeVar, Optional, Dict, Set, Iterator
+from typing import Tuple, List, NewType, Union, TypeVar, Optional, Dict, Set
 
 # external
 from oaipmh.common import Metadata, Header
@@ -18,7 +18,7 @@ V = TypeVar("V")
 Go = Tuple[T, Optional[Exception]]
 
 # I find Go useful when I want a function to return an error, but sometimes I want to ignore the error. With Res, I have to pattern match (can't ignore the error). Maybe later, I'll decide that being forced to handle the error is important.
-Res = Union[T, Exception]
+Result = Union[T, Exception]
 
 
 Record = Tuple[Header, Metadata, None]

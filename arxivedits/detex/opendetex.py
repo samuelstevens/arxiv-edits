@@ -8,7 +8,7 @@ import logging
 
 from arxivedits.detex import latex
 from arxivedits.detex.constants import INLINE_MATH_TAG, ACKNOWLEDGEMENT_PATTERN
-from arxivedits import structures
+from arxivedits.structures import Result
 
 
 TMP_NOUN_TAG = "[TMPNOUN]"
@@ -72,7 +72,7 @@ def postprocess(text: str) -> str:
     return text
 
 
-def detex(text: str) -> structures.Go[str]:
+def detex(text: str) -> Result[str]:
     """
     opendetex (https://github.com/pkubowicz/opendetex), installed via homebrew (brew install detex)
     """
@@ -86,13 +86,10 @@ def detex(text: str) -> structures.Go[str]:
 
         text = postprocess(text)
 
-        return text, None
+        return text
     except AttributeError:
-        return (
-            "",
-            ValueError(
-                f"text {text[:16]} did not have attribute 'encode', which means it most likely wasn't a string (could be bytes)."
-            ),
+        return ValueError(
+            f"text {text[:16]} did not have attribute 'encode', which means it most likely wasn't a string (could be bytes)."
         )
 
 
@@ -104,18 +101,23 @@ def detex_file(inputfile: str, outputfile: str) -> None:
         with open(outputfile, "w") as fout:
             content = fin.read()
 
-            detexed, err = detex(content)
+            detexed = detex(content)
 
-            if err:
-                logging.warning(err)
-
-            fout.write(detexed)
+            if isinstance(detexed, Exception):
+                logging.debug(detexed)
+            else:
+                fout.write(detexed)
 
 
 if __name__ == "__main__":
-    test = r"""\newcommand{\proof}{\textcolor{black}}
+    test = r"""So, $\hat x_{j_1 \cdots j_N} = \hat x_{2-j_1 \cdots 2-j_N}$.
+Thus, we can assume that $x_{i_1i_2\cdots i_n}=x_{(2-i_1)(2-i_2)\cdots (2-i_N)}$.
+\hfill $\Box$\medskip
 
-We revise the orbital period of K2-3d to be \proof{44.55612} $\pm$ 0.00021 days, which corrects the predicted transit times in 2019, i.e., the {\it JWST} era, by $\sim$80 minutes.
-"""
+By the above proposition and the discussion  in Section 2, we see that
+the system $A_\alpha^{\otimes N} \bx =  0$ has a nontrivial nonnegative
+solution if and only if the system $C_{\alpha,N}\mathbf{y}=0$
+has a nontrivial nonnegative solution $\by$."""
+
     # \$.*[^.]\.\$ [A-Z]
     print(detex(test))

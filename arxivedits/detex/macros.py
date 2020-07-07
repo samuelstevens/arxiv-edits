@@ -323,7 +323,7 @@ def get_args(
 
     while command.required_arg_count() > len(args) and position < len(text):
         if text[position] != "{":
-            logging.warning(
+            logging.debug(
                 "Command %s requires %d arguments. Found %d: %s",
                 command.name,
                 command.required_arg_count(),
@@ -445,7 +445,7 @@ def process(initial_tex: str) -> str:
             command_result, err = command.result(arguments)
 
             if err:
-                logging.error(err)
+                logging.debug(err)
             else:
                 string_builder.append(command_result)
 

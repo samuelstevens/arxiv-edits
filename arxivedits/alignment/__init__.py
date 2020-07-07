@@ -6,3 +6,6 @@ from arxivedits.alignment.align import (
     process_easy_align,
 )
 from arxivedits.alignment.structures import STATUS, SentenceStruct
+from arxivedits.alignment.main import (
+    write_machine_alignments as write_machine_alignments,
+)

@@ -163,8 +163,8 @@ def process(initial_tex: str) -> str:
 
                 result, err = command.parse(initial_tex, position, command.name)
 
-                if err is not None:
-                    logging.warning(err)
+                if err:
+                    logging.debug(err)
 
                 text, position = result
 

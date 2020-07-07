@@ -8,7 +8,7 @@ import pathlib
 import csv
 
 from typing import Tuple, List, Union, Iterator
-from arxivedits.structures import Res, ArxivID, ArxivIDPath
+from arxivedits.structures import Result, ArxivID, ArxivIDPath
 
 # TYPES
 
@@ -67,7 +67,7 @@ def alignment_path_asserts(
 # PATH FUNCTIONS
 
 
-def parse_filename(filename: str) -> Res[Tuple[str, int]]:
+def parse_filename(filename: str) -> Result[Tuple[str, int]]:
     """
     Parses a filename into `arxividpath` and `version`
     """
@@ -291,7 +291,7 @@ def get_all_files(maximum_only: bool = False) -> Iterator[Tuple[ArxivID, int]]:
         """
 
         while True:
-            results = cursor.fetchmany(arraysize=10)
+            results = cursor.fetchmany()
             if not results:
                 break
             for arxivid, version_str in results:
@@ -303,12 +303,18 @@ def get_all_files(maximum_only: bool = False) -> Iterator[Tuple[ArxivID, int]]:
                     for version in range(1, versions + 1):
                         yield arxivid, version
 
-    query = "SELECT arxiv_id, MAX(number) FROM versions GROUP BY arxiv_id HAVING MAX(number) > 1 LIMIT 20;"
+    query = "SELECT arxiv_id, MAX(number) FROM versions GROUP BY arxiv_id HAVING MAX(number) > 1;"
 
     return result_iter(connection().execute(query))
 
 
-def get_paragraphs(arxivid: UnsafeArxivID, version: int) -> Res[List[List[str]]]:
+def get_all_pairs() -> Iterator[Tuple[ArxivID, int, int]]:
+    for arxivid, versions in get_all_files(maximum_only=True):
+        for v1 in range(1, versions):
+            yield arxivid, v1, v1 + 1
+
+
+def get_paragraphs(arxivid: UnsafeArxivID, version: int) -> Result[List[List[str]]]:
     """
     Gets a list of lists of sentences representing document paragraphs.
     """

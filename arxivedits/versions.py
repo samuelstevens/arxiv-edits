@@ -25,7 +25,7 @@ from dateutil.parser import parse
 
 
 from arxivedits import data
-from arxivedits.structures import Record, ArxivID, Res, PaperMetadata
+from arxivedits.structures import Record, ArxivID, Result, PaperMetadata
 
 URL = "http://export.arxiv.org/oai2"
 
@@ -190,7 +190,7 @@ def get_all_records() -> Iterator[Tuple[Record, Record]]:
 # PARSE
 
 
-def parse_field(record: Record, field: str) -> Res[List[str]]:
+def parse_field(record: Record, field: str) -> Result[List[str]]:
     if not record:
         return ValueError("record cannot be None.")
 
@@ -205,7 +205,7 @@ def parse_field(record: Record, field: str) -> Res[List[str]]:
     return cast(List[str], meta[field])
 
 
-def parse_timestamp(record: Record) -> Res[List[datetime.datetime]]:
+def parse_timestamp(record: Record) -> Result[List[datetime.datetime]]:
     if not record:
         return ValueError("record cannot be None.")
 
@@ -222,7 +222,7 @@ def parse_timestamp(record: Record) -> Res[List[datetime.datetime]]:
     return [parse(d) for d in datelist]
 
 
-def parse_authors(record: Record) -> Res[List[Tuple[str, str]]]:
+def parse_authors(record: Record) -> Result[List[Tuple[str, str]]]:
     firstnames = parse_field(record, "firstnames")
     lastnames = parse_field(record, "lastnames")
 
@@ -238,7 +238,7 @@ def parse_authors(record: Record) -> Res[List[Tuple[str, str]]]:
         return err
 
 
-def parse_categories(record: Record) -> Res[List[str]]:
+def parse_categories(record: Record) -> Result[List[str]]:
     header, _, _ = record
 
     try:
@@ -247,7 +247,7 @@ def parse_categories(record: Record) -> Res[List[str]]:
         return err
 
 
-def parse_version(record: Record) -> Res[List[int]]:
+def parse_version(record: Record) -> Result[List[int]]:
     version_strs = parse_field(record, "versions")
 
     if isinstance(version_strs, Exception):
@@ -261,7 +261,7 @@ def parse_version(record: Record) -> Res[List[int]]:
         return ValueError(f"{versions} is not a List[str].")
 
 
-def parse_arxivid(record: Record) -> Res[ArxivID]:
+def parse_arxivid(record: Record) -> Result[ArxivID]:
     id_list = parse_field(record, "id")
 
     if isinstance(id_list, Exception):
