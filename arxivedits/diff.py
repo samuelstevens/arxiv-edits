@@ -1,18 +1,11 @@
 from typing import List, Tuple, Any
 import functools
 import re
-import string
 
 from diff_match_patch import diff_match_patch
 
-from arxivedits.detex.constants import (
-    INLINE_MATH_TAG,
-    BLOCK_MATH_TAG,
-    CITE_TAG,
-    REF_TAG,
-)
 from arxivedits.lcs import lcs
-from arxivedits import data, util
+from arxivedits import data, util, filters
 
 RawDiff = List[Tuple[int, str]]
 ParagraphDiff = List[Tuple[int, List[str]]]
@@ -175,79 +168,6 @@ def get_unaligned_line_distribution(diffs: ParagraphDiff) -> List[int]:
     return lengths_of_consecutive_different_paragraphs
 
 
-@functools.lru_cache(maxsize=512)
-def sent_filter(sent: str) -> bool:
-    """
-    Returns `True` is a sentence is a good sentence, `False` if a sentence shouldn't be considered.
-    """
-
-    if re.match("^#+ .", sent) is not None:
-        return True
-
-    len_no_punctuation = len(
-        [tok for tok in sent.split() if tok not in string.punctuation]
-    )
-    len_no_punctuation_no_special_tokens_no_number = len(
-        [
-            tok
-            for tok in sent.split()
-            if tok not in string.punctuation
-            and tok not in [INLINE_MATH_TAG, BLOCK_MATH_TAG, CITE_TAG, REF_TAG]
-            and not tok.isnumeric()
-        ]
-    )
-
-    count_special_tokens = (
-        sent.count(INLINE_MATH_TAG)
-        + sent.count(BLOCK_MATH_TAG)
-        + sent.count(REF_TAG)
-        + sent.count(CITE_TAG)
-    )
-
-    if len_no_punctuation_no_special_tokens_no_number <= 3:
-        return False
-
-    if count_special_tokens >= 0.5 * len_no_punctuation:
-        return False
-
-    sent = (
-        sent.replace(INLINE_MATH_TAG, " ")
-        .replace(BLOCK_MATH_TAG, " ")
-        .replace(REF_TAG, " ")
-        .replace(CITE_TAG, " ")
-    )
-
-    if [ch for ch in sent if ch != " "]:
-        score = (len([ch for ch in sent if ch.isalpha()]) + count_special_tokens) / (
-            len([ch for ch in sent if ch != " "]) + count_special_tokens
-        )
-        if score <= 0.7:
-            return False
-    else:
-        return False
-
-    return True
-
-
-@functools.lru_cache(maxsize=128)
-def is_title(line: str) -> bool:
-    return re.match("^#+ .", line) is not None
-
-
-def is_title_or_newline(line: str) -> bool:
-    return line == "" or is_title(line)
-
-
-@functools.lru_cache(maxsize=512)
-def is_boring(sent: str) -> bool:
-    """
-    Checks if a sentence is boring using sent_filter(), is_title(), and is_newline()
-    """
-    if not sent:
-        return True
-    return is_title_or_newline(sent) or not sent_filter(sent)
-
-
 def doc_filter(doc: List[List[str]]) -> List[List[str]]:
     """
     Removes all sentences that don't pass sent_filter().
@@ -255,7 +175,9 @@ def doc_filter(doc: List[List[str]]) -> List[List[str]]:
     clean_doc = []
 
     for paragraph in doc:
-        clean_paragraph = [sentence for sentence in paragraph if sent_filter(sentence)]
+        clean_paragraph = [
+            sentence for sentence in paragraph if filters.sent_filter(sentence)
+        ]
         if clean_paragraph:
             clean_doc.append(clean_paragraph)
 

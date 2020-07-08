@@ -18,7 +18,7 @@ from typing import Iterable, Tuple, Optional
 
 from tqdm import tqdm
 
-from arxivedits import util, data, diff
+from arxivedits import util, data, diff, filters
 
 from arxivedits.alignment.align import (
     Alignment,
@@ -88,9 +88,19 @@ def write_machine_alignments(
     if not pairs:
         pairs = data.get_all_pairs()
 
-    for arxivid, version1, version2 in pairs:
-        alignment = Alignment(arxivid, version1, version2)
-        easy_alignments = easy_align(arxivid, version1, version2)
+    for arxivid, v1, v2 in pairs:
+        if (
+            not filters.doc_filter(arxivid, v1)
+            or not filters.doc_filter(arxivid, v2)
+            or not filters.doc_pair_filter(arxivid, v1, v2)
+        ):
+            logging.info(
+                f"Skipping {arxivid}-{v1}-{v2} because of the document filter."
+            )
+            continue
+
+        alignment = Alignment(arxivid, v1, v2)
+        easy_alignments = easy_align(arxivid, v1, v2)
         process_easy_align(easy_alignments, alignment)
 
         easy_alignments_outside = easy_align_outside_doc(easy_alignments)
