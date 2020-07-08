@@ -31,7 +31,8 @@ def pipeline() -> None:
 
     ########################################
     # NOTE: This step is very inefficient.
-    # Very, very slow.
+    # Very, very slow. However, it skips
+    # documents that do not pass the filter.
     ########################################
     if False:
         alignment.write_machine_alignments()
