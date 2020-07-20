@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>edit-type-questions-v3</title>
+</head>
+
+<body>
+  <main>
+    <h1>Understanding Why Authors Edit Writing</h1>
+    <section>
+      <h2>Instructions</h2>
+      <p>
+        You will be given an original and an edited version of a phrase (typically consisting of one sentence each). It is your job to determine <strong>one or
+          more</strong> reasons that the original phrase needed editing.
+      </p>
+      <p>
+        For each version of the phrase, the red text indicates words that were removed, green text represents words
+        that were added, and black words are words that were not changed.
+      </p>
+      <p>
+        There are definitions of each category, examples of each category with an explanation, and then 6 questions to
+        answer.
+      </p>
+      <p>
+        Not knowing the answer is ok;
+        part of this is understanding why certain categories are harder to understand than
+        others.
+      </p>
+      <blockquote>
+        <p>
+          These phrases come from PDFs. In order to make phrases more uniform, mathematical equations such as \(a \ne
+          0\) or \( \Sigma=\{\vec v=(v_1,v_2) \in \mathbb{R}^2\} \) have been replaced with [MATH].
+        </p>
+      </blockquote>
+    </section>
+    <section>
+      <h2>Category Definitions</h2>
+      <ol>
+        <li>The original phrase was missing information.</li>
+        <li>The original phrase had too much information.</li>
+        <li>The original phrase had a spelling or grammatical error.</li>
+        <li>The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</li>
+        <li>The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</li>
+        <li>It doesn't fit in any category, but more information would let you make a decision.</li>
+        <li>It doesn't fit in any category, and more information would <em>not</em> help you make a decision.</li>
+      </ol>
+    </section>
+    <div class="pagebreak"></div>
+    <section>
+      <h2>Reference Examples</h2>
+      <div class="question answered">
+        <p>
+          <span class="diff">Now,</span> in order to <span class="diff">reproduce the behavior of the projections of the exact Bohmian trajectories in the system subspace,</span> we can <span class="diff">consider the following simple trajectory</span> model<span class="diff">, which gathers both decoherence and loss of empty-slit information</span>.
+        </p>
+        <p>
+          In order to <span class="diff">observe such a behavior,</span> we can <span class="diff">further proceed with our</span> model <span class="diff">as follows</span>. </p>
+      </div>
+      <div>
+        <form>
+          <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+          <div>
+            <input type="checkbox" id="elaboration">
+            <label for="elaboration">The original phrase was missing information.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="simplification" checked>
+            <label for="simplification">The original phrase had too much information.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="correction">
+            <label for="correction">The original phrase had a spelling or grammatical error.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="style" checked>
+            <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+          </div>
+          <div>
+            <input type="checkbox" id="formatting">
+            <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="more-info-needed">
+            <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other">
+            <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+          </div>
+        </form>
+        <ul>
+          <li>Removing <span class="removed">Now</span> is indicates that the original phrase had a voice/tone problem. It was an extraneous word that shifted focus from the main point of the phrase.</li>
+          <li>Changing <span class="removed">reproduce the behavior of the projections of the exact Bohmian trajectories in the system subspace</span> to <span class="added">observe such a behavior</span> indicates that the original phrase had too much information.</li>
+          <li>Changing <span class="removed">consider the following simple trajectory</span> to <span class="added">further proceed with our</span> indicates that (1) there is a issue with the linguistic style, because <span class="removed">consider the following</span> and <span class="added">further proceed with</span> have the same meaning but different tone; and (2) that <span class="removed">simple trajectory</span> was unnecessary information for the reader.</li>
+          <li>Finally, simplifying <span class="removed">which gathers both decoherence and loss of empty-slit information</span> to <span class="diff">as follows</span> indicates that there was too much information in this part of the phrase as well.</li>
+        </ul>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question answered">
+        <p>
+          <span class="diff">Then</span>, we can estimate the logical error rate <span class="diff">of the error rate</span> [MATH], which <span class="diff">is given by</span> [MATH] where [MATH], [MATH] and [MATH].
+        </p>
+        <p>
+          <span class="diff">Given fitting parameters [MATH], [MATH], [MATH] and [MATH]</span>, we can estimate the logical error rate <span class="diff">for error rates</span> [MATH] <span class="diff">by replacing [MATH] with [MATH]</span>, which <span class="diff">gives</span> [MATH] where [MATH], [MATH] and [MATH].
+        </p>
+      </div>
+      <div>
+        <form>
+          <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+          <div>
+            <input type="checkbox" id="elaboration" checked>
+            <label for="elaboration">The original phrase was missing information.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="simplification">
+            <label for="simplification">The original phrase had too much information.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="correction">
+            <label for="correction">The original phrase had a spelling or grammatical error.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="style" checked>
+            <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+          </div>
+          <div>
+            <input type="checkbox" id="formatting">
+            <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="more-info-needed">
+            <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other">
+            <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+          </div>
+        </form>
+        <ul>
+          <li>Changing <span class="removed">Then</span> to <span class="added">Given fitting parameters [MATH], [MATH], [MATH] and [MATH]</span> explains what conditions are necessary, and indicates that the original phrase was missing information.</li>
+          <li>Changing <span class="removed">of the error rate</span><span class="removed">for error rates</span> doesn't indicate missing or redundant information; neither is it an issue with </li>
+          <li>Adding <span class="added">by replacing [MATH] with [MATH]</span> further details the process, again indicating that the original phrase was missing information.</li>
+          <li>Changing <span class="removed">is given by</span> to <span class="added">gives</span> doesn't suggest missing or redundant information; rather, it indicates that the original phrase was not concise enough, which is a stylistic problem.</li>
+        </ul>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question answered">
+        <p>
+          However, due to the interference quenching, the extent of this behavior is reduced in both space and time: in space because the interference effects are stronger for the innermost trajectories [which give rise to the central peaks in <span class="diff">Figure</span> XX(a)] and in time because the time-of-flight of the neutrons<span class="diff">, [MATH],</span> is <span class="diff">such that</span> [MATH].
+        </p>
+        <p>
+          However, due to the interference quenching, the extent of this behavior is reduced in both space and time: in space because the interference effects are stronger for the innermost trajectories [which give rise to the central peaks in <span class="diff">Fig.</span> XX(a)] and in time because the time-of-flight of the neutrons <span class="diff">([MATH] s)</span> is <span class="diff">slightly larger than</span> [MATH].
+        </p>
+      </div>
+      <div>
+        <form>
+          <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+          <div>
+            <input type="checkbox" id="elaboration">
+            <label for="elaboration">The original phrase was missing information.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="simplification">
+            <label for="simplification">The original phrase had too much information.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="correction">
+            <label for="correction">The original phrase had a spelling or grammatical error.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="style">
+            <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+          </div>
+          <div>
+            <input type="checkbox" id="formatting" checked>
+            <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="more-info-needed" checked>
+            <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other">
+            <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+          </div>
+        </form>
+        <ul>
+          <li>Changing <span class="removed">Figure</span> to <span class="added">Fig.</span> indicates that <span class="removed">Figure</span> is not appropriate for the target audience, and that they prefer <span class="added">Fig.</span>. Something was wrong with the formatting.</li>
+          <li>Changing <span class="removed">such that</span> to <span class="added">slightly larger than</span> doesn't fit any of the categories. It doesn't indicate redundant or missing information, it's not an issue with the tone or formatting. There is not an error in the original phrase. If you had enough information about the context, you might be able to choose, so &ldquo;<em>It doesn't fit in any category, but more information would let you make a decision</em>&rdquo; is an appropriate choice.</li>
+        </ul>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question answered">
+        <p>
+          In the case [MATH], when a [MATH] error occurs, an [MATH] error and some Pauli errors always occur simultaneously (<span class="diff">Sec. XX</span>).
+        </p>
+        <p>
+          In the case [MATH], when a [MATH] error occurs, an [MATH] error and some Pauli errors always occur simultaneously (<span class="diff">see Appendix XX</span>).
+        </p>
+      </div>
+      <div>
+        <form>
+          <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+          <div>
+            <input type="checkbox" id="elaboration">
+            <label for="elaboration">The original phrase was missing information.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="simplification">
+            <label for="simplification">The original phrase had too much information.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="correction">
+            <label for="correction">The original phrase had a spelling or grammatical error.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="style">
+            <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+          </div>
+          <div>
+            <input type="checkbox" id="formatting">
+            <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="more-info-needed">
+            <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+          </div>
+          <div>
+            <input type="checkbox" id="other" checked>
+            <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+          </div>
+        </form>
+        <ul>
+          <li>Again, this change doesn't fit neatly into one of the categories. Changing from a <span class="removed">Sec.</span> to an <span class="added">Appendix</span> doesn't indicate redundant or missing information; it is not a spelling or grammatical error; there isn't a tone or voice issue; formatting is not a problem in the original phrase. More information about the context most likely wouldn't help, so choosing &ldquo;<em>It doesn't fit in any category, and more information would not help you make a decision.</em>&rdquo; is appropriate.</li>
+        </ul>
+      </div>
+    </section>
+    <div class="pagebreak"></div>
+    <section>
+      <h2>Unlabeled Examples</h2>
+      <div class="question">
+        <ul class="categories">
+          <li>easy</li>
+          <li>reading flow</li>
+          <li>correction</li>
+        </ul>
+        <p>
+          Alternatively, one can choose to repeat the distillation circuit (the entangled state generation part) for once if a failure occurs.
+        </p>
+        <p>
+          Alternatively, one can choose to repeat the distillation circuit (the entangled<span class="diff"><strong>-</strong></span>state generation part<span class="diff">, see Fig. XX</span>) for once if a failure occurs.
+        </p>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question">
+        <ul class="categories">
+          <li>easy</li>
+          <li>simplification</li>
+          <li>correction</li>
+        </ul>
+        <p>Note that, in the coordinate representation and for an environment constituted by [MATH] particles, <span class="diff">equation</span> (XX) <span class="diff">should be obtained after integrating [MATH] over the
+            3[MATH] environment degrees of freedom, i.e.,</span> [MATH] <span class="diff">with [MATH], [MATH] being a
+            3-dimensional vector</span>. </p>
+        <p>Note that, in the coordinate representation and for an environment constituted by [MATH] particles, <span class="diff">Eq.</span> (XX) <span class="diff">becomes</span> [MATH]. </p>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question">
+        <ul class="categories">
+          <li>hard (because of length)</li>
+          <li>elaboration</li>
+        </ul>
+        <p>
+          Notice that despite <span class="diff">the fact that</span> there is no coherence <span class="diff">here,</span> trajectories do not cross the symmetry axis <span class="diff">separating</span>
+          the <span class="diff">regions covered by each slit</span>.
+        </p>
+        <p>
+          Notice that despite there is no coherence <span class="diff">(in the sense that the interference terms of the reduced density matrix have been damped out),</span> trajectories do not cross the symmetry axis <span class="diff">between</span> the <span class="diff">two slits because they obey Eq. (XX), which contains
+            information about the two slits open simultaneously</span>.
+        </p>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question">
+        <ul class="categories">
+          <li>hard</li>
+          <li>domain knowledge</li>
+        </ul>
+        <p>Without <span class="diff">fermion-parity</span> errors, one can eliminate all errors by iterating
+          distillation circuits to achieve fault-tolerant quantum computing. </p>
+        <p>Without <span class="diff">charge</span> errors, one can eliminate all errors by iterating distillation
+          circuits to achieve fault-tolerant quantum computing. </p>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question">
+        <ul class="categories">
+          <li>easy</li>
+          <li>word usage</li>
+        </ul>
+        <p>Unlike B16, we have simultaneously fit both the Spitzer and K2 data with both transit and Spitzer's
+          systematic models, which has allowed us to reduce residual systematics <span class="diff">by which</span> the
+          results of B16 <span class="diff">were biased</span>. </p>
+        <p>Unlike B16, we have simultaneously fit both the Spitzer and K2 data with both <span class="diff">the</span>
+          transit <span class="diff">model</span> and Spitzer's systematic models, which has allowed us to reduce the
+          residual systematics <span class="diff">that biased</span> the results of B16. </p>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question">
+        <ul class="categories">
+          <li>hard</li>
+          <li>PDF required</li>
+          <li>word usage</li>
+        </ul>
+        <p><span class="diff">When [MATH] (no distillation)</span>, [MATH] and [MATH];
+          when <span class="diff">[MATH]</span>, [MATH] can be obtained numerically by simulating the distillation
+          circuit. </p>
+        <p><span class="diff">Without the PP distillation</span>, [MATH] and [MATH];
+          when <span class="diff">the
+            distillation is performed</span>, [MATH] can be obtained numerically by simulating the distillation circuit.
+        </p>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question">
+        <p>
+          Trajectory-based approaches have <span class="diff">receive</span> much attention in the last years as a potential tool to handle and study high-dimensional complex quantum <span class="diff">phenomena</span> [CITATION].
+        </p>
+        <p>
+          Trajectory-based approaches have <span class="diff">received</span> much attention in the last years as a potential tool to handle and study high-dimensional complex quantum <span class="diff">systems</span> [CITATION].
+        </p>
+      </div>
+      <div class="pagebreak"></div>
+      <div class="question">
+        <p>
+          In the coordinate representation, the associate density matrix, [MATH], <span class="diff">reads</span> as [EQUATION] <span class="diff">with [MATH]. The</span> diagonal <span class="diff">of equation ([REF]) gives</span> the probability density <span class="diff">(measured intensity),</span> [EQUATION] with [MATH] <span class="diff">being a</span> space and time dependent phase-shift between the two partial waves.
+        </p>
+        <p>
+          In the coordinate representation, the <span class="diff">element [MATH] of the</span> associate density matrix, [MATH], <span class="diff">will read</span> as [EQUATION] <span class="diff">and the</span> diagonal <span class="diff">terms giving</span> the probability density <span class="diff">as</span> [EQUATION] with [MATH] <span class="diff">. In this last expression, [MATH] is the</span> space and time dependent phase-shift between the two partial waves.
+        </p>
+      </div>
+    </section>
+  </main>
+  <div id="answer-template">
+    <form>
+      <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+      <div>
+        <input type="checkbox" id="elaboration">
+        <label for="elaboration">The original phrase was missing information.</label>
+      </div>
+      <div>
+        <input type="checkbox" id="simplification">
+        <label for="simplification">The original phrase had too much information.</label>
+      </div>
+      <div>
+        <input type="checkbox" id="correction">
+        <label for="correction">The original phrase had a spelling or grammatical error.</label>
+      </div>
+      <div>
+        <input type="checkbox" id="style">
+        <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+      </div>
+      <div>
+        <input type="checkbox" id="formatting">
+        <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+      </div>
+      <div>
+        <input type="checkbox" id="more-info-needed">
+        <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+      </div>
+      <div>
+        <input type="checkbox" id="other">
+        <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+      </div>
+      <hr />
+      <div>
+        <input type="text" id="difficulty1">
+        <label for="difficulty1">On a scale of 1 to 4 (1 being easy, 4 being hard), how hard was it to understand the first phrase?</label>
+      </div>
+      <div>
+        <input type="text" id="difficulty2">
+        <label for="difficulty2">On a scale of 1 to 4 (1 being easy, 4 being hard), how hard was it to understand the second phrase?</label>
+      </div>
+    </form>
+    <p>Explanation:</p>
+    <hr class="writing-line" />
+    <hr class="writing-line" />
+    <hr class="writing-line" />
+  </div>
+
+  <style>
+    h2 {
+      margin-top: 1.5em;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: normal;
+    }
+
+    .writing-line {
+      margin-top: 2em;
+      background-color: black;
+    }
+
+    main {
+      max-width: 75ch;
+      margin: auto;
+      font-size: 1.1rem;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      line-height: 1.4em;
+    }
+
+    div.question>p,
+    .removed,
+    .added {
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      font-size: 1.2rem;
+    }
+
+    div.question>p:nth-of-type(1)>span.diff,
+    .removed {
+      color: red;
+    }
+
+    div.question>p:nth-of-type(2)>span.diff,
+    .added {
+      color: green;
+    }
+
+    blockquote {
+      border-left: 10px solid orange;
+      margin-left: 1em;
+      padding: 0.5em
+    }
+
+    blockquote>p {
+      margin: 0;
+    }
+
+    hr {
+      height: 1px;
+      background-color: black;
+      border: none;
+    }
+
+    ul.categories {
+      display: none;
+    }
+
+    .question-number {
+      font-size: 1.5em;
+      margin-top: 1.5em;
+    }
+
+    @media print {
+      .pagebreak {
+        page-break-before: always;
+      }
+    }
+
+    input[type="text"] {
+      width: 2ch;
+    }
+  </style>
+  <style>
+    /* https://philarcher.org/diary/2013/headingnumbers/ */
+    body {
+      counter-reset: h2
+    }
+
+    h2 {
+      counter-reset: h3
+    }
+
+    h3 {
+      counter-reset: h4
+    }
+
+    h4 {
+      counter-reset: h5
+    }
+
+    h5 {
+      counter-reset: h6
+    }
+
+    h2:before {
+      counter-increment: h2;
+      content: counter(h2) ". "
+    }
+
+    h3:before {
+      counter-increment: h3;
+      content: counter(h2) "."counter(h3) ". "
+    }
+
+    h4:before {
+      counter-increment: h4;
+      content: counter(h2) "."counter(h3) "."counter(h4) ". "
+    }
+
+    h5:before {
+      counter-increment: h5;
+      content: counter(h2) "."counter(h3) "."counter(h4) "."counter(h5) ". "
+    }
+
+    h6:before {
+      counter-increment: h6;
+      content: counter(h2) "."counter(h3) "."counter(h4) "."counter(h5) "."counter(h6) ". "
+    }
+
+    h2.nocount:before,
+    h3.nocount:before,
+    h4.nocount:before,
+    h5.nocount:before,
+    h6.nocount:before {
+      content: "";
+      counter-increment: none
+    }
+  </style>
+  <script>
+    const createQuestionNode = function (questionNumber, isQuestion) {
+      const e = document.createElement("h3");
+      e.appendChild(document.createTextNode(`${isQuestion ? "Question" : "Example"} #${questionNumber}`));
+      e.classList.add("question-number");
+      return e;
+    }
+
+    const template = document.getElementById("answer-template");
+
+    template.removeAttribute("id");
+    const questions = document.getElementsByClassName("question");
+    let answeredNumber = 1;
+    let questionNumber = 1;
+
+    for (let i = 0; i < questions.length; i++) {
+      if (questions[i].classList.contains("answered")) {
+        questions[i].parentElement.insertBefore(
+          createQuestionNode(answeredNumber, false), questions[i]
+        );
+
+
+        answeredNumber++;
+      } else {
+        questions[i].parentElement.insertBefore(
+          createQuestionNode(questionNumber, true), questions[i]
+        );
+
+        questionNumber++;
+        questions[i].appendChild(template.cloneNode(true));
+      }
+    }
+
+    template.remove();
+  </script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+
+</html>
