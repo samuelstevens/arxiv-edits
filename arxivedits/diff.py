@@ -5,7 +5,7 @@ import re
 from diff_match_patch import diff_match_patch
 
 from arxivedits.lcs import lcs
-from arxivedits import data, util, filters
+from arxivedits import data, util, filters, preprocess
 
 RawDiff = List[Tuple[int, str]]
 ParagraphDiff = List[Tuple[int, List[str]]]
@@ -182,6 +182,65 @@ def doc_filter(doc: List[List[str]]) -> List[List[str]]:
             clean_doc.append(clean_paragraph)
 
     return clean_doc
+
+
+CHANGED = 1
+SAME = 0
+
+
+def build_sentence_diff(
+    tokens: List[Tuple[int, str]], quote_str: str = "**", quote_str_after: str = "**",
+) -> str:
+    prev_code = SAME
+
+    sent_builder = []
+
+    for code, tok in tokens:
+        if code == CHANGED and prev_code != CHANGED:
+            sent_builder.append(f"{quote_str}{tok}")
+        elif code == SAME and prev_code != SAME:
+            sent_builder[-1] += quote_str_after
+            sent_builder.append(tok)
+        else:
+            sent_builder.append(tok)
+
+        prev_code = code
+
+    if prev_code == CHANGED:
+        sent_builder[-1] += quote_str_after
+
+    return " ".join(sent_builder) + "."
+
+
+def show_difference(
+    sent1: str, sent2: str, quote_str: str = "**", quote_str_after: str = "**",
+) -> Tuple[str, str]:
+    tokens1 = preprocess.preprocess_sent(sent1.rstrip(".")).split()
+    tokens2 = preprocess.preprocess_sent(sent2.rstrip(".")).split()
+
+    diff_tokens = fast_diff(tokens1, tokens2)
+
+    sent1_diff = build_sentence_diff(
+        [
+            (SAME if code == 0 else CHANGED, tok)
+            for code, tok in diff_tokens
+            if code != 1
+        ],
+        quote_str,
+        quote_str_after,
+    )
+
+    sent2_diff = build_sentence_diff(
+        [
+            (SAME if code == 0 else CHANGED, tok)
+            for code, tok in diff_tokens
+            if code != -1
+        ],
+        quote_str,
+        quote_str_after,
+    )
+
+    return sent1_diff, sent2_diff
 
 
 def main() -> None:

@@ -4,10 +4,10 @@ from typing import List, Set, Dict
 
 from tqdm import tqdm
 
-from arxivedits import data, diff, util
+from arxivedits import data, util, filters
 from arxivedits.alignment.align import Alignment
 from arxivedits.alignment.sentence import SentenceID
-from arxivedits.alignment.util import save_preprocess_sent_dict
+from arxivedits.preprocess import save_preprocess_sent_dict
 from arxivedits.chunks.lookup import SimilarityLookup, load_lookup
 from arxivedits.chunks.features import FeatureVector
 from arxivedits.chunks import features
@@ -74,7 +74,7 @@ def get_chunks(
         doc,
         lambda sent_id: (
             not alignment.is_aligned(sent_id)  # removed
-            or diff.is_boring(alignment.lookup[sent_id])  # boring, so we don't care
+            or filters.is_boring(alignment.lookup[sent_id])  # boring, so we don't care
         ),
     )
 
@@ -98,7 +98,7 @@ def sents_not_solved_by_diff(
     result = set()
 
     for sent_id in relevant_alignment.keys():
-        if not diff_alignment.is_aligned(sent_id) and not diff.is_boring(
+        if not diff_alignment.is_aligned(sent_id) and not filters.is_boring(
             diff_alignment.lookup[sent_id]
         ):
             result.add(sent_id)
@@ -132,7 +132,7 @@ def get_examples_from(
     sent_ids = [
         i
         for i in sorted(relevant_gold_alignment.keys())
-        if not diff.is_boring(gold_alignment.lookup[i])
+        if not filters.is_boring(gold_alignment.lookup[i])
     ]
 
     # 3. Find positive examples of chunks (in a group of MIN_LENGTH)
@@ -281,7 +281,7 @@ def write_data_DEPRECATED(
         v1_sent_ids = [
             i
             for i in sorted(alignment.alignments1.keys())
-            if not diff.is_boring(alignment.lookup[i])
+            if not filters.is_boring(alignment.lookup[i])
         ]
 
         # 3. Find positive examples of removed sentences (in a group of MIN_LENGTH)
@@ -327,7 +327,7 @@ def write_data_DEPRECATED(
         v2_sent_ids = [
             i
             for i in sorted(alignment.alignments2.keys())
-            if not diff.is_boring(alignment.lookup[i])
+            if not filters.is_boring(alignment.lookup[i])
         ]
 
         # 3. Find positive examples of added sentences (in a group of MIN_LENGTH)

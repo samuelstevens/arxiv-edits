@@ -61,6 +61,7 @@ def process(text: str) -> str:
         "tikzpicture": None,  # picture
         "keyword": None,
         "flushright": None,  # usually used to store keywords and equations
+        "lstlisting": None,  # code environments
     }
 
     valid: List[Tuple[int, int, Optional[str]]] = []

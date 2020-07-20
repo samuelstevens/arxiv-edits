@@ -31,6 +31,7 @@ def find_pair(
 
     `"{ {} }"` would return the location of the second `'}'`.
     """
+
     # go to first start_char
     pos = text.find(opening_char, start)
 
@@ -189,17 +190,16 @@ def remove_tag(
 
         end_of_tag, err = find_pair(braces[0], braces[1], text, start_pos)
 
-        if isinstance(end_of_tag, Exception):
-            logging.warning("Error in remove tag.")
-            logging.warning(end_of_tag)
+        if err:
+            logging.warning(f"Error in removing tag '{tag}': {err}")
             break
 
         if tag in tags_with_extra_braces:
+            err = None
             end_of_tag, err = find_pair(braces[0], braces[1], text, end_of_tag + 1)
 
-        if isinstance(err, Exception):
-            logging.warning("Error in remove tag.")
-            logging.warning(err)
+        if err:
+            logging.warning(f"Error in removing tag '{tag}': {err}")
             break
 
         end_pos = end_of_tag + 1  # +1 is for getting past }

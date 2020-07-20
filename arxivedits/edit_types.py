@@ -1,28 +1,25 @@
-import random, os, csv, string
-from typing import Dict, Tuple, List, Optional
+import random, os, csv, string, operator, shutil
+from typing import Dict, Tuple, List, Optional, Set, Sequence
 from collections import Counter
 
 from tqdm import tqdm
 
-from arxivedits import diff, util
+from arxivedits import diff, util, preprocess, filters
 from arxivedits.alignment.align import Alignment
 from arxivedits.alignment.sentence import SentenceID
-from arxivedits.alignment.util import preprocess_single_sent
 
 random.seed(0)
 
 
-SentencePair = Tuple[Optional[SentenceID], Optional[SentenceID]]
+SentencePair = Tuple[SentenceID, SentenceID]
 
 # sentence pair to list of labels, explanation, sentence 1, sentence 2
-AnnotatedPairDict = Dict[SentencePair, Tuple[List[str], str, str, str]]
+AnnotatedPairDict = Dict[Tuple[str, str], Tuple[List[str], str, str, str]]
 
 # sentence id 1, sentence id 2, sentence 1, sentence 2
-Edit = Tuple[Optional[SentenceID], Optional[SentenceID], str, str]
+Edit = Tuple[str, str, str, str]
 
-AnnotatedEdit = Tuple[
-    List[str], str, Optional[SentenceID], Optional[SentenceID], str, str
-]
+AnnotatedEdit = Tuple[List[str], str, str, str, str, str]
 
 AlignmentLookup = Dict[Tuple[str, int, int], Alignment]
 
@@ -61,23 +58,37 @@ def load_gold_alignments(
         sample = EDIT_TYPE_SAMPLE
 
     return {
-        (arxivid, v1, v2): Alignment.load_csv(arxivid, v1, v2)
+        (arxivid, v1, v2): Alignment.load(arxivid, v1, v2)
         for arxivid, v1, v2 in tqdm(sample)
     }
 
 
-def get_annotated_filename(arxivid: str, v1: int, v2: int) -> str:
+def get_annotated_label_filename(arxivid: str, v1: int, v2: int) -> str:
     """
     Gets the annotated edit-type filename
     """
     return f"/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/jupyter/data/types/sample/{arxivid}-v{v1}-v{v2}-pairs-annotated.csv"
 
 
-def get_raw_filename(arxivid: str, v1: int, v2: int) -> str:
+def get_raw_label_filename(arxivid: str, v1: int, v2: int) -> str:
     """
     Gets the raw edit-type filename (can include annotations)
     """
     return f"/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/jupyter/data/types/sample/{arxivid}-v{v1}-v{v2}-pairs.csv"
+
+
+def get_annotated_reason_filename(arxivid: str, v1: int, v2: int) -> str:
+    """
+    Gets the annotated edit-type filename
+    """
+    return f"/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/jupyter/data/types/sample/reasons/{arxivid}-v{v1}-v{v2}-pairs-annotated.csv"
+
+
+def get_raw_reason_filename(arxivid: str, v1: int, v2: int) -> str:
+    """
+    Gets the raw edit-type filename (can include annotations)
+    """
+    return f"/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/jupyter/data/types/sample/reasons/{arxivid}-v{v1}-v{v2}-pairs.csv"
 
 
 def is_copy_edit(sent1: str, sent2: str) -> Tuple[bool, str, str]:
@@ -129,8 +140,8 @@ def is_copy_edit(sent1: str, sent2: str) -> Tuple[bool, str, str]:
             "automatically classified because only whitespace/punctuation was added/deleted",
         )
 
-    tokens1 = preprocess_single_sent(sent1.rstrip(".")).split()
-    tokens2 = preprocess_single_sent(sent2.rstrip(".")).split()
+    tokens1 = preprocess.preprocess_sent(sent1.rstrip(".")).split()
+    tokens2 = preprocess.preprocess_sent(sent2.rstrip(".")).split()
 
     deleted_tokens = [
         tok for code, tok in diff.fast_diff(tokens1, tokens2) if code == -1
@@ -172,13 +183,10 @@ def is_copy_edit(sent1: str, sent2: str) -> Tuple[bool, str, str]:
     return (False, "", "")
 
 
-def annotated_pairs_to_csv(
-    pairs: List[AnnotatedEdit], arxivid: str, v1: int, v2: int
-) -> None:
+def annotated_pairs_to_csv(pairs: Sequence[AnnotatedEdit], filename: str) -> None:
     """
     Writes a list of annotated sentences to a file.
     """
-    filename = get_raw_filename(arxivid, v1, v2)
 
     with open(filename, "w") as csvfile:
         writer = csv.writer(csvfile)
@@ -189,7 +197,7 @@ def annotated_pairs_to_csv(
 
 def get_copy_editing_edits(
     all_edits: List[Edit],
-) -> Dict[SentencePair, Tuple[List[str], str]]:
+) -> Dict[Tuple[str, str], Tuple[List[str], str]]:
     """
     Given a list of edits, label all the copy edits and return them
     """
@@ -216,13 +224,6 @@ def get_all_edits(
     remaining_v2_ids = set(model.alignments2.keys())
 
     for sent_id1 in v1_ids:
-        if not model.is_aligned(sent_id1) and not diff.is_boring(
-            model.lookup[sent_id1]
-        ):
-            # this is a deleted sentence
-            pairs.append((sent_id1, None, model.lookup[sent_id1], ""))
-
-    for sent_id1 in v1_ids:
         if not model.is_aligned(sent_id1):
             continue
 
@@ -236,7 +237,7 @@ def get_all_edits(
                     remaining_v2_ids.remove(sent_id2)
             continue  # identical
 
-        if diff.is_boring(model.lookup[sent_id1]):
+        if filters.is_boring(model.lookup[sent_id1]):
             # remove sentences aligned to boring sentences
             for sent_id2 in model.alignments1[sent_id1]:
                 if sent_id2 in remaining_v2_ids:
@@ -246,7 +247,12 @@ def get_all_edits(
         for sent_id2 in sorted(model.alignments1[sent_id1]):
             # add all non-identical, non-boring pairs
             pairs.append(
-                (sent_id1, sent_id2, model.lookup[sent_id1], model.lookup[sent_id2],)
+                (
+                    str(sent_id1),
+                    str(sent_id2),
+                    model.lookup[sent_id1],
+                    model.lookup[sent_id2],
+                )
             )
             if sent_id2 in remaining_v2_ids:
                 remaining_v2_ids.remove(sent_id2)
@@ -254,12 +260,9 @@ def get_all_edits(
     for sent_id2 in sorted(remaining_v2_ids):  # should only be inserted ids
         sentence = model.lookup[sent_id2]
         not_aligned = not model.is_aligned(sent_id2)
-        is_boring = diff.is_boring(sentence)
+        is_boring = filters.is_boring(sentence)
 
         assert not_aligned or is_boring
-
-        if not is_boring:
-            pairs.append((None, sent_id2, "", sentence))  # append inserts
 
     return pairs
 
@@ -280,17 +283,13 @@ def read_annotated_pairs(filename: str) -> AnnotatedPairDict:
         for *labels, message, sent_id1_str, sent_id2_str, sent1, sent2 in reader:
             labels = [l.strip() for l in labels]
 
-            try:
-                sent_id1 = SentenceID.parse(sent_id1_str) if sent_id1_str else None
-                sent_id2 = SentenceID.parse(sent_id2_str) if sent_id2_str else None
-            except ValueError as err:
-                print(err)
-                print(sent_id1)
-                print(sent_id2)
-                raise
-
-            if labels and message:
-                annotated_labels[(sent_id1, sent_id2)] = (labels, message, sent1, sent2)
+            if labels:
+                annotated_labels[(sent_id1_str, sent_id2_str)] = (
+                    labels,
+                    message,
+                    sent1,
+                    sent2,
+                )
 
     return annotated_labels
 
@@ -303,23 +302,25 @@ def merge_annotations(
     """
 
     newly_annotated_edits = read_annotated_pairs(
-        get_annotated_filename(arxivid, v1, v2)
+        get_annotated_label_filename(arxivid, v1, v2)
     )
-    other_annotated_edits = read_annotated_pairs(get_raw_filename(arxivid, v1, v2))
+    other_annotated_edits = read_annotated_pairs(
+        get_raw_label_filename(arxivid, v1, v2)
+    )
 
     all_edits = get_all_edits(arxivid, v1, v2, gold_alignments)
-    copy_editing_edits = get_copy_editing_edits(all_edits)
+    # copy_editing_edits = get_copy_editing_edits(all_edits)
 
     edit_list = []
     unlabeled = 0
 
     for sent_id1, sent_id2, sent1, sent2 in all_edits:
 
-        if (sent_id1, sent_id2) in copy_editing_edits:
-            labels, msg = copy_editing_edits[(sent_id1, sent_id2)]
-            edit_list.append((labels, msg, sent_id1, sent_id2, sent1, sent2))
+        # if (sent_id1, sent_id2) in copy_editing_edits:
+        #     labels, msg = copy_editing_edits[(sent_id1, sent_id2)]
+        #     edit_list.append((labels, msg, sent_id1, sent_id2, sent1, sent2))
 
-        elif (sent_id1, sent_id2) in newly_annotated_edits:
+        if (sent_id1, sent_id2) in newly_annotated_edits:
             labels, msg, _, _ = newly_annotated_edits[(sent_id1, sent_id2)]
             edit_list.append((labels, msg, sent_id1, sent_id2, sent1, sent2))
 
@@ -333,7 +334,9 @@ def merge_annotations(
 
             edit_list.append(([], "", sent_id1, sent_id2, sent1, sent2))
 
-    annotated_pairs_to_csv(edit_list, arxivid, v1, v2)
+    filename = get_raw_label_filename(arxivid, v1, v2)
+
+    annotated_pairs_to_csv(edit_list, filename)
 
     # code to produce a sample of insert/delete edits. Since I decided that these edits were boring to label (all elaboration or simplification), I've commented this code out.
 
@@ -371,7 +374,9 @@ def visualize(sample: Optional[List[Tuple[str, int, int]]] = None) -> None:
     if not sample:
         sample = EDIT_TYPE_SAMPLE
 
-    annotation_list = [read_annotated_pairs(get_raw_filename(*doc)) for doc in sample]
+    annotation_list = [
+        read_annotated_pairs(get_raw_label_filename(*doc)) for doc in sample
+    ]
     annotations = util.merge_dicts(*annotation_list)
 
     annotations = {
@@ -407,6 +412,301 @@ def visualize(sample: Optional[List[Tuple[str, int, int]]] = None) -> None:
     print(f"total labels: {annotated_sents}")
 
 
+def label_to_reason(label: str) -> str:
+
+    # mapping = {
+    #     "elaboration": "info missing",
+    #     "simplification": "too much info",
+    #     "style": "inappropriate style",
+    #     "word usage": "inappropriate style",
+    #     "more info needed": "more info needed",
+    #     "pdf required": "more info needed",
+    #     "odf required": "more info needed",
+    #     "domain knowledge": "more info needed",
+    # }
+
+    mapping = {
+        "info missing": "elaboration",
+        "elaboration": "elaboration",
+        "too much info": "simplification",
+        "simplification": "simplification",
+        "inappropriate style": "style",
+        "style": "style",
+        "detex": "detex",
+        "error": "error",
+        "mistake": "error",
+        "word usage": "style",
+        "formatting": "formatting",
+        "more info required": "more info required",
+        "more info needed": "more info required",
+        "pdf required": "more info required",
+        "odf required": "more info required",
+        "domain knowledge": "more info required",
+        "other": "other",
+        "not true": "truth",
+        "truth": "truth",
+    }
+
+    if label.lower() in mapping:
+        return mapping[label.lower()]
+
+    print(label)
+
+    return label.lower()
+
+
+def get_merged_sentences(
+    sent1: SentenceID,
+    sent2: SentenceID,
+    pairs: AnnotatedPairDict,
+    alignment: Alignment,
+) -> Tuple[Tuple[str, str], Tuple[List[str], str, str, str]]:
+
+    assert sent1.version == alignment.version1
+    assert sent2.version == alignment.version2
+
+    # get all sentences aligned to sent1.
+    sents_v1: Set[SentenceID] = set([sent1])
+    sents_v2: Set[SentenceID] = set([sent2])
+
+    prev_sents1: Set[SentenceID] = set()
+    prev_sents2: Set[SentenceID] = set()
+
+    while prev_sents1 != sents_v1 and prev_sents2 != sents_v2:
+        prev_sents1 = sents_v1
+        prev_sents2 = sents_v2
+
+        for sent in sents_v1:
+            sents_v2.update(alignment.alignments1[sent])
+
+        for sent in sents_v2:
+            sents_v1.update(alignment.alignments2[sent])
+
+    assert all([s.version == alignment.version1 for s in sents_v1])
+    assert all([s.version == alignment.version2 for s in sents_v2])
+
+    new_sent1 = " ".join([alignment.lookup[sent] for sent in sorted(sents_v1)])
+    new_sent2 = " ".join([alignment.lookup[sent] for sent in sorted(sents_v2)])
+
+    new_labels: Set[str] = set()
+    new_explanation = ""
+
+    for sent1 in sorted(sents_v1):
+        for sent2 in sorted(sents_v2):
+            key = (str(sent1), str(sent2))
+            if key in pairs:
+                labels, explanation, _, _ = pairs[key]
+
+                new_labels.update(labels)
+                new_explanation += explanation + " "
+
+    sents_v1_str = ",".join([str(s) for s in sents_v1])
+    sents_v2_str = ",".join([str(s) for s in sents_v2])
+
+    if len(sents_v1) > 1 or len(sents_v2) > 2:
+        print(sents_v1, sents_v2)
+
+    return (
+        (sents_v1_str, sents_v2_str),
+        (sorted(new_labels), new_explanation.strip(), new_sent1, new_sent2),
+    )
+
+
+def parse_ids(ids_str: str) -> List[SentenceID]:
+    id_strs = ids_str.split(",")
+
+    result = []
+
+    for id_str in id_strs:
+        result.append(SentenceID.parse(id_str))
+
+    return result
+
+
+def merge_splits_and_fusions(arxivid: str, v1: int, v2: int) -> None:
+    """
+    Takes all many-to-one, many-to-many and one-to-many alignments in the .csv files and merges them. Sentence ids can now be strings, separated by commas, of individual sentence ids.
+
+    new: label,label,explanation,"sentid1,sentid1-2",sentid2,sent1 + sent1-2, sent2
+    """
+
+    alignment = Alignment.load(arxivid, v1, v2)
+
+    pairs = read_annotated_pairs(get_raw_reason_filename(arxivid, v1, v2))
+
+    new_pairs: AnnotatedPairDict = {}
+
+    for sent_id1, sent_id2 in pairs:
+        if not sent_id1 or not sent_id2:
+            continue
+
+        sent_ids1 = parse_ids(sent_id1)
+        sent_ids2 = parse_ids(sent_id2)
+
+        if len(sent_ids1) > 1 or len(sent_ids2) > 1:
+            continue  # already joined
+
+        key, value = get_merged_sentences(sent_ids1[0], sent_ids2[0], pairs, alignment)
+
+        if "," in key[0] or "," in key[1]:
+            print(key)
+
+        new_pairs[key] = value
+
+    edit_list = []
+    for id1, id2 in sorted(new_pairs.keys()):
+        labels, explanation, sents1, sents2 = new_pairs[(id1, id2)]
+
+        edit_list.append((labels, explanation, id1, id2, sents1, sents2))
+
+    annotated_pairs_to_csv(edit_list, get_raw_reason_filename(arxivid, v1, v2))
+
+
+def convert_to_reasons() -> None:
+    """
+    Takes all the existing intention label and converts them to reason-based scheme.
+    """
+
+    gold_alignments = load_gold_alignments()
+
+    total_edits = []
+
+    reason_counts = Counter()
+
+    total_path = f"/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/jupyter/data/types/sample/reasons/training-pairs.csv"
+
+    total_annotated_path = f"/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/jupyter/data/types/sample/reasons/training-pairs-annotated.csv"
+
+    newly_total_annotated_reasons = read_annotated_pairs(total_annotated_path)
+
+    # for each document
+    for arxivid, v1, v2 in EDIT_TYPE_SAMPLE:
+
+        # get all existing edits.
+        newly_annotated_reasons = read_annotated_pairs(
+            get_annotated_reason_filename(arxivid, v1, v2)
+        )
+
+        other_annotated_reasons = read_annotated_pairs(
+            get_raw_reason_filename(arxivid, v1, v2)
+        )
+
+        newly_annotated_labels = read_annotated_pairs(
+            get_annotated_label_filename(arxivid, v1, v2)
+        )
+
+        other_annotated_labels = read_annotated_pairs(
+            get_raw_label_filename(arxivid, v1, v2)
+        )
+
+        all_edits = get_all_edits(arxivid, v1, v2, gold_alignments)
+
+        all_edits = [
+            (sent_id1, sent_id2, sent1, sent2)
+            for (sent_id1, sent_id2, sent1, sent2) in all_edits
+            if sent_id1 and sent_id2
+        ]
+
+        all_edits = sorted(all_edits, key=operator.itemgetter(0))
+        all_edits = sorted(all_edits, key=operator.itemgetter(1))
+
+        edit_list = []
+
+        # for each edit, update the labels to reasons
+        for sent_id1, sent_id2, sent1, sent2 in all_edits:
+            labels: List[str] = []
+
+            if (sent_id1, sent_id2) in newly_total_annotated_reasons:
+                labels, _, _, _ = newly_total_annotated_reasons[(sent_id1, sent_id2)]
+            elif (sent_id1, sent_id2) in newly_annotated_reasons:
+                labels, _, _, _ = newly_annotated_reasons[(sent_id1, sent_id2)]
+            elif (sent_id1, sent_id2) in other_annotated_reasons:
+                labels, _, _, _ = other_annotated_reasons[(sent_id1, sent_id2)]
+            elif (sent_id1, sent_id2) in newly_annotated_labels:
+                labels, _, _, _ = newly_annotated_labels[(sent_id1, sent_id2)]
+            elif (sent_id1, sent_id2) in other_annotated_labels:
+                labels, _, _, _ = other_annotated_labels[(sent_id1, sent_id2)]
+
+            explanation = ""
+
+            if (
+                sent_id1,
+                sent_id2,
+            ) in newly_total_annotated_reasons and not explanation:
+                _, explanation, _, _ = newly_total_annotated_reasons[
+                    (sent_id1, sent_id2)
+                ]
+            if (sent_id1, sent_id2) in newly_annotated_reasons and not explanation:
+                _, explanation, _, _ = newly_annotated_reasons[(sent_id1, sent_id2)]
+            if (sent_id1, sent_id2) in other_annotated_reasons and not explanation:
+                _, explanation, _, _ = other_annotated_reasons[(sent_id1, sent_id2)]
+            if (sent_id1, sent_id2) in newly_annotated_labels and not explanation:
+                _, explanation, _, _ = newly_annotated_labels[(sent_id1, sent_id2)]
+            if (sent_id1, sent_id2) in other_annotated_labels and not explanation:
+                _, explanation, _, _ = other_annotated_labels[(sent_id1, sent_id2)]
+
+            if not labels:
+                continue
+
+            try:
+                edit_list.append(
+                    (
+                        [label_to_reason(l) for l in labels if l],
+                        explanation,
+                        sent_id1,
+                        sent_id2,
+                        sent1,
+                        sent2,
+                    )
+                )
+                reason_counts.update([label_to_reason(l) for l in labels if l])
+            except ValueError as e:
+                print(f"{arxivid}-v{v1}-v{v2}: {sent_id1} -> {sent_id2}")
+                print(labels)
+                print(e)
+                raise
+
+        # write the document to disk
+        annotated_pairs_to_csv(edit_list, get_raw_reason_filename(arxivid, v1, v2))
+        annotated_pairs_to_csv(
+            edit_list, get_annotated_reason_filename(arxivid, v1, v2)
+        )
+
+        total_edits.extend(edit_list)
+
+    annotated_pairs_to_csv(total_edits, total_path)
+
+    print()
+
+    for reason in sorted(reason_counts.keys()):
+        print(reason, "\t", reason_counts[reason])
+
+
+def get_all_other_examples() -> None:
+    """
+    Short script
+    """
+    others: List[AnnotatedEdit] = []
+
+    for arxivid, v1, v2 in EDIT_TYPE_SAMPLE:
+
+        filename = get_raw_label_filename(arxivid, v1, v2)
+
+        pairs = read_annotated_pairs(filename)
+
+        print(len(pairs), "+", end=" ")
+
+        for id1, id2 in pairs:
+            labels, explanation, s1, s2 = pairs[(id1, id2)]
+
+            if "other" in labels:
+                others.append((labels, explanation, id1, id2, s1, s2))
+
+    filename = f"/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/jupyter/data/types/sample/other-pairs.csv"
+
+    annotated_pairs_to_csv(others, filename)
+
+
 def main() -> None:
     gold_alignments = load_gold_alignments()
     for arxivid, v1, v2 in EDIT_TYPE_SAMPLE:
@@ -414,5 +714,94 @@ def main() -> None:
         print(f"{arxivid}: {unlabeled}")
 
 
+def merge_all() -> None:
+    for arxivid, v1, v2 in EDIT_TYPE_SAMPLE:
+        merge_splits_and_fusions(arxivid, v1, v2)
+
+
+def update_using_files() -> None:
+
+    total_edits = []
+
+    reason_counts = Counter()
+
+    total_path = f"/Users/samstevens/Dropbox/arXiv_edit_Sam_Chao/Sam_working_folder/jupyter/data/types/sample/reasons/training-pairs.csv"
+
+    # for each document
+    for arxivid, v1, v2 in EDIT_TYPE_SAMPLE:
+
+        # get all existing edits.
+        newly_annotated_reasons = read_annotated_pairs(
+            get_annotated_reason_filename(arxivid, v1, v2)
+        )
+
+        other_annotated_reasons = read_annotated_pairs(
+            get_raw_reason_filename(arxivid, v1, v2)
+        )
+
+        edit_list = []
+
+        # for each edit, update the labels to reasons
+        for sent_id1, sent_id2 in other_annotated_reasons:
+            labels: List[str] = []
+
+            if (sent_id1, sent_id2) in newly_annotated_reasons:
+                labels, explanation, sent1, sent2 = newly_annotated_reasons[
+                    (sent_id1, sent_id2)
+                ]
+            elif (sent_id1, sent_id2) in other_annotated_reasons:
+                labels, explanation, sent1, sent2 = other_annotated_reasons[
+                    (sent_id1, sent_id2)
+                ]
+
+            if not labels:
+                continue
+
+            try:
+                edit_list.append(
+                    (
+                        [label_to_reason(l) for l in labels if l],
+                        explanation,
+                        sent_id1,
+                        sent_id2,
+                        sent1,
+                        sent2,
+                    )
+                )
+                reason_counts.update([label_to_reason(l) for l in labels if l])
+            except ValueError as e:
+                print(f"{arxivid}-v{v1}-v{v2}: {sent_id1} -> {sent_id2}")
+                print(labels)
+                print(e)
+                raise
+
+        # write the document to disk
+        annotated_pairs_to_csv(edit_list, get_raw_reason_filename(arxivid, v1, v2))
+        annotated_pairs_to_csv(
+            edit_list, get_annotated_reason_filename(arxivid, v1, v2)
+        )
+
+        total_edits.extend(edit_list)
+
+    annotated_pairs_to_csv(total_edits, total_path)
+
+    print()
+
+    for reason in sorted(reason_counts.keys()):
+        print(reason, "\t", reason_counts[reason])
+
+
+def update_annotated() -> None:
+    for arxivid, v1, v2 in EDIT_TYPE_SAMPLE:
+        shutil.copyfile(
+            get_raw_reason_filename(arxivid, v1, v2),
+            get_annotated_reason_filename(arxivid, v1, v2),
+        )
+
+
 if __name__ == "__main__":
-    main()
+    # main()
+    # convert_to_reasons()
+    # merge_all()
+    update_using_files()
+

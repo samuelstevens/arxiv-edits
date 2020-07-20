@@ -104,20 +104,29 @@ def detex_file(inputfile: str, outputfile: str) -> None:
             detexed = detex(content)
 
             if isinstance(detexed, Exception):
-                logging.debug(detexed)
+                logging.warning(f"Can't detex {outputfile}: {detexed}")
             else:
                 fout.write(detexed)
 
 
 if __name__ == "__main__":
-    test = r"""So, $\hat x_{j_1 \cdots j_N} = \hat x_{2-j_1 \cdots 2-j_N}$.
-Thus, we can assume that $x_{i_1i_2\cdots i_n}=x_{(2-i_1)(2-i_2)\cdots (2-i_N)}$.
-\hfill $\Box$\medskip
 
-By the above proposition and the discussion  in Section 2, we see that
-the system $A_\alpha^{\otimes N} \bx =  0$ has a nontrivial nonnegative
-solution if and only if the system $C_{\alpha,N}\mathbf{y}=0$
-has a nontrivial nonnegative solution $\by$."""
+    test = r"""
+\tableofcontents
+\newpage
 
-    # \$.*[^.]\.\$ [A-Z]
+\lstdefinelanguage[bzr]{c++}
+ {basicstyle=\scriptsize,
+    morekeywords={node, returns, let, tel, peId, peid,  int,  var, contract,
+      assume, enforce, with, bool, *, +, if, then , else, hwParam,
+      func, main, and, not, until, state, do, true, false, automaton, end},  
+ }
+
+ \lstdefinelanguage{idl}
+ {
+  basicstyle=\scriptsize,
+  morekeywords={in, out, interface}
+ }
+"""
+
     print(detex(test))

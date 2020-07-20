@@ -10,7 +10,7 @@ import logging
 from typing import Dict, List, Tuple, Set, Optional, Any, cast
 
 
-from arxivedits import data, util, diff
+from arxivedits import data, util, diff, filters
 from arxivedits.alignment.sentence import SentenceID
 from arxivedits.alignment.structures import SentenceStruct, DiffStruct, STATUS
 from arxivedits.alignment.util import (
@@ -217,23 +217,23 @@ def easy_align(
         ]
 
         for removed_sent_idx in removed_sent_indices:
-            if diff.is_title_or_newline(pg[removed_sent_idx].diff.sentence):
+            if filters.is_title_or_newline(pg[removed_sent_idx].diff.sentence):
                 pg[removed_sent_idx].status = STATUS.BORING  # changed from Chao's code
                 continue
 
-            if not diff.sent_filter(pg[removed_sent_idx].diff.sentence):
+            if not filters.sent_filter(pg[removed_sent_idx].diff.sentence):
                 pg[removed_sent_idx].status = STATUS.BORING
                 continue
 
             for added_sent_idx in added_sent_indices:
 
-                if diff.is_title_or_newline(pg[added_sent_idx].diff.sentence):
+                if filters.is_title_or_newline(pg[added_sent_idx].diff.sentence):
                     pg[
                         added_sent_idx
                     ].status = STATUS.BORING  # changed from Chao's code
                     continue
 
-                if not diff.sent_filter(pg[added_sent_idx].diff.sentence):
+                if not filters.sent_filter(pg[added_sent_idx].diff.sentence):
                     pg[added_sent_idx].status = STATUS.BORING
                     continue
 
@@ -271,7 +271,7 @@ def easy_align_outside_doc(
             if (
                 not is_sentence_solved(sentence)
                 and sentence.diff.code == -1
-                and diff.sent_filter(sentence.diff.sentence)
+                and filters.sent_filter(sentence.diff.sentence)
             ):
                 removed_sentences.append(sentence)
 
@@ -280,24 +280,24 @@ def easy_align_outside_doc(
             if (
                 not is_sentence_solved(sentence)
                 and sentence.diff.code == 1
-                and diff.sent_filter(sentence.diff.sentence)
+                and filters.sent_filter(sentence.diff.sentence)
             ):
                 added_sentences.append(sentence)
 
     aligned_sentences: List[SentenceStruct] = []
 
     for removed_sentence in removed_sentences:
-        if diff.is_title_or_newline(removed_sentence.diff.sentence):
+        if filters.is_title_or_newline(removed_sentence.diff.sentence):
             continue
 
-        if not diff.sent_filter(removed_sentence.diff.sentence):
+        if not filters.sent_filter(removed_sentence.diff.sentence):
             continue
 
         for added_sentence in added_sentences:
-            if diff.is_title_or_newline(added_sentence.diff.sentence):
+            if filters.is_title_or_newline(added_sentence.diff.sentence):
                 continue
 
-            if not diff.sent_filter(added_sentence.diff.sentence):
+            if not filters.sent_filter(added_sentence.diff.sentence):
                 continue
 
             the_sent_got_removed = removed_sentence.diff.sentence
@@ -392,7 +392,9 @@ class Alignment:
     Represents an alignment between two versions of a document, using SentenceID to keep track of sentences.
     """
 
-    def __init__(self, arxivid: str, version1: int, version2: int):
+    def __init__(
+        self, arxivid: str, version1: int, version2: int, auto_init: bool = True
+    ):
         assert (
             version1 < version2
         ), f"version 1 {version1} must be smaller than version 2 {version2}!"
@@ -407,16 +409,21 @@ class Alignment:
         self.version1 = version1
         self.version2 = version2
 
-        align1, align2, lookup = identical_align(arxivid, version1, version2)
-
-        self.alignments1: Dict[SentenceID, Set[SentenceID]] = align1
-        self.alignments2: Dict[SentenceID, Set[SentenceID]] = align2
-        self.lookup: Dict[SentenceID, str] = lookup
-
         self.new_to_old_lookup: Dict[SentenceID, SentenceID] = {}
 
-        self.write_unaligned_csv()  # populates self.new_to_old_lookup
-        self.save()
+        if auto_init:
+            align1, align2, lookup = identical_align(arxivid, version1, version2)
+
+            self.alignments1: Dict[SentenceID, Set[SentenceID]] = align1
+            self.alignments2: Dict[SentenceID, Set[SentenceID]] = align2
+            self.lookup: Dict[SentenceID, str] = lookup
+
+            self.write_unaligned_csv()  # populates self.new_to_old_lookup
+            self.save()
+        else:
+            self.alignments1 = {}
+            self.alignments2 = {}
+            self.lookup = {}
 
     def is_aligned(self, sentence_id: SentenceID) -> bool:
         """
@@ -441,7 +448,7 @@ class Alignment:
         unaligned = [
             _id
             for _id in self.lookup
-            if not self.is_aligned(_id) and not diff.is_boring(self.lookup[_id])
+            if not self.is_aligned(_id) and not filters.is_boring(self.lookup[_id])
         ]
 
         return unaligned
@@ -519,7 +526,7 @@ class Alignment:
 
         filepath = data.alignment_csv_path(arxivid, version1, version2)
 
-        alignment = Alignment(arxivid, version1, version2)
+        alignment = Alignment(arxivid, version1, version2, auto_init=False)
 
         with open(filepath, "r") as csvfile:
             reader = csv.reader(csvfile, delimiter="|", quoting=csv.QUOTE_MINIMAL)
@@ -536,12 +543,16 @@ class Alignment:
                 ) = parse_csv_row(row)
 
                 if from_sent_id in alignment.lookup:
-                    assert alignment.lookup[from_sent_id] == sent1
+                    assert (
+                        alignment.lookup[from_sent_id] == sent1
+                    ), f"{arxivid}-v{version1}-v{version2}: {alignment.lookup[from_sent_id]} != {sent1}"
                 else:
                     alignment.lookup[from_sent_id] = sent1
 
                 if to_sent_id in alignment.lookup:
-                    assert alignment.lookup[to_sent_id] == sent2
+                    assert (
+                        alignment.lookup[to_sent_id] == sent2
+                    ), f"[{to_sent_id}]: {alignment.lookup[to_sent_id]} != {sent2}"
                 else:
                     alignment.lookup[to_sent_id] = sent2
 
@@ -553,6 +564,11 @@ class Alignment:
 
                 elif alignment_method == 1:
                     # fully aligned
+                    if from_sent_id not in alignment.alignments1:
+                        alignment.alignments1[from_sent_id] = set()
+                    if to_sent_id not in alignment.alignments2:
+                        alignment.alignments2[to_sent_id] = set()
+
                     alignment.alignments1[from_sent_id].add(to_sent_id)
                     alignment.alignments2[to_sent_id].add(from_sent_id)
 

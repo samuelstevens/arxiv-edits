@@ -51,6 +51,62 @@ def test_newtheorem_with_end_count():
     assert commands.NewTheoremParse(initial_tex, 0, "newtheorem") == expected_tex
 
 
+def test_lst():
+    initial_tex = r"""\lstdefinelanguage[bzr]{c++}
+ {basicstyle=\scriptsize,
+    morekeywords={node, returns, let, tel, peId, peid,  int,  var, contract,
+      assume, enforce, with, bool, *, +, if, then , else, hwParam,
+      func, main, and, not, until, state, do, true, false, automaton, end},  
+}
+"""
+    expected_tex = (("", len(initial_tex) - 1), None)
+    assert (
+        commands.LstDefineLanguageParse(initial_tex, 0, "lstdefinelanguage")
+        == expected_tex
+    )
+
+
+def test_lst_with_more_text():
+    initial_tex = r"""\lstdefinelanguage[bzr]{c++}
+ {basicstyle=\scriptsize,
+    morekeywords={node, returns, let, tel, peId, peid,  int,  var, contract,
+      assume, enforce, with, bool, *, +, if, then , else, hwParam,
+      func, main, and, not, until, state, do, true, false, automaton, end},  
+}
+
+something else
+"""
+    expected_output = ""
+    expected_err = None
+
+    (output, pos), err = commands.LstDefineLanguageParse(
+        initial_tex, 0, "lstdefinelanguage"
+    )
+
+    assert err == expected_err
+    assert initial_tex[pos:] == "\n\nsomething else\n"
+
+
+def test_lst_no_brackets():
+    initial_tex = r"""\lstdefinelanguage{idl}
+ {
+  basicstyle=\scriptsize,
+  morekeywords={in, out, interface}
+ }
+
+other stuff"""
+
+    expected_output = ""
+    expected_err = None
+
+    (output, pos), err = commands.LstDefineLanguageParse(
+        initial_tex, 0, "lstdefinelanguage"
+    )
+
+    assert err == expected_err
+    assert initial_tex[pos:] == "\n\nother stuff"
+
+
 r"""
 \newtheorem{theorem}{Theorem} \newtheorem{tw}[theorem]{Theorem}
 \newtheorem{stw}[theorem]{Proposition} \newtheorem{lem}[theorem]{Lemma}

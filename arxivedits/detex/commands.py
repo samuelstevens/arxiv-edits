@@ -1,6 +1,6 @@
 import logging
 
-from arxivedits.detex import latex
+from arxivedits.detex import latex, macros
 from arxivedits import structures
 
 from typing import Callable, Tuple
@@ -142,10 +142,90 @@ def LengthParse(
     return ("", endvalue), None
 
 
+def LstDefineLanguageParse(
+    initial_tex: str, position: int, name: str
+) -> structures.Go[Tuple[str, int]]:
+    r"""
+    Expects some .tex that looks like 
+    
+    \lstdefinelanguage[bzr]{c++}
+        {
+            basicstyle=\scriptsize,
+            morekeywords={node, returns, let, tel, peId, peid,  int,  var, contract,
+            assume, enforce, with, bool, *, +, if, then , else, hwParam,
+            func, main, and, not, until, state, do, true, false, automaton, end},  
+        }
+
+    OR 
+
+    \lstdefinelanguage{idl2}
+        {
+            basicstyle=\scriptsize,
+            morekeywords={in, out, interface, void},
+            backgroundcolor=\color{yellow},
+        }
+
+    Returns empty string
+    """
+
+    if initial_tex[position] != "\\":
+        return ("", position), ValueError(f"Command needs to start with \\{name}")
+
+    if not initial_tex.startswith(name, position + 1):
+        return ("", position), ValueError(f"Command needs to start with \\{name}")
+
+    position += 1 + len(name)
+
+    position = macros.skip_whitespace(initial_tex, position)
+
+    # parse optional [stuff]
+    if initial_tex[position] == "[":
+        position, err = latex.find_pair("[", "]", initial_tex, position)
+        position += 1  # skip the ]
+        position = macros.skip_whitespace(initial_tex, position)
+
+    if initial_tex[position] != "{":
+        return (
+            ("", position),
+            ValueError(
+                f"Command {name} needs an language (c++, etc) arg starting with {{"
+            ),
+        )
+
+    position, err = latex.find_pair("{", "}", initial_tex, position)
+
+    if err is not None:
+        return ("", position), err
+
+    position += 1  # skip the }
+
+    position = macros.skip_whitespace(initial_tex, position)
+
+    if initial_tex[position] != "{":
+        return (
+            ("", position),
+            ValueError(
+                f"Command {name} needs a body (basicstyle, etc) arg starting with {{"
+            ),
+        )
+
+    position, err = latex.find_pair("{", "}", initial_tex, position)
+
+    position += 1
+
+    if err is not None:
+        return ("", position), err
+
+    return ("", position), None
+
+    return ("", len(initial_tex) - 1), None
+
+
 BAD_COMMANDS = [
     LatexCommand("setlength", LengthParse),
     LatexCommand("addtolength", LengthParse),
     LatexCommand("newtheorem", NewTheoremParse),
+    LatexCommand("lstdefinelanguage", LstDefineLanguageParse),
 ]
 
 

@@ -174,3 +174,4 @@ This is an example document with no matching tags to find or remove.
 """
 
     assert latex.clean(initial_tex) == expected_text
+

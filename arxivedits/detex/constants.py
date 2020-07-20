@@ -45,6 +45,7 @@ BAD_TAGS = [
     r"bibliographystyle",
     r"bibliography",
     r"\textcolor",
+    r"\lstdefinelanguage",
 ]
 
 REF_TAGS = [r"\eqref", r"\ref", r"\autoref", r"\fref", r"\lref", r"\eqref", r"\refs"]

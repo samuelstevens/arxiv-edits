@@ -17,7 +17,7 @@ from arxivedits.chunks.data import ADDED, REMOVED, BOTH, get_chunks
 from arxivedits.chunks.lookup import load_lookup
 from arxivedits.chunks.visualize import visualize_predictions
 
-from arxivedits import diff, data, util, structures
+from arxivedits import data, util, structures, filters
 
 
 Metrics = namedtuple(
@@ -61,35 +61,35 @@ def get_metrics(
     unaligned_sents_in_v1 = set()
 
     for sent_id in gold_alignment.alignments1:
-        if not diff.is_boring(
+        if not filters.is_boring(
             gold_alignment.lookup[sent_id]
         ) and not diff_alignment.is_aligned(sent_id):
             unaligned_sents_in_v1.add(sent_id)
 
         if (
-            not diff.is_boring(gold_alignment.lookup[sent_id])
+            not filters.is_boring(gold_alignment.lookup[sent_id])
             and gold_alignment.is_aligned(sent_id)
             and not diff_alignment.is_aligned(sent_id)
         ):
             for matched_id in gold_alignment.alignments1[sent_id]:
-                if not diff.is_boring(gold_alignment.lookup[matched_id]):
+                if not filters.is_boring(gold_alignment.lookup[matched_id]):
                     non_identical_aligned_pairs.add((sent_id, matched_id))
 
     unaligned_sents_in_v2 = set()
 
     for sent_id in gold_alignment.alignments2:
-        if not diff.is_boring(
+        if not filters.is_boring(
             gold_alignment.lookup[sent_id]
         ) and not diff_alignment.is_aligned(sent_id):
             unaligned_sents_in_v2.add(sent_id)
 
         if (
-            not diff.is_boring(gold_alignment.lookup[sent_id])
+            not filters.is_boring(gold_alignment.lookup[sent_id])
             and gold_alignment.is_aligned(sent_id)
             and not diff_alignment.is_aligned(sent_id)
         ):
             for matched_id in gold_alignment.alignments2[sent_id]:
-                if not diff.is_boring(gold_alignment.lookup[matched_id]):
+                if not filters.is_boring(gold_alignment.lookup[matched_id]):
                     non_identical_aligned_pairs.add((matched_id, sent_id))
 
     total_comps = len(unaligned_sents_in_v1) * len(unaligned_sents_in_v2)
@@ -150,13 +150,13 @@ def evaluate_model(
         v1_sent_ids = [
             _id
             for _id in sorted(new_alignment.alignments1.keys())
-            if not diff.is_boring(new_alignment.lookup[_id])
+            if not filters.is_boring(new_alignment.lookup[_id])
         ]
 
         v2_sent_ids = [
             _id
             for _id in sorted(new_alignment.alignments2.keys())
-            if not diff.is_boring(new_alignment.lookup[_id])
+            if not filters.is_boring(new_alignment.lookup[_id])
         ]
 
         predicted_removed_lines = []
@@ -224,7 +224,7 @@ def evaluate_model(
             [
                 (sent_id, -1)
                 for sent_id in new_alignment.alignments1
-                if diff.is_boring(new_alignment.lookup[sent_id])
+                if filters.is_boring(new_alignment.lookup[sent_id])
             ]
         )
 
@@ -232,7 +232,7 @@ def evaluate_model(
             [
                 (sent_id, -1)
                 for sent_id in new_alignment.alignments2
-                if diff.is_boring(new_alignment.lookup[sent_id])
+                if filters.is_boring(new_alignment.lookup[sent_id])
             ]
         )
 

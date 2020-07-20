@@ -26,10 +26,9 @@ def detex_all(again: bool = False) -> None:
         if is_detexed(arxivid, version) and not again:
             continue  # already detexed
 
-        outputfilepath = data.text_path(arxivid, version)
-        latexfilepath = data.latex_path(arxivid, version)
-
-        detex.detex_file(latexfilepath, outputfilepath)
+        detex.detex_file(
+            data.latex_path(arxivid, version), data.text_path(arxivid, version)
+        )
 
     util.log_how_many(is_detexed, "detexed")
 
@@ -38,7 +37,7 @@ def main() -> None:
     """
     Takes .tex files and converts them to text.
     """
-    detex_all()
+    detex_all(again=True)
 
 
 def demo() -> None:
@@ -111,5 +110,5 @@ has a nontrivial nonnegative solution $\by$.""",
 
 
 if __name__ == "__main__":
-    # main()
-    demo()
+    main()
+    # demo()

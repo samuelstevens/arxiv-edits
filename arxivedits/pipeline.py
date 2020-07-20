@@ -4,7 +4,9 @@ Pipeline to run all data collection and cleaning.
 
 import logging
 
-from arxivedits import versions, source, tex, tokenizer, alignment
+from arxivedits import versions, source, tex, tokenizer
+
+# from arxivedits import alignment
 
 
 def pipeline() -> None:
@@ -34,8 +36,8 @@ def pipeline() -> None:
     # Very, very slow. However, it skips
     # documents that do not pass the filter.
     ########################################
-    if False:
-        alignment.write_machine_alignments()
+    # if False:
+    #     alignment.write_machine_alignments()
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ def test_easy_eps():
     mime = "application/postscript"
     raw = "PostScript document text conforming DSC level 2.0, type EPS"
 
-    expected_filetype = source.FileType.EPS
+    expected_filetype = source.FileType.POSTSCRIPT
 
     assert source.parse_filetype(mime, raw) == expected_filetype
 

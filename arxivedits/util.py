@@ -27,10 +27,6 @@ def good_id_iter() -> Iterator[Tuple[str, int, int]]:
             if not os.path.isfile(
                 data.sentence_path(arxivid, v1)
             ) or not os.path.isfile(data.sentence_path(arxivid, v2)):
-                print(
-                    f"{os.path.isfile(data.sentence_path(arxivid, v1))} {os.path.isfile(data.sentence_path(arxivid, v2))}"
-                )
-                # should never ever print this out, because good_ids are only valid ids
                 continue
 
             yield arxivid, v1, v2
@@ -132,7 +128,7 @@ def merge_dicts(*dict_args: Dict[T, U]) -> Dict[T, U]:
     return result
 
 
-def get(s: Set[T]) -> T:
+def get(s: Iterable[T]) -> T:
     """
     Gets a random element from a set.
     """

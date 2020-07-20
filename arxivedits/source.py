@@ -31,15 +31,22 @@ class FileType(enum.Enum):
     TAR = enum.auto()
     TEXT = enum.auto()
     IMAGE = enum.auto()
+    POSTSCRIPT = enum.auto()
 
     UNKNOWN = enum.auto()
 
 
 TIMEOUT = 5
 
+
 INCLUDEPATTERN = re.compile(
-    r"\\(?:include|includeonly|input|@input).*?[{ ](.*?)(?:\}| |\n|$)"
+    r"^[^%]*\\(?:include|includeonly|input|@input|bibliography).*?[{ ](.*?)(?:\}| |\n|$)"
 )
+
+DOCUMENTPATTERN = re.compile(
+    r"^\s*\\(?:documentclass(?:\[.*?\])?\{.+?\}|begin\{document\})"
+)
+
 TMP_DIR = "tmp"
 
 
@@ -74,6 +81,8 @@ def parse_filetype(mime: str, raw: str) -> FileType:
         return FileType.TAR
     if mime == "application/pdf":
         return FileType.PDF
+    if mime == "application/postscript":
+        return FileType.POSTSCRIPT
     if "image" in mime:
         return FileType.IMAGE
 
@@ -94,7 +103,7 @@ def get_filetype(file: BinaryIO, ext: str) -> FileType:
     """
     try:
         file.seek(0)  # ensures that we read the first 1024 bytes
-        buffer = file.read(2048)
+        buffer = file.read(4096)
         file.seek(0)  # resets the position to the start.
         result = parse_filetype(
             magic.from_buffer(buffer, mime=True), magic.from_buffer(buffer, mime=False),
@@ -131,17 +140,19 @@ def add_folder_to_dict(dirpath: str, dictionary: Dict[str, List[str]]) -> None:
         filepath = os.path.join(dirpath, filename).lower()
 
         if os.path.isfile(filepath):
-            _, ext = os.path.splitext(filename)
-
             # check if filemagic can determine type
             with open(filepath, "rb") as file:
+                _, ext = os.path.splitext(filename)
                 filetype = get_filetype(file, ext)
+
                 if filetype != FileType.TEX:
                     continue
 
                 contents = file.read()
 
             lines = contents.decode("utf-8", errors="ignore").split("\n")
+
+            lines = [line for line in lines if not line.lstrip().startswith("%")]
 
             dictionary[filepath] = lines
         else:
@@ -166,8 +177,6 @@ def get_lines(
         closedfiles[filename] = []
         return
 
-    lines = [line for line in lines if not line.lstrip().startswith("%")]
-
     for line in lines:
         m = INCLUDEPATTERN.match(line)
         if m:
@@ -178,8 +187,12 @@ def get_lines(
             _, ext = os.path.splitext(includepath)
 
             if not ext:
-                if os.path.isfile(includepath + ".tex"):
+                if (
+                    os.path.isfile(includepath + ".tex")
+                    and filename != includepath + ".tex"
+                ):
                     includepath = includepath + ".tex"
+
                 # elif os.path.isfile(includepath + ".cls"):
                 #     includepath = includepath + ".cls"
 
@@ -196,6 +209,14 @@ def get_lines(
     closedfiles[filename] = finallines
 
 
+def filter_filename(filename: str) -> bool:
+    _, ext = os.path.splitext(filename)
+
+    ext = ext[1:]  # remove "."
+
+    return ext not in ["dtx", "sty", "bbl"]
+
+
 def tex_from_tar(tar: tarfile.TarFile) -> Optional[str]:
     """
     Constructs a .tex file from tarfile contents.
@@ -203,7 +224,7 @@ def tex_from_tar(tar: tarfile.TarFile) -> Optional[str]:
     Removes all comments.
     """
 
-    shutil.rmtree(TMP_DIR)
+    shutil.rmtree(TMP_DIR, ignore_errors=True)
     os.makedirs(TMP_DIR, exist_ok=True)
 
     tar.extractall(TMP_DIR)
@@ -219,6 +240,70 @@ def tex_from_tar(tar: tarfile.TarFile) -> Optional[str]:
         get_lines(filepath, openfiles, closedfiles)
 
     if not closedfiles:
+        return None
+
+    # filter empty documents
+    old_keys = closedfiles.keys()
+
+    closedfiles = {
+        filename: lines
+        for filename, lines in closedfiles.items()
+        if sum([len(line) for line in lines]) > 0
+    }
+
+    if not closedfiles:
+        begin = r"\begin{document}"
+        documentclass = r"\documentclass{...}"
+        logging.warning(
+            f"Didn't parse {tar.name} because there was no content in any of the following files: {list(old_keys)}"
+        )
+
+        return None
+
+    if len(closedfiles) == 1:
+        bestfilename = util.get(closedfiles.keys())
+        return "\n".join(closedfiles[bestfilename])
+
+    # filter out files without a \documentclass
+    old_keys = closedfiles.keys()
+
+    closedfiles = {
+        filename: lines
+        for filename, lines in closedfiles.items()
+        if any([DOCUMENTPATTERN.match(line) for line in lines])
+    }
+
+    if len(closedfiles) == 1:
+        bestfilename = util.get(closedfiles.keys())
+        return "\n".join(closedfiles[bestfilename])
+
+    if not closedfiles:
+        begin = r"\begin{document}"
+        documentclass = r"\documentclass{...}"
+        logging.warning(
+            f"Didn't parse {tar.name} because there was no {documentclass} or {begin} in any of the following files: {list(old_keys)}"
+        )
+
+        return None
+
+    # filter out bad file types
+    old_keys = closedfiles.keys()
+
+    closedfiles = {
+        filename: lines
+        for filename, lines in closedfiles.items()
+        if filter_filename(filename)
+    }
+
+    if len(closedfiles) == 1:
+        bestfilename = util.get(closedfiles.keys())
+        return "\n".join(closedfiles[bestfilename])
+
+    if not closedfiles:
+        logging.warning(
+            f"Didn't parse {tar.name} because there was no file that wasn't a .bbl, .sty or .dtx"
+        )
+
         return None
 
     # now take the longest one in closedfiles
@@ -252,6 +337,11 @@ def extract(filepath: str) -> Optional[str]:
                 file = cast(BinaryIO, gzip.open(file, "rb"))
 
             elif filetype == FileType.PDF:
+                logging.info("Cannot parse PDF files.")
+                return None
+
+            elif filetype == FileType.POSTSCRIPT:
+                logging.info("Cannot parse POSTSCRIPT files.")
                 return None
 
             elif filetype == FileType.TAR:
@@ -385,12 +475,12 @@ def extract_all(again: bool = False) -> None:
         sourcefilepath = data.source_path(arxivid, version)
         latexpath = data.latex_path(arxivid, version)
 
-        if os.path.isfile(latexpath) and not again:
+        if is_extracted(arxivid, version) and not again:
             continue  # skip if already extracted
 
         err = extract_file(sourcefilepath, latexpath)
         if err:
-            logging.warning(err)
+            logging.warning(f"Error extracting {sourcefilepath}: {err}")
 
     util.log_how_many(is_extracted, "extracted")
 
@@ -402,5 +492,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
-    # download_all()
+    # main()
+    extract_all(again=True)

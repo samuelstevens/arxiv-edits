@@ -10,8 +10,7 @@ def test_command_with_args():
     )
 
     assert command.result(["John Doe", "Andrea Smith"]) == (
-        r"This is the Wikibook about LaTeX supported by John Doe and Andrea Smith",
-        None,
+        r"This is the Wikibook about LaTeX supported by John Doe and Andrea Smith"
     )
 
 
@@ -24,8 +23,7 @@ def test_command_with_default_args():
     )
 
     assert command.result(["John Doe"]) == (
-        r"This is the Wikibook about LaTeX supported by Wikimedia and John Doe",
-        None,
+        r"This is the Wikibook about LaTeX supported by Wikimedia and John Doe"
     )
 
 
@@ -38,8 +36,7 @@ def test_command_with_default_overrriden():
     )
 
     assert command.result(["John Doe", "Andrea Smith"]) == (
-        r"This is the Wikibook about LaTeX supported by John Doe and Andrea Smith",
-        None,
+        r"This is the Wikibook about LaTeX supported by John Doe and Andrea Smith"
     )
 
 
@@ -52,8 +49,7 @@ def test_command_with_default_with_braces():
     )
 
     assert command.result(["John Doe"]) == (
-        r"This is the Wikibook about LaTeX supported by {Wikimedia} and {John Doe}",
-        None,
+        r"This is the Wikibook about LaTeX supported by {Wikimedia} and {John Doe}"
     )
 
 
@@ -69,12 +65,14 @@ def test_parse_command():
 
     parser = macros.NewCommandParser(original_tex, 0)
 
-    result, err = parser.parse()
+    result = parser.parse()
+
+    assert not isinstance(result, Exception)
+
     actual_command, actual_pos = result
 
     assert actual_command == expected_command
     assert actual_pos == 44
-    assert err is None
 
 
 def test_parse_def():
@@ -88,31 +86,32 @@ def test_parse_def():
 
     parser = macros.DefParser(original_tex, 0)
 
-    result, err = parser.parse()
+    result = parser.parse()
+
+    assert not isinstance(result, Exception)
+
     actual_command, actual_pos = result
 
     assert actual_command == expected_command
     assert actual_pos == 21
-    assert err is None
 
 
 def test_parse_def_with_symbol():
-    original_tex = r"""\def \{{\emph{}
-
-\{
-
-\end{document}
+    original_tex = r"""\def \{{hello}
+    
 """
-    expected_command = macros.LatexMacro(r"\{", r"\emph{")
+    expected_command = macros.LatexMacro(r"\{", r"hello")
 
     parser = macros.DefParser(original_tex, 0)
 
-    result, err = parser.parse()
+    result = parser.parse()
+
+    assert not isinstance(result, Exception)
+
     actual_command, actual_pos = result
 
     assert actual_command == expected_command
-    assert actual_pos == 14
-    assert err is None
+    assert actual_pos == 13
 
 
 def test_parse_def_with_args():
@@ -124,12 +123,35 @@ def test_parse_def_with_args():
 
     parser = macros.DefParser(original_tex, 0)
 
-    result, err = parser.parse()
+    result = parser.parse()
+
+    assert not isinstance(result, Exception)
+
     actual_command, actual_pos = result
 
     assert actual_command == expected_command
     assert actual_pos == 43
-    assert err is None
+
+
+def test_parse_gdef():
+    original_tex = r"""\gdef \name{\emph{sam}}
+
+\name
+
+\end{document}
+"""
+    expected_command = macros.LatexMacro(r"\name", r"\emph{sam}")
+
+    parser = macros.GdefParser(original_tex, 0)
+
+    result = parser.parse()
+
+    assert not isinstance(result, Exception)
+
+    actual_command, actual_pos = result
+
+    assert actual_command == expected_command
+    assert actual_pos == 22
 
 
 # \global\long\def\UTV#1#2#3{\text{UTV}^{#3}\!\rbr{#1,#2}}
@@ -508,3 +530,95 @@ def test_chained_command():
 """
 
     assert macros.process(original_tex) == expected_tex
+
+
+def test_wiki_example_macros():
+    initial_tex = r"""\documentclass{article}
+\begin{document}
+% one arg def:
+\def\testonearg[#1]{\typeout{Testing one arg: '#1'}}
+%call:
+\testonearg[test this]
+"""
+
+    expected_text = r"""\documentclass{article}
+\begin{document}
+% one arg def:
+
+%call:
+\typeout{Testing one arg: 'test this'}
+"""
+
+    assert macros.process(initial_tex).strip() == expected_text.strip()
+
+
+def test_multiple_macros():
+    initial_tex = r"""\documentclass{article}
+\begin{document}
+% one arg def:
+\def\testonearg[#1]{\typeout{Testing one arg: '#1'}}
+%call:
+\testonearg[test this]
+% two arg def:
+\def\testtwoarg[#1]#2{\typeout{Testing two args: '#1' and '#2'}}
+%call:
+\testtwoarg[test this first]{this is, the second test.}
+% two arg def (B):
+\def\testtwoargB#1#2{\typeout{Testing two args B: '#1' and '#2'}}
+%call:
+\testtwoargB{test this first}{this is, the second test.}
+"""
+
+    expected_text = r"""\documentclass{article}
+\begin{document}
+% one arg def:
+
+%call:
+\typeout{Testing one arg: 'test this'}
+% two arg def:
+
+%call:
+\typeout{Testing two args: 'test this first' and 'this is, the second test.'}
+% two arg def (B):
+
+%call:
+\typeout{Testing two args B: 'test this first' and 'this is, the second test.'}
+"""
+
+    assert macros.process(initial_tex).strip() == expected_text.strip()
+
+
+def test_macros_multiple_lines():
+    initial_tex = r"""\def\doeack{\footnote{Work supported by the Department of Energy, 
+contract DE--AC03--76SF00515.}}
+
+\doeack
+"""
+
+    expected_text = r"""
+
+
+\footnote{Work supported by the Department of Energy, 
+contract DE--AC03--76SF00515.}
+"""
+
+    assert macros.process(initial_tex).strip() == expected_text.strip()
+
+
+def test_multiline_macro():
+    initial_tex = r"""
+\def\SLAC{Stanford Linear Accelerator Center and ITP\\
+Stanford University, Stanford, California 94309 USA}
+
+\SLAC
+"""
+
+    expected_text = r"""
+
+
+
+Stanford Linear Accelerator Center and ITP\\
+Stanford University, Stanford, California 94309 USA
+"""
+
+    assert macros.process(initial_tex).strip() == expected_text.strip()

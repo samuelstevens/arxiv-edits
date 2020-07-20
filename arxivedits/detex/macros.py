@@ -11,6 +11,7 @@ from typing import Optional, List, Tuple, Any
 from arxivedits.detex import latex
 from arxivedits import structures
 
+
 VALID_MACRO_CHARS = "@<>?"
 
 
@@ -26,12 +27,12 @@ class LatexMacro:
         arg_num: int = 0,
         default_arg: Optional[str] = None,
     ) -> None:
-        assert isinstance(name, str)
-        assert name  # checks if len > 0
-        assert name[0] == "\\"
+        assert isinstance(name, str), f"{name} is not a string"
+        assert name, "name is empty"  # checks if len > 0
+        assert name[0] == "\\", f"command {name} does not begin with \\"
         self.name = name
 
-        assert isinstance(definition, str)
+        assert isinstance(definition, str), f"{definition} is not a string"
 
         deflines = [
             line[: line.index("%")] if "%" in line else line
@@ -50,7 +51,7 @@ class LatexMacro:
     def __str__(self) -> str:
         return f"Command: {self.name}, def: {self.definition}"
 
-    def result(self, args: List[str]) -> structures.Go[str]:
+    def result(self, args: List[str]) -> structures.Result[str]:
         """
         Given some macro arguments, produces a result string.
         """
@@ -60,12 +61,12 @@ class LatexMacro:
             if self.default_arg:
                 args = [self.default_arg, *args]
             else:
-                return "", ValueError(f"Missing argument #{len(args) + 1}")
+                return ValueError(f"Missing argument #{len(args) + 1}")
 
         for i, a in enumerate(args):
             result = result.replace(f"#{i + 1}", a)  # replaces #1, and leaves in in {}
 
-        return result, None
+        return result
 
     def required_arg_count(self) -> int:
         """
@@ -104,28 +105,25 @@ class MacroParser:
         assert command
         assert text.startswith(command, pos), self.context()
 
-    def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
+    def parse(self) -> structures.Result[Tuple[LatexMacro, int]]:
         raise NotImplementedError("Needs to be implemented")
 
     def context(self) -> str:
         return self.text[self.pos - 30 : self.pos + 30]
 
-    def Error(self, msg: str) -> Tuple[Tuple[LatexMacro, int], Exception]:
-        return (
-            (LatexMacro("", ""), self.pos),
-            RuntimeError(f"{self.context()}\n{msg}"),
-        )
+    def Error(self, msg: str) -> Exception:
+        return RuntimeError(f"{self.context()}\n{msg}")
 
 
 class DefParser(MacroParser):
     """
-    Parses \\def
+    Parses `\\def \\name [arg1]arg2{replacement}`
     """
 
-    def __init__(self, text: str, pos: int) -> None:
-        super().__init__(text, pos, r"\def")
+    def __init__(self, text: str, pos: int, command: str = r"\def") -> None:
+        super().__init__(text, pos, command)
 
-    def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
+    def parse(self) -> structures.Result[Tuple[LatexMacro, int]]:
         r"""
         \def \name{\emph{else}}
         """
@@ -136,10 +134,12 @@ class DefParser(MacroParser):
             self.pos += 1
 
         self.pos = skip_whitespace(self.text, self.pos)
-        # self.tex[self.pos] should now be \
 
+        # self.tex[self.pos] should now be \
         if self.text[self.pos] != "\\":
-            return self.Error(r"invalid \def because command doesn't start with \.")
+            return self.Error(
+                f"invalid {self.command} because command doesn't start with \\."
+            )
 
         # find command name
         self.pos += 1
@@ -153,11 +153,17 @@ class DefParser(MacroParser):
             while self.text[self.pos] in string.ascii_letters:
                 self.pos += 1
 
-        # args start with #1#2#3, etc
+        # args start with #1#2, but also like [#1]#2
 
         command_end = self.pos
 
         argcount = 0
+
+        # parse argument in square brackets
+        if self.text[self.pos : self.pos + 4] == "[#1]":
+            argcount += 1
+            self.pos = self.pos + 4
+
         while self.text[self.pos] == "#" and self.text[self.pos + 1] in string.digits:
             self.pos += 2
             argcount += 1
@@ -169,10 +175,10 @@ class DefParser(MacroParser):
 
         start_def = self.pos + 1
 
-        end_def = self.text.find("\n", self.pos) - 1
+        end_def, err = latex.find_pair("{", "}", self.text, start=self.pos)
 
-        if end_def < 0:
-            return self.Error("Couldn't find end of definition on the same line.")
+        if err:
+            return self.Error(str(err))
 
         definition = self.text[start_def:end_def]
 
@@ -180,7 +186,16 @@ class DefParser(MacroParser):
 
         command = LatexMacro(command_name, definition, argcount, None)
 
-        return (command, self.pos), None
+        return (command, self.pos)
+
+
+class GdefParser(DefParser):
+    """
+    Parses \\gdef
+    """
+
+    def __init__(self, text: str, pos: int, command: str = r"\gdef") -> None:
+        super().__init__(text, pos, command)
 
 
 class NewCommandParser(MacroParser):
@@ -191,7 +206,7 @@ class NewCommandParser(MacroParser):
     def __init__(self, text: str, pos: int, command: str = r"\newcommand") -> None:
         super().__init__(text, pos, command)
 
-    def parse(self) -> structures.Go[Tuple[LatexMacro, int]]:
+    def parse(self) -> structures.Result[Tuple[LatexMacro, int]]:
         r"""
         \newcommand{\name}[2][default]{my other stuff #1 here and #2}
 
@@ -284,7 +299,7 @@ class NewCommandParser(MacroParser):
 
         command = LatexMacro(command_name, definition, arg_count, default_arg)
 
-        return (command, self.pos), None
+        return (command, self.pos)
 
 
 class RobustCommandParser(NewCommandParser):
@@ -306,6 +321,7 @@ def skip_whitespace(text: str, position: int) -> int:
 def get_args(
     text: str, starting_position: int, command: LatexMacro
 ) -> Tuple[int, List[str]]:
+
     position = starting_position
     args: List[str] = []
     default_arg = None
@@ -321,14 +337,22 @@ def get_args(
 
             position = end_of_arg + 1
 
+    # first argument can be in square braces
+    if text[position] == "[":
+        position += 1
+        arg_start = position
+
+        arg_end, err = latex.find_pair("[", "]", text, position - 1)
+
+        args.append(text[arg_start:arg_end])
+
+        position = arg_end
+        position += 1
+
     while command.required_arg_count() > len(args) and position < len(text):
         if text[position] != "{":
-            logging.debug(
-                "Command %s requires %d arguments. Found %d: %s",
-                command.name,
-                command.required_arg_count(),
-                len(args),
-                ", ".join(args),
+            logging.info(
+                f"Command {command.name} requires {command.required_arg_count()} arguments. Found {len(args)}: {', '.join(args)}",
             )
 
             return position, args
@@ -369,6 +393,9 @@ def process(initial_tex: str) -> str:
             elif initial_tex.startswith("def", position + 1):
                 parser = DefParser(initial_tex, position)
 
+            elif initial_tex.startswith("gdef", position + 1):
+                parser = GdefParser(initial_tex, position)
+
             elif initial_tex.startswith("DeclareRobustCommand", position + 1):
                 parser = RobustCommandParser(initial_tex, position)
 
@@ -377,14 +404,14 @@ def process(initial_tex: str) -> str:
                 continue
 
             string_builder.append(initial_tex[start_valid:position])
-            try:
-                result, err = parser.parse()
 
-                if not err:
-                    command, position = result
-                    commands.append(command)
-            except AssertionError:
-                pass
+            result = parser.parse()
+
+            if isinstance(result, Exception):
+                logging.debug(f"Parse error: {result}")
+            else:
+                command, position = result
+                commands.append(command)
 
             start_valid = position + 1  # get past }
 
@@ -428,13 +455,13 @@ def process(initial_tex: str) -> str:
             end_command = start_command + len(command.name)
 
             if end_command >= len(text):
-                logging.warning(f"Couldn't find the end of the word '{command}''.")
+                logging.warning(f"Couldn't find the end of the word '{command.name}'.")
                 break
 
             end_command, arguments = get_args(text, end_command, command)
 
             if end_command >= len(text):
-                logging.warning(f"Couldn't find the end of {command}.")
+                logging.warning(f"Couldn't find the end of '{command}'.")
                 break
 
             if text[end_command] in ["\\"]:
@@ -442,10 +469,10 @@ def process(initial_tex: str) -> str:
             elif text[end_command : end_command + 1] == "{}":
                 end_command += 2
 
-            command_result, err = command.result(arguments)
+            command_result = command.result(arguments)
 
-            if err:
-                logging.debug(err)
+            if isinstance(command_result, Exception):
+                logging.debug(command_result)
             else:
                 string_builder.append(command_result)
 
