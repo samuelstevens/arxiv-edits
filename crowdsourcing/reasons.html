@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>edit-type-questions-v3</title>
+  <title>edit-type-questions-v4</title>
 </head>
 
 <body>
@@ -37,14 +37,18 @@
     </section>
     <section>
       <h2>Category Definitions</h2>
+      <p>The original phrase had...</p>
       <ol>
-        <li>The original phrase was missing information.</li>
-        <li>The original phrase had too much information.</li>
-        <li>The original phrase had a spelling or grammatical error.</li>
-        <li>The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</li>
-        <li>The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</li>
-        <li>It doesn't fit in any category, but more information would let you make a decision.</li>
-        <li>It doesn't fit in any category, and more information would <em>not</em> help you make a decision.</li>
+        <li>not enough information.</li>
+        <li>too much information.</li>
+        <li>a spelling or grammar error.</li>
+        <li>poor vocabulary, phrasing, voice or tone.</li>
+        <li>incorrect formatting.</li>
+      </ol>
+      <p>Or, the original phrase doesn't fit in any of the above categories, and more context and/or understanding of the topic...</p>
+      <ol start="6">
+        <li>would let you make a decision.</li>
+        <li>would <strong>not</strong> help you make a decision.</li>
       </ol>
     </section>
     <div class="pagebreak"></div>
@@ -59,41 +63,43 @@
       </div>
       <div>
         <form>
-          <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+
+          <p>The original phrase had...</p>
           <div>
             <input type="checkbox" id="elaboration">
-            <label for="elaboration">The original phrase was missing information.</label>
+            <label for="elaboration">not enough information.</label>
           </div>
           <div>
             <input type="checkbox" id="simplification" checked>
-            <label for="simplification">The original phrase had too much information.</label>
+            <label for="simplification">too much information.</label>
           </div>
           <div>
             <input type="checkbox" id="correction">
-            <label for="correction">The original phrase had a spelling or grammatical error.</label>
+            <label for="correction">a spelling or grammar error.</label>
           </div>
           <div>
             <input type="checkbox" id="style" checked>
-            <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+            <label for="style">poor vocabulary, phrasing, voice or tone.</label>
           </div>
           <div>
             <input type="checkbox" id="formatting">
-            <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+            <label for="formatting">incorrect formatting.</label>
           </div>
+          <p>Or, the original phrase doesn't fit in any of the above categories, and more context and/or understanding of the topic...</p>
           <div>
             <input type="checkbox" id="more-info-needed">
-            <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+            <label for="more-info-needed">would let you make a decision.</label>
           </div>
           <div>
             <input type="checkbox" id="other">
-            <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+            <label for="other">would <strong>not</strong> help you make a decision.</label>
           </div>
         </form>
         <ul>
-          <li>Removing <span class="removed">Now</span> is indicates that the original phrase had a voice/tone problem. It was an extraneous word that shifted focus from the main point of the phrase.</li>
+          <li>Removing <span class="removed">Now</span> indicates that the original phrase had a voice/tone problem. It was an unnecessary word.</li>
           <li>Changing <span class="removed">reproduce the behavior of the projections of the exact Bohmian trajectories in the system subspace</span> to <span class="added">observe such a behavior</span> indicates that the original phrase had too much information.</li>
           <li>Changing <span class="removed">consider the following simple trajectory</span> to <span class="added">further proceed with our</span> indicates that (1) there is a issue with the linguistic style, because <span class="removed">consider the following</span> and <span class="added">further proceed with</span> have the same meaning but different tone; and (2) that <span class="removed">simple trajectory</span> was unnecessary information for the reader.</li>
-          <li>Finally, simplifying <span class="removed">which gathers both decoherence and loss of empty-slit information</span> to <span class="diff">as follows</span> indicates that there was too much information in this part of the phrase as well.</li>
+          <li>Finally, simplifying <span class="removed">which gathers both decoherence and loss of empty-slit information</span> to <span class="added">as follows</span> indicates that there was too much information in this part of the phrase as well.</li>
         </ul>
       </div>
       <div class="pagebreak"></div>
@@ -107,39 +113,41 @@
       </div>
       <div>
         <form>
-          <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+
+          <p>The original phrase had...</p>
           <div>
             <input type="checkbox" id="elaboration" checked>
-            <label for="elaboration">The original phrase was missing information.</label>
+            <label for="elaboration">not enough information.</label>
           </div>
           <div>
             <input type="checkbox" id="simplification">
-            <label for="simplification">The original phrase had too much information.</label>
+            <label for="simplification">too much information.</label>
           </div>
           <div>
             <input type="checkbox" id="correction">
-            <label for="correction">The original phrase had a spelling or grammatical error.</label>
+            <label for="correction">a spelling or grammar error.</label>
           </div>
           <div>
             <input type="checkbox" id="style" checked>
-            <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+            <label for="style">poor vocabulary, phrasing, voice or tone.</label>
           </div>
           <div>
             <input type="checkbox" id="formatting">
-            <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+            <label for="formatting">incorrect formatting.</label>
           </div>
+          <p>Or, the original phrase doesn't fit in any of the above categories, and more context and/or understanding of the topic...</p>
           <div>
             <input type="checkbox" id="more-info-needed">
-            <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+            <label for="more-info-needed">would let you make a decision.</label>
           </div>
           <div>
             <input type="checkbox" id="other">
-            <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+            <label for="other">would <strong>not</strong> help you make a decision.</label>
           </div>
         </form>
         <ul>
           <li>Changing <span class="removed">Then</span> to <span class="added">Given fitting parameters [MATH], [MATH], [MATH] and [MATH]</span> explains what conditions are necessary, and indicates that the original phrase was missing information.</li>
-          <li>Changing <span class="removed">of the error rate</span><span class="removed">for error rates</span> doesn't indicate missing or redundant information; neither is it an issue with </li>
+          <li>Changing <span class="removed">of the error rate</span> to <span class="added">for error rates</span> indicates a problem with the sentence phrasing.</li>
           <li>Adding <span class="added">by replacing [MATH] with [MATH]</span> further details the process, again indicating that the original phrase was missing information.</li>
           <li>Changing <span class="removed">is given by</span> to <span class="added">gives</span> doesn't suggest missing or redundant information; rather, it indicates that the original phrase was not concise enough, which is a stylistic problem.</li>
         </ul>
@@ -155,39 +163,41 @@
       </div>
       <div>
         <form>
-          <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+
+          <p>The original phrase had...</p>
           <div>
             <input type="checkbox" id="elaboration">
-            <label for="elaboration">The original phrase was missing information.</label>
+            <label for="elaboration">not enough information.</label>
           </div>
           <div>
             <input type="checkbox" id="simplification">
-            <label for="simplification">The original phrase had too much information.</label>
+            <label for="simplification">too much information.</label>
           </div>
           <div>
             <input type="checkbox" id="correction">
-            <label for="correction">The original phrase had a spelling or grammatical error.</label>
+            <label for="correction">a spelling or grammar error.</label>
           </div>
           <div>
             <input type="checkbox" id="style">
-            <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+            <label for="style">poor vocabulary, phrasing, voice or tone.</label>
           </div>
           <div>
             <input type="checkbox" id="formatting" checked>
-            <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+            <label for="formatting">incorrect formatting.</label>
           </div>
+          <p>Or, the original phrase doesn't fit in any of the above categories, and more context and/or understanding of the topic...</p>
           <div>
             <input type="checkbox" id="more-info-needed" checked>
-            <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+            <label for="more-info-needed">would let you make a decision.</label>
           </div>
           <div>
             <input type="checkbox" id="other">
-            <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+            <label for="other">would <strong>not</strong> help you make a decision.</label>
           </div>
         </form>
         <ul>
-          <li>Changing <span class="removed">Figure</span> to <span class="added">Fig.</span> indicates that <span class="removed">Figure</span> is not appropriate for the target audience, and that they prefer <span class="added">Fig.</span>. Something was wrong with the formatting.</li>
-          <li>Changing <span class="removed">such that</span> to <span class="added">slightly larger than</span> doesn't fit any of the categories. It doesn't indicate redundant or missing information, it's not an issue with the tone or formatting. There is not an error in the original phrase. If you had enough information about the context, you might be able to choose, so &ldquo;<em>It doesn't fit in any category, but more information would let you make a decision</em>&rdquo; is an appropriate choice.</li>
+          <li>Changing <span class="removed">Figure</span> to <span class="added">Fig.</span> indicates that <span class="removed">Figure</span> was not appropriate or consistent. Something was wrong with the formatting.</li>
+          <li>Changing <span class="removed">such that</span> to <span class="added">slightly larger than</span> doesn't fit any of the categories. It doesn't indicate redundant or missing information, it's not an issue with the tone or formatting. There is not an error in the original phrase. If you had enough information about the context, picking a category might be possible, so &ldquo;<em>...would let you make a decision</em>&rdquo; is an appropriate choice.</li>
         </ul>
       </div>
       <div class="pagebreak"></div>
@@ -201,38 +211,40 @@
       </div>
       <div>
         <form>
-          <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+
+          <p>The original phrase had...</p>
           <div>
             <input type="checkbox" id="elaboration">
-            <label for="elaboration">The original phrase was missing information.</label>
+            <label for="elaboration">not enough information.</label>
           </div>
           <div>
             <input type="checkbox" id="simplification">
-            <label for="simplification">The original phrase had too much information.</label>
+            <label for="simplification">too much information.</label>
           </div>
           <div>
             <input type="checkbox" id="correction">
-            <label for="correction">The original phrase had a spelling or grammatical error.</label>
+            <label for="correction">a spelling or grammar error.</label>
           </div>
           <div>
             <input type="checkbox" id="style">
-            <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+            <label for="style">poor vocabulary, phrasing, voice or tone.</label>
           </div>
           <div>
             <input type="checkbox" id="formatting">
-            <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+            <label for="formatting">incorrect formatting.</label>
           </div>
+          <p>Or, the original phrase doesn't fit in any of the above categories, and more context and/or understanding of the topic...</p>
           <div>
             <input type="checkbox" id="more-info-needed">
-            <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+            <label for="more-info-needed">would let you make a decision.</label>
           </div>
           <div>
             <input type="checkbox" id="other" checked>
-            <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
+            <label for="other">would <strong>not</strong> help you make a decision.</label>
           </div>
         </form>
         <ul>
-          <li>Again, this change doesn't fit neatly into one of the categories. Changing from a <span class="removed">Sec.</span> to an <span class="added">Appendix</span> doesn't indicate redundant or missing information; it is not a spelling or grammatical error; there isn't a tone or voice issue; formatting is not a problem in the original phrase. More information about the context most likely wouldn't help, so choosing &ldquo;<em>It doesn't fit in any category, and more information would not help you make a decision.</em>&rdquo; is appropriate.</li>
+          <li>Again, this change doesn't fit neatly into one of the categories. Changing from a <span class="removed">Sec.</span> to an <span class="added">Appendix</span> doesn't indicate redundant or missing information; it is not a spelling or grammatical error; there isn't a tone or voice issue; formatting is not a problem in the original phrase. More context and/or understanding of the topic about the context most likely wouldn't help, so choosing &ldquo;<em>...would <strong>not</strong> help you make a decision.</em>&rdquo; is appropriate.</li>
         </ul>
       </div>
     </section>
@@ -340,49 +352,46 @@
   </main>
   <div id="answer-template">
     <form>
-      <p>Choose one or more reasons explaining why the original phrase needed editing.</p>
+
+      <p>The original phrase had...</p>
       <div>
         <input type="checkbox" id="elaboration">
-        <label for="elaboration">The original phrase was missing information.</label>
+        <label for="elaboration">not enough information.</label>
       </div>
       <div>
         <input type="checkbox" id="simplification">
-        <label for="simplification">The original phrase had too much information.</label>
+        <label for="simplification">too much information.</label>
       </div>
       <div>
         <input type="checkbox" id="correction">
-        <label for="correction">The original phrase had a spelling or grammatical error.</label>
+        <label for="correction">a spelling or grammar error.</label>
       </div>
       <div>
         <input type="checkbox" id="style">
-        <label for="style">The original phrase was hard to understand because of vocabulary, phrasing, voice or tone</label>
+        <label for="style">poor vocabulary, phrasing, voice or tone.</label>
       </div>
       <div>
         <input type="checkbox" id="formatting">
-        <label for="formatting">The original phrase was hard to understand because it didn't match the formatting conventions for the intended audience.</label>
+        <label for="formatting">incorrect formatting.</label>
       </div>
+      <p>Or, the original phrase doesn't fit in any of the above categories, and more context and/or understanding of the topic...</p>
       <div>
         <input type="checkbox" id="more-info-needed">
-        <label for="more-info-needed">It doesn't fit in any category, but more information would let you make a decision.</label>
+        <label for="more-info-needed">would let you make a decision.</label>
       </div>
       <div>
         <input type="checkbox" id="other">
-        <label for="other">It doesn't fit in any category, and more information would not help you make a decision.</label>
-      </div>
-      <hr />
-      <div>
-        <input type="text" id="difficulty1">
-        <label for="difficulty1">On a scale of 1 to 4 (1 being easy, 4 being hard), how hard was it to understand the first phrase?</label>
-      </div>
-      <div>
-        <input type="text" id="difficulty2">
-        <label for="difficulty2">On a scale of 1 to 4 (1 being easy, 4 being hard), how hard was it to understand the second phrase?</label>
+        <label for="other">would <strong>not</strong> help you make a decision.</label>
       </div>
     </form>
     <p>Explanation:</p>
     <hr class="writing-line" />
     <hr class="writing-line" />
     <hr class="writing-line" />
+    <div>
+      <input type="text" id="difficulty1">
+      <label for="difficulty1">On a scale of 1 to 4 (1 being easy, 4 being hard), how hard was it to label the original phrase?</label>
+    </div>
   </div>
 
   <style>
@@ -410,6 +419,7 @@
       font-size: 1.1rem;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       line-height: 1.4em;
+      margin-bottom: 2em;
     }
 
     div.question>p,
